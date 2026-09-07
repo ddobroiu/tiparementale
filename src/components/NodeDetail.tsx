@@ -142,7 +142,7 @@ export function NodeDetail({
 
   if (!data) {
     return (
-      <aside className="w-full border-l border-ink-line bg-ink-soft/60 p-6 backdrop-blur-md sm:w-[400px]">
+      <aside className="fixed inset-0 z-30 border-l border-ink-line bg-ink-soft/95 p-6 backdrop-blur-md sm:static sm:z-auto sm:w-[400px] sm:shrink-0 sm:bg-ink-soft/60">
         <p className="text-sm text-paper-faint">Se încarcă…</p>
       </aside>
     );
@@ -157,7 +157,7 @@ export function NodeDetail({
     : [];
 
   return (
-    <aside className="animate-fade-up w-full overflow-y-auto border-l border-ink-line bg-ink-soft/70 backdrop-blur-md sm:w-[400px]">
+    <aside className="animate-fade-up fixed inset-0 z-30 overflow-y-auto border-l border-ink-line bg-ink-soft/95 backdrop-blur-md sm:static sm:z-auto sm:w-[400px] sm:shrink-0 sm:bg-ink-soft/70">
       <div className="p-6">
         <div className="flex items-start justify-between gap-4">
           <div className="flex items-center gap-2">

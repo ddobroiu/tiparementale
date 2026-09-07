@@ -94,6 +94,14 @@ export function ChatPanel({ messages, pending, extracting, limit, onSend, onClos
           >
             Vezi ce s-a schimbat în hartă
           </button>
+          {limit.code === "no_sessions" && (
+            <a
+              href="/pachete"
+              className="mt-2 block rounded-xl border border-ink-line px-4 py-2.5 text-center text-sm text-paper-dim transition-colors hover:border-paper-faint hover:text-paper"
+            >
+              Vezi pachetele
+            </a>
+          )}
         </div>
       ) : (
       <form onSubmit={submit} className="flex gap-2 border-t border-ink-line p-3">

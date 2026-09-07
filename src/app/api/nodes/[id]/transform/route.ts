@@ -5,9 +5,9 @@ import { withUser } from "@/lib/db";
 import { TRANSFORMATION_MODEL, generateTransformation } from "@/lib/transformation/generate";
 import {
   canTransform,
-  countTransformation,
-  getEntitlement,
+  getWallet,
   recordUsage,
+  spendTransformation,
 } from "@/lib/billing/entitlement";
 import type { MindNode, Observation, Transformation } from "@/lib/types";
 
@@ -28,8 +28,8 @@ export async function POST(_request: Request, context: RouteContext<"/api/nodes/
 
   // Citim contextul și închidem tranzacția înainte de apelul la model.
   const source = await withUser(user.id, async (client) => {
-    const entitlement = await getEntitlement(client, user.id);
-    const decision = canTransform(entitlement);
+    const wallet = await getWallet(client, user.id);
+    const decision = canTransform(wallet);
     if (!decision.allowed) return { denied: decision };
 
     const { rows } = await client.query<MindNode>("select * from nodes where id = $1", [id]);
@@ -154,7 +154,7 @@ export async function POST(_request: Request, context: RouteContext<"/api/nodes/
       );
     }
 
-    await countTransformation(client, user.id);
+    await spendTransformation(client, user.id);
 
     return transformation;
   });

@@ -3,135 +3,99 @@ import type { PoolClient } from "pg";
 import { costMicro, type TokenUsage } from "./pricing";
 
 /**
- * Ce are voie să facă un cont acum, și cât a consumat.
+ * Ce are omul în portofel, acum.
  *
- * Verificarea se face *înainte* de apelul la model, nu după. Un plafon
+ * Fără abonament și fără perioade: ședințele se cumpără în pachete și nu
+ * expiră. Verificarea se face *înainte* de apelul la model — un plafon
  * verificat după ce ai plătit apelul nu este un plafon.
  */
 
-export type PlanCode = "free" | "explorare" | "lucru";
 export type UsageKind = "reply" | "extraction" | "transformation";
 
-export interface Entitlement {
-  plan: PlanCode;
-  planName: string;
-  priceEur: number;
-  sessionsIncluded: number;
-  sessionsUsed: number;
-  transformationsIncluded: number;
-  transformationsUsed: number;
-  maxTurnsPerSession: number;
+/** Cât ține o ședință. Aceeași pentru toți: se vând mai multe, nu mai lungi. */
+export const MAX_TURNS_PER_SESSION = 25;
+
+export interface Wallet {
+  sessionsLeft: number;
+  transformationsLeft: number;
   costCeilingMicro: number;
   costUsedMicro: number;
-  periodEnd: string;
 }
 
 interface Row extends Record<string, unknown> {
-  plan: PlanCode;
-  name: string;
-  price_eur: string;
-  sessions_included: number;
-  sessions_used: number;
-  transformations_included: number;
-  transformations_used: number;
-  max_turns_per_session: number;
+  sessions_balance: number;
+  transformations_balance: number;
   cost_ceiling_micro: string;
   cost_used_micro: string;
-  period_end: string;
 }
 
-/**
- * Citește dreptul curent, rulând perioada mai departe dacă a expirat.
- * Reînnoirea aici, la citire, ține locul unui job programat.
- */
-export async function getEntitlement(
-  client: PoolClient,
-  userId: string,
-): Promise<Entitlement> {
-  await client.query(
-    `update subscriptions
-        set period_start = now(),
-            period_end = now() + interval '30 days',
-            sessions_used = 0,
-            transformations_used = 0,
-            cost_used_micro = 0
-      where user_id = $1 and period_end < now()`,
-    [userId],
-  );
-
+export async function getWallet(client: PoolClient, userId: string): Promise<Wallet> {
   const { rows } = await client.query<Row>(
-    `select s.plan, p.name, p.price_eur, p.sessions_included, s.sessions_used,
-            p.transformations_included, s.transformations_used,
-            p.max_turns_per_session, p.cost_ceiling_micro, s.cost_used_micro,
-            s.period_end
-       from subscriptions s
-       join plans p on p.code = s.plan
-      where s.user_id = $1`,
+    `select sessions_balance, transformations_balance, cost_ceiling_micro, cost_used_micro
+       from wallets where user_id = $1`,
     [userId],
   );
 
   const row = rows[0];
+  if (!row) {
+    return {
+      sessionsLeft: 0,
+      transformationsLeft: 0,
+      costCeilingMicro: 0,
+      costUsedMicro: 0,
+    };
+  }
 
   return {
-    plan: row.plan,
-    planName: row.name,
-    priceEur: Number(row.price_eur),
-    sessionsIncluded: row.sessions_included,
-    sessionsUsed: row.sessions_used,
-    transformationsIncluded: row.transformations_included,
-    transformationsUsed: row.transformations_used,
-    maxTurnsPerSession: row.max_turns_per_session,
+    sessionsLeft: row.sessions_balance,
+    transformationsLeft: row.transformations_balance,
     costCeilingMicro: Number(row.cost_ceiling_micro),
     costUsedMicro: Number(row.cost_used_micro),
-    periodEnd: row.period_end,
   };
 }
 
 export type Denial = { allowed: false; reason: string; code: string };
-export type Allowance = { allowed: true };
-export type Decision = Allowance | Denial;
+export type Decision = { allowed: true } | Denial;
 
 /**
- * Plafonul de cost este ultima linie de apărare, verificată la fiecare apel.
- * Ședințele și transformările se pot epuiza din uz normal; plafonul se atinge
- * doar dacă ceva a scăpat de sub control.
+ * Plafonul de cost crește cu fiecare pachet cumpărat, deci nu poate depăși
+ * niciodată ce a plătit omul. Este ultima linie de apărare: ședințele se
+ * epuizează din uz normal, plafonul se atinge doar dacă ceva a scăpat de sub
+ * control.
  */
-function withinCostCeiling(entitlement: Entitlement): Decision {
-  if (entitlement.costUsedMicro >= entitlement.costCeilingMicro) {
+function withinCeiling(wallet: Wallet): Decision {
+  if (wallet.costUsedMicro >= wallet.costCeilingMicro) {
     return {
       allowed: false,
       code: "cost_ceiling",
       reason:
-        "Ai atins limita de consum pentru perioada aceasta. Se reînnoiește " +
-        "la începutul perioadei următoare.",
+        "Am atins o limită tehnică de siguranță pe contul tău. Scrie-ne și o " +
+        "ridicăm — nu pierzi nimic din ce ai cumpărat.",
     };
   }
   return { allowed: true };
 }
 
-export function canStartSession(entitlement: Entitlement): Decision {
-  const ceiling = withinCostCeiling(entitlement);
+export function canStartSession(wallet: Wallet): Decision {
+  const ceiling = withinCeiling(wallet);
   if (!ceiling.allowed) return ceiling;
 
-  if (entitlement.sessionsUsed >= entitlement.sessionsIncluded) {
+  if (wallet.sessionsLeft <= 0) {
     return {
       allowed: false,
       code: "no_sessions",
-      reason:
-        entitlement.plan === "free"
-          ? "Prima ședință s-a încheiat. Alege un plan ca să continui harta."
-          : "Ai folosit toate ședințele din perioada aceasta.",
+      reason: "Nu mai ai ședințe. Alege un pachet ca să continui harta.",
     };
   }
 
   return { allowed: true };
 }
 
-export function canContinueSession(entitlement: Entitlement, turns: number): Decision {
-  const ceiling = withinCostCeiling(entitlement);
+export function canContinueSession(wallet: Wallet, turns: number): Decision {
+  const ceiling = withinCeiling(wallet);
   if (!ceiling.allowed) return ceiling;
 
-  if (turns >= entitlement.maxTurnsPerSession) {
+  if (turns >= MAX_TURNS_PER_SESSION) {
     return {
       allowed: false,
       code: "session_full",
@@ -144,15 +108,15 @@ export function canContinueSession(entitlement: Entitlement, turns: number): Dec
   return { allowed: true };
 }
 
-export function canTransform(entitlement: Entitlement): Decision {
-  const ceiling = withinCostCeiling(entitlement);
+export function canTransform(wallet: Wallet): Decision {
+  const ceiling = withinCeiling(wallet);
   if (!ceiling.allowed) return ceiling;
 
-  if (entitlement.transformationsUsed >= entitlement.transformationsIncluded) {
+  if (wallet.transformationsLeft <= 0) {
     return {
       allowed: false,
       code: "no_transformations",
-      reason: "Ai folosit toate lucrările de transformare din perioada aceasta.",
+      reason: "Nu mai ai lucrări de transformare. Sunt incluse în orice pachet.",
     };
   }
 
@@ -192,26 +156,34 @@ export async function recordUsage(
   );
 
   await client.query(
-    "update subscriptions set cost_used_micro = cost_used_micro + $1 where user_id = $2",
+    "update wallets set cost_used_micro = cost_used_micro + $1 where user_id = $2",
     [cost, input.userId],
   );
 
   return cost;
 }
 
-export async function countSession(client: PoolClient, userId: string): Promise<void> {
-  await client.query(
-    "update subscriptions set sessions_used = sessions_used + 1 where user_id = $1",
+/**
+ * Scade o ședință. Condiția din `where` face scăderea atomică: două cereri
+ * pornite în același timp nu pot consuma amândouă ultima ședință.
+ */
+export async function spendSession(client: PoolClient, userId: string): Promise<boolean> {
+  const { rowCount } = await client.query(
+    `update wallets set sessions_balance = sessions_balance - 1
+      where user_id = $1 and sessions_balance > 0`,
     [userId],
   );
+  return rowCount === 1;
 }
 
-export async function countTransformation(
+export async function spendTransformation(
   client: PoolClient,
   userId: string,
-): Promise<void> {
-  await client.query(
-    "update subscriptions set transformations_used = transformations_used + 1 where user_id = $1",
+): Promise<boolean> {
+  const { rowCount } = await client.query(
+    `update wallets set transformations_balance = transformations_balance - 1
+      where user_id = $1 and transformations_balance > 0`,
     [userId],
   );
+  return rowCount === 1;
 }

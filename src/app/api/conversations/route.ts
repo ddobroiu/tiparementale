@@ -1,7 +1,7 @@
 import { NextResponse } from "next/server";
 
 import { getSessionUser } from "@/lib/auth";
-import { canStartSession, countSession, getEntitlement } from "@/lib/billing/entitlement";
+import { canStartSession, getWallet, spendSession } from "@/lib/billing/entitlement";
 import { withUser } from "@/lib/db";
 import { findTopic } from "@/lib/topics";
 import { EXPLORABLE_DOMAINS, type LifeDomain } from "@/lib/types";
@@ -26,9 +26,19 @@ export async function POST(request: Request) {
     : null;
 
   const outcome = await withUser(user.id, async (client) => {
-    const entitlement = await getEntitlement(client, user.id);
-    const decision = canStartSession(entitlement);
+    const wallet = await getWallet(client, user.id);
+    const decision = canStartSession(wallet);
     if (!decision.allowed) return { denied: decision };
+
+    if (!(await spendSession(client, user.id))) {
+      return {
+        denied: {
+          allowed: false as const,
+          code: "no_sessions",
+          reason: "Nu mai ai ședințe. Alege un pachet ca să continui harta.",
+        },
+      };
+    }
 
     const { rows } = await client.query<{ id: string }>(
       "insert into conversations (user_id, domain) values ($1, $2) returning id",
@@ -43,8 +53,6 @@ export async function POST(request: Request) {
         [user.id, conversationId, topic.opener],
       );
     }
-
-    await countSession(client, user.id);
 
     return { denied: null, conversationId, opener: topic?.opener ?? null };
   });

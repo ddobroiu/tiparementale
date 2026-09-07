@@ -10,13 +10,13 @@ import { NodeDetail } from "./NodeDetail";
 import { Logo } from "./Logo";
 import { TopicPicker } from "./TopicPicker";
 import { MapLegend } from "./MapLegend";
+import { MapFilters, NO_FILTERS, applyFilters, type Filters } from "./MapFilters";
 import type { Topic } from "@/lib/topics";
 import type { LifeDomain } from "@/lib/types";
 
 export interface AccountSummary {
   sessionsLeft: number;
-  sessionsIncluded: number;
-  planName: string;
+  transformationsLeft: number;
 }
 
 interface Props {
@@ -44,6 +44,7 @@ export function MapView({ initialNodes, initialEdges, initialAccount }: Props) {
   const [safety, setSafety] = useState<SafetyFlag>("none");
   const [highlighted, setHighlighted] = useState<Set<string>>(new Set());
   const [limit, setLimit] = useState<{ reason: string; code: string } | null>(null);
+  const [filters, setFilters] = useState<Filters>(NO_FILTERS);
   // Contul vine de pe server, cu prima randare: fără efect la montare și fără
   // licărire în care numărul de ședințe lipsește.
   const [account, setAccount] = useState<AccountSummary>(initialAccount);
@@ -172,23 +173,35 @@ export function MapView({ initialNodes, initialEdges, initialAccount }: Props) {
     void loadAccount();
   }
 
+  // Filtrele taie și muchiile: o legătură către un nod ascuns ar rămâne
+  // atârnând în gol.
+  const visibleNodes = applyFilters(nodes, filters);
+  const visibleIds = new Set(visibleNodes.map((n) => n.id));
+  const visibleEdges = edges.filter(
+    (e) => visibleIds.has(e.from_node) && visibleIds.has(e.to_node),
+  );
+
   return (
     <div className="flex h-screen flex-col overflow-hidden sm:flex-row">
       <div className="relative min-w-0 flex-1">
-        <header className="absolute inset-x-0 top-0 z-10 flex items-center justify-between px-6 py-5">
+        <header className="absolute inset-x-0 top-0 z-10 flex items-center justify-between px-4 py-4 sm:px-6 sm:py-5">
           <Link href="/">
             <Logo />
           </Link>
           <span className="text-xs text-paper-faint">
-            {nodes.length} {nodes.length === 1 ? "element" : "elemente"}
+            <span className="hidden sm:inline">
+              {visibleNodes.length}
+              {visibleNodes.length !== nodes.length && ` din `}{" "}
+              {nodes.length === 1 ? "element" : "elemente"}
+            </span>
             <span className="mx-2">·</span>
-            {account.sessionsLeft}/{account.sessionsIncluded} ședințe
+            {account.sessionsLeft} {account.sessionsLeft === 1 ? "ședință" : "ședințe"}
           </span>
         </header>
 
         <MindMap
-          nodes={nodes}
-          edges={edges}
+          nodes={visibleNodes}
+          edges={visibleEdges}
           selectedId={selectedId}
           onSelect={setSelectedId}
           highlighted={highlighted}
@@ -245,7 +258,13 @@ export function MapView({ initialNodes, initialEdges, initialAccount }: Props) {
           </div>
         )}
 
-        {nodes.length > 0 && <MapLegend nodes={nodes} />}
+        <MapFilters nodes={nodes} filters={filters} onChange={setFilters} />
+
+        {nodes.length > 0 && (
+          <div className="hidden sm:block">
+            <MapLegend nodes={visibleNodes} />
+          </div>
+        )}
 
         {!chatOpen && (
           <div className="pointer-events-none absolute inset-x-0 bottom-0 flex justify-center p-4 sm:p-6">

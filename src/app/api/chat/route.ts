@@ -2,11 +2,12 @@ import { NextResponse } from "next/server";
 
 import { getSessionUser } from "@/lib/auth";
 import {
+  MAX_TURNS_PER_SESSION,
   canContinueSession,
   canStartSession,
-  countSession,
-  getEntitlement,
+  getWallet,
   recordUsage,
+  spendSession,
 } from "@/lib/billing/entitlement";
 import { REPLY_MODEL, runReply } from "@/lib/conversation/reply";
 import { EXTRACTION_THRESHOLD } from "@/lib/models";
@@ -41,7 +42,7 @@ export async function POST(request: Request) {
   const requestedConversation: string | null = body?.conversationId ?? null;
 
   const context = await withUser(user.id, async (client) => {
-    const entitlement = await getEntitlement(client, user.id);
+    const wallet = await getWallet(client, user.id);
 
     let conversationId = requestedConversation;
     let turns = 0;
@@ -60,18 +61,29 @@ export async function POST(request: Request) {
 
     // Ședință nouă: se cere una din cele incluse în plan.
     if (!conversationId) {
-      const decision = canStartSession(entitlement);
-      if (!decision.allowed) return { denied: decision, entitlement };
+      const decision = canStartSession(wallet);
+      if (!decision.allowed) return { denied: decision };
+
+      // Scăderea atomică e cea care decide: dacă nu a mers, altcineva a luat
+      // ultima ședință între verificare și aici.
+      if (!(await spendSession(client, user.id))) {
+        return {
+          denied: {
+            allowed: false as const,
+            code: "no_sessions",
+            reason: "Nu mai ai ședințe. Alege un pachet ca să continui harta.",
+          },
+        };
+      }
 
       const { rows } = await client.query<{ id: string }>(
         "insert into conversations (user_id) values ($1) returning id",
         [user.id],
       );
       conversationId = rows[0].id;
-      await countSession(client, user.id);
     } else {
-      const decision = canContinueSession(entitlement, turns);
-      if (!decision.allowed) return { denied: decision, entitlement };
+      const decision = canContinueSession(wallet, turns);
+      if (!decision.allowed) return { denied: decision };
     }
 
     const { rows: saved } = await client.query<{ id: string }>(
@@ -99,7 +111,6 @@ export async function POST(request: Request) {
 
     return {
       denied: null,
-      entitlement,
       conversationId,
       turns: turns + 1,
       nodes,
@@ -153,6 +164,6 @@ export async function POST(request: Request) {
     safetyFlag,
     domainInFocus: result.ok ? result.reply.domain_in_focus : null,
     extractionDue: after >= EXTRACTION_THRESHOLD,
-    turnsLeft: context.entitlement.maxTurnsPerSession - context.turns,
+    turnsLeft: MAX_TURNS_PER_SESSION - context.turns,
   });
 }

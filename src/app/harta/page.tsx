@@ -2,7 +2,7 @@ import { redirect } from "next/navigation";
 
 import { MapView } from "@/components/MapView";
 import { getSessionUser } from "@/lib/auth";
-import { getEntitlement } from "@/lib/billing/entitlement";
+import { getWallet } from "@/lib/billing/entitlement";
 import { withUser } from "@/lib/db";
 import type { Edge, MindNode } from "@/lib/types";
 
@@ -15,8 +15,8 @@ export default async function HartaPage() {
       "select * from nodes where archived_at is null order by created_at",
     );
     const { rows: edges } = await client.query<Edge>("select * from edges");
-    const entitlement = await getEntitlement(client, user.id);
-    return { nodes, edges, entitlement };
+    const wallet = await getWallet(client, user.id);
+    return { nodes, edges, wallet };
   });
 
   return (
@@ -24,12 +24,8 @@ export default async function HartaPage() {
       initialNodes={data.nodes}
       initialEdges={data.edges}
       initialAccount={{
-        planName: data.entitlement.planName,
-        sessionsIncluded: data.entitlement.sessionsIncluded,
-        sessionsLeft: Math.max(
-          0,
-          data.entitlement.sessionsIncluded - data.entitlement.sessionsUsed,
-        ),
+        sessionsLeft: data.wallet.sessionsLeft,
+        transformationsLeft: data.wallet.transformationsLeft,
       }}
     />
   );
