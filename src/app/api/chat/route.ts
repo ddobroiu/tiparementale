@@ -9,13 +9,14 @@ import {
   recordUsage,
 } from "@/lib/billing/entitlement";
 import { REPLY_MODEL, runReply } from "@/lib/conversation/reply";
+import { EXTRACTION_THRESHOLD } from "@/lib/models";
 import { withUser } from "@/lib/db";
 import type { MindNode } from "@/lib/types";
 
 const HISTORY_LIMIT = 12;
 
-/** După câte replici neprelucrate merită pornită extracția. */
-const EXTRACTION_THRESHOLD = 4;
+
+
 
 /**
  * Calea fierbinte: doar replica din conversație.

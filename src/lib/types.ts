@@ -13,6 +13,7 @@ export type LifeDomain =
   | "health"
   | "work"
   | "family"
+  | "children"
   | "self"
   | "meaning"
   | "other";
@@ -51,6 +52,7 @@ export const DOMAIN_LABELS: Record<LifeDomain, string> = {
   health: "Sănătate",
   work: "Muncă",
   family: "Familie",
+  children: "Copii",
   self: "Sine",
   meaning: "Sens",
   other: "Altele",
@@ -62,6 +64,7 @@ export const DOMAIN_COLORS: Record<LifeDomain, string> = {
   health: "#a0e7c4",
   work: "#a2d6f9",
   family: "#d8a0c4",
+  children: "#f2a1b5",
   self: "#c8b6ff",
   meaning: "#b8c9e8",
   other: "#9a98a5",
@@ -74,6 +77,7 @@ export const EXPLORABLE_DOMAINS: LifeDomain[] = [
   "health",
   "work",
   "family",
+  "children",
   "self",
   "meaning",
 ];

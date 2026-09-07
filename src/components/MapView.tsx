@@ -7,6 +7,11 @@ import type { Edge, MapDiff, MindNode, SafetyFlag } from "@/lib/types";
 import { ChatPanel, type ChatMessage } from "./ChatPanel";
 import { MindMap } from "./MindMap";
 import { NodeDetail } from "./NodeDetail";
+import { Logo } from "./Logo";
+import { TopicPicker } from "./TopicPicker";
+import { MapLegend } from "./MapLegend";
+import type { Topic } from "@/lib/topics";
+import type { LifeDomain } from "@/lib/types";
 
 export interface AccountSummary {
   sessionsLeft: number;
@@ -130,6 +135,33 @@ export function MapView({ initialNodes, initialEdges, initialAccount }: Props) {
     }
   }
 
+  /** Deschide o ședință pe un subiect ales, cu întrebarea gata formulată. */
+  async function startTopic(topic: Topic, domain: LifeDomain) {
+    setPending(true);
+    try {
+      const res = await fetch("/api/conversations", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ topicId: topic.id, domain }),
+      });
+      const data = await res.json();
+
+      if (res.status === 402) {
+        setLimit({ reason: data.error, code: data.code });
+        setChatOpen(true);
+        return;
+      }
+      if (!res.ok) return;
+
+      setConversationId(data.conversationId);
+      setMessages(data.opener ? [{ role: "assistant", content: data.opener }] : []);
+      setChatOpen(true);
+      void loadAccount();
+    } finally {
+      setPending(false);
+    }
+  }
+
   /** Închiderea conversației te lasă în hartă, cu tot ce s-a spus prelucrat. */
   async function closeChat() {
     setChatOpen(false);
@@ -144,8 +176,8 @@ export function MapView({ initialNodes, initialEdges, initialAccount }: Props) {
     <div className="flex h-screen flex-col overflow-hidden sm:flex-row">
       <div className="relative min-w-0 flex-1">
         <header className="absolute inset-x-0 top-0 z-10 flex items-center justify-between px-6 py-5">
-          <Link href="/" className="font-serif text-lg tracking-tight">
-            Tipare Mentale
+          <Link href="/">
+            <Logo />
           </Link>
           <span className="text-xs text-paper-faint">
             {nodes.length} {nodes.length === 1 ? "element" : "elemente"}
@@ -213,14 +245,16 @@ export function MapView({ initialNodes, initialEdges, initialAccount }: Props) {
           </div>
         )}
 
+        {nodes.length > 0 && <MapLegend nodes={nodes} />}
+
         {!chatOpen && (
-          <div className="pointer-events-none absolute inset-x-0 bottom-0 flex justify-center p-6">
-            <button
-              onClick={() => setChatOpen(true)}
-              className="pointer-events-auto rounded-full bg-paper px-6 py-3 text-sm font-medium text-ink shadow-lg transition-opacity hover:opacity-90"
-            >
-              Vorbește liber
-            </button>
+          <div className="pointer-events-none absolute inset-x-0 bottom-0 flex justify-center p-4 sm:p-6">
+            <TopicPicker
+              nodes={nodes}
+              busy={pending}
+              onFree={() => setChatOpen(true)}
+              onTopic={startTopic}
+            />
           </div>
         )}
       </div>

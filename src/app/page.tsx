@@ -1,12 +1,13 @@
 import Link from "next/link";
 
 import { LandingSteps } from "@/components/LandingSteps";
+import { Logo } from "@/components/Logo";
 
 export default function Home() {
   return (
     <main className="min-h-screen">
       <header className="mx-auto flex max-w-6xl items-center justify-between px-6 py-6">
-        <span className="font-serif text-lg tracking-tight">Tipare Mentale</span>
+        <Logo />
         <Link
           href="/intra"
           className="rounded-full border border-ink-line px-4 py-1.5 text-sm text-paper-dim transition-colors hover:border-paper-faint hover:text-paper"
@@ -59,7 +60,7 @@ export default function Home() {
 
       <footer className="border-t border-ink-line">
         <div className="mx-auto flex max-w-6xl flex-wrap items-center justify-between gap-4 px-6 py-8 text-sm text-paper-faint">
-          <span>Tipare Mentale</span>
+          <Logo />
           <span>
             Dacă treci printr-un moment greu: Antisuicid 0800 801 200, gratuit, non-stop.
           </span>

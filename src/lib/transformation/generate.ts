@@ -5,10 +5,9 @@ import * as z from "zod/v4";
 import { DOMAIN_LABELS, NODE_TYPE_LABELS, displayLabel } from "@/lib/types";
 import type { MindNode, Observation } from "@/lib/types";
 import { readUsage, type TokenUsage } from "@/lib/billing/pricing";
+import { MODELS, reasoningFor } from "@/lib/models";
 
-const MODEL = "claude-opus-5";
-
-export const TRANSFORMATION_MODEL = MODEL;
+export const TRANSFORMATION_MODEL = MODELS.transformation;
 
 let client: Anthropic | null = null;
 function anthropic(): Anthropic {
@@ -123,10 +122,12 @@ export async function generateTransformation(
     .filter(Boolean)
     .join("\n");
 
+  const { thinking, effort } = reasoningFor(MODELS.transformation, "high");
+
   const response = await anthropic().messages.parse({
-    model: MODEL,
+    model: MODELS.transformation,
     max_tokens: 16000,
-    thinking: { type: "adaptive" },
+    ...(thinking ? { thinking } : {}),
     system: [
       {
         type: "text",
@@ -135,7 +136,10 @@ export async function generateTransformation(
       },
     ],
     messages: [{ role: "user", content: context }],
-    output_config: { format: zodOutputFormat(TransformationSchema) },
+    output_config: {
+      ...(effort ? { effort } : {}),
+      format: zodOutputFormat(TransformationSchema),
+    },
   });
 
   const usage = readUsage(response.usage);

@@ -14,6 +14,7 @@ import { useMemo, useRef, useState } from "react";
 
 import type { Edge, LifeDomain, MindNode } from "@/lib/types";
 import { BrainBackdrop } from "./BrainBackdrop";
+import { NodeGlyph } from "./NodeGlyph";
 import { DOMAIN_COLORS, DOMAIN_LABELS, changeDegree, displayLabel } from "@/lib/types";
 
 const WIDTH = 1000;
@@ -255,15 +256,15 @@ export function MindMap({ nodes, edges, selectedId, onSelect, highlighted }: Pro
                   strokeDasharray="2 5"
                 />
               )}
-              <circle
+              {/* Forma spune ce fel de lucru este; culoarea, din ce zonă vine. */}
+              <NodeGlyph
+                type={node.type}
                 r={r}
-                fill={DOMAIN_COLORS[node.domain]}
+                color={DOMAIN_COLORS[node.domain]}
                 fillOpacity={isSelected ? 0.3 : 0.14}
-                stroke={DOMAIN_COLORS[node.domain]}
                 strokeOpacity={isConfirmed ? 0.95 : 0.42}
                 strokeWidth={isConfirmed ? 2 : 1}
-                strokeDasharray={isConfirmed ? undefined : "3 3"}
-                className="transition-all duration-500"
+                dashed={!isConfirmed}
               />
               <text
                 y={r + 18}

@@ -5,6 +5,7 @@ import type { LifeDomain, MindNode } from "@/lib/types";
 import { DOMAIN_LABELS, EXPLORABLE_DOMAINS, displayLabel } from "@/lib/types";
 import { ReplySchema, type Reply } from "@/lib/extraction/schema";
 import { readUsage, type TokenUsage } from "@/lib/billing/pricing";
+import { MODELS, reasoningFor } from "@/lib/models";
 
 /**
  * Calea fierbinte: replica din conversație, cerută de zeci de ori pe sesiune.
@@ -18,7 +19,6 @@ import { readUsage, type TokenUsage } from "@/lib/billing/pricing";
  * întrebe ce știe deja — și răspunde scurt.
  */
 
-const MODEL = "claude-sonnet-5";
 const HISTORY_TURNS = 12;
 
 let client: Anthropic | null = null;
@@ -121,7 +121,7 @@ export interface ReplyInput {
   message: string;
 }
 
-export const REPLY_MODEL = MODEL;
+export const REPLY_MODEL = MODELS.reply;
 
 interface Metered {
   usage: TokenUsage;
@@ -131,14 +131,17 @@ export type ReplyResult = Metered &
   ({ ok: true; reply: Reply } | { ok: false; reply: string; safety: "crisis" | "none" });
 
 export async function runReply(input: ReplyInput): Promise<ReplyResult> {
+  // Gândire adaptivă la efort redus, acolo unde modelul o cunoaște: se oprește
+  // să cântărească doar când chiar are de ales întrebarea, nu la fiecare „da,
+  // înțeleg". Pe modelele care nu o cunosc, lipsește cu totul.
+  const { thinking, effort } = reasoningFor(MODELS.reply, "low");
+
   const response = await anthropic().messages.parse({
-    model: MODEL,
+    model: MODELS.reply,
     max_tokens: 2000,
-    // Gândire adaptivă la efort redus: modelul se oprește să cântărească doar
-    // când chiar are de ales întrebarea, nu la fiecare „da, înțeleg".
-    thinking: { type: "adaptive" },
+    ...(thinking ? { thinking } : {}),
     output_config: {
-      effort: "low",
+      ...(effort ? { effort } : {}),
       format: zodOutputFormat(ReplySchema),
     },
     system: [

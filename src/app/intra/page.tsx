@@ -1,6 +1,8 @@
 "use client";
 
 import Link from "next/link";
+
+import { Logo } from "@/components/Logo";
 import { useRouter, useSearchParams } from "next/navigation";
 import { Suspense, useState } from "react";
 
@@ -114,8 +116,8 @@ export default function IntraPage() {
   return (
     <main className="flex min-h-screen flex-col">
       <header className="mx-auto flex w-full max-w-6xl items-center px-6 py-6">
-        <Link href="/" className="font-serif text-lg tracking-tight">
-          Tipare Mentale
+        <Link href="/">
+          <Logo />
         </Link>
       </header>
 

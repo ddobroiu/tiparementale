@@ -5,6 +5,7 @@ import type { MindNode } from "@/lib/types";
 import { ExtractionSchema, type Extraction } from "./schema";
 import { SYSTEM_INSTRUCTIONS, buildGraphIndex } from "./prompt";
 import { readUsage, type TokenUsage } from "@/lib/billing/pricing";
+import { MODELS, reasoningFor } from "@/lib/models";
 
 /**
  * Munca grea: ce este convingere, ce se unește cu ce, ce se leagă de ce.
@@ -13,8 +14,6 @@ import { readUsage, type TokenUsage } from "@/lib/billing/pricing";
  * mai multe mesaje odată. Costul indexului complet se împarte astfel la toate
  * replicile din bucată, în loc să fie plătit de fiecare.
  */
-
-const MODEL = "claude-opus-5";
 
 let client: Anthropic | null = null;
 function anthropic(): Anthropic {
@@ -28,7 +27,7 @@ export interface ExtractionInput {
   exchanges: Array<{ role: "user" | "assistant"; content: string }>;
 }
 
-export const EXTRACTION_MODEL = MODEL;
+export const EXTRACTION_MODEL = MODELS.extraction;
 
 export type ExtractionResult = { usage: TokenUsage } &
   ({ ok: true; extraction: Extraction } | { ok: false; reason: "refusal" | "unparsable" });
@@ -51,10 +50,12 @@ export async function runExtraction(input: ExtractionInput): Promise<ExtractionR
     .map((m) => `${m.role === "user" ? "EL" : "TU"}: ${m.content}`)
     .join("\n\n");
 
+  const { thinking, effort } = reasoningFor(MODELS.extraction, "high");
+
   const response = await anthropic().messages.parse({
-    model: MODEL,
+    model: MODELS.extraction,
     max_tokens: 16000,
-    thinking: { type: "adaptive" },
+    ...(thinking ? { thinking } : {}),
     system: [
       {
         type: "text",
@@ -76,7 +77,10 @@ export async function runExtraction(input: ExtractionInput): Promise<ExtractionR
           `(marcate „EL”), nu din ale interlocutorului.\n\n${transcript}`,
       },
     ],
-    output_config: { format: zodOutputFormat(ExtractionSchema) },
+    output_config: {
+      ...(effort ? { effort } : {}),
+      format: zodOutputFormat(ExtractionSchema),
+    },
   });
 
   const usage = readUsage(response.usage);
