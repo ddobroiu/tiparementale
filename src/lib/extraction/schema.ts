@@ -1,7 +1,11 @@
 import * as z from "zod/v4";
 
 /**
- * Forma ieșirii structurate a extracției.
+ * Două ieșiri structurate, pentru două meserii diferite.
+ *
+ * `ReplySchema` este calea fierbinte: se cere la fiecare replică, deci trebuie
+ * să fie mică. `ExtractionSchema` rulează rar, pe mai multe mesaje odată, și
+ * își permite să fie bogată.
  *
  * Fără câmpuri opționale — structured outputs cere scheme stricte, deci
  * absența se exprimă prin `null`, nu prin lipsa cheii.
@@ -29,21 +33,43 @@ export const DomainEnum = z.enum([
   "other",
 ]);
 
+export const SafetyEnum = z
+  .enum(["none", "distress", "crisis"])
+  .describe(
+    "„distress” pentru suferință intensă; „crisis” doar pentru risc de " +
+      "autovătămare, ideație suicidară sau abuz în desfășurare.",
+  );
+
+// ---------------------------------------------------------------- conversație
+
+export const ReplySchema = z.object({
+  reply: z
+    .string()
+    .describe(
+      "Replica ta: două-trei propoziții, apoi o singură întrebare. Caldă, " +
+        "curioasă, în limbajul lui. Fără jargon, fără sfaturi, fără să reciți harta.",
+    ),
+  domain_in_focus: DomainEnum.describe("Domeniul pe care îl explorezi acum."),
+  safety_flag: SafetyEnum,
+});
+
+export type Reply = z.infer<typeof ReplySchema>;
+
+// ---------------------------------------------------------------- extracție
+
 /** Unitatea atomică de adevăr: ce s-a observat și din ce cuvinte anume. */
 export const ObservationSchema = z.object({
   quote: z
     .string()
     .describe(
-      "Citat exact din mesajul utilizatorului, cuvânt cu cuvânt. Nu parafraza. " +
+      "Citat exact din ce a spus el, cuvânt cu cuvânt. Nu parafraza. " +
         "Acesta este răspunsul la întrebarea „de unde știi asta despre mine?”.",
     ),
   sentiment: z
     .string()
     .nullable()
     .describe("Un singur cuvânt pentru tonul emoțional, sau null."),
-  valence: z
-    .number()
-    .describe("De la -1 (foarte negativ) la 1 (foarte pozitiv)."),
+  valence: z.number().describe("De la -1 (foarte negativ) la 1 (foarte pozitiv)."),
 });
 
 export const NewNodeSchema = z.object({
@@ -58,7 +84,7 @@ export const NewNodeSchema = z.object({
   label: z
     .string()
     .describe(
-      "Formularea nodului, scurtă, la persoana întâi, în limbajul utilizatorului. " +
+      "Formularea nodului, scurtă, la persoana întâi, în limbajul lui. " +
         "De exemplu: „Trebuie să fiu perfect ca să merit”.",
     ),
   summary: z.string().describe("O propoziție care explică nodul."),
@@ -95,23 +121,9 @@ export const NewEdgeSchema = z.object({
 });
 
 export const ExtractionSchema = z.object({
-  reply: z
-    .string()
-    .describe(
-      "Replica ta în conversație: două-trei propoziții, apoi o singură " +
-        "întrebare. Caldă, curioasă, în limbajul lui. Fără jargon, fără " +
-        "sfaturi, fără să reciți harta.",
-    ),
-  domain_in_focus: DomainEnum.describe("Domeniul pe care îl explorezi acum."),
   new_nodes: z.array(NewNodeSchema),
   node_updates: z.array(NodeUpdateSchema),
   new_edges: z.array(NewEdgeSchema),
-  safety_flag: z
-    .enum(["none", "distress", "crisis"])
-    .describe(
-      "„distress” pentru suferință intensă; „crisis” doar pentru risc de " +
-        "autovătămare, ideație suicidară sau abuz în desfășurare.",
-    ),
 });
 
 export type Extraction = z.infer<typeof ExtractionSchema>;

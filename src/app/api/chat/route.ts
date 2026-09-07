@@ -1,13 +1,22 @@
 import { NextResponse } from "next/server";
 
 import { getSessionUser } from "@/lib/auth";
+import { runReply } from "@/lib/conversation/reply";
 import { withUser } from "@/lib/db";
-import { applyExtraction } from "@/lib/extraction/apply";
-import { runExtraction } from "@/lib/extraction/extract";
 import type { MindNode } from "@/lib/types";
 
-const HISTORY_LIMIT = 10;
+const HISTORY_LIMIT = 12;
 
+/** După câte replici neprelucrate merită pornită extracția. */
+const EXTRACTION_THRESHOLD = 4;
+
+/**
+ * Calea fierbinte: doar replica din conversație.
+ *
+ * Extracția nu se face aici. Ea rulează separat, pe mai multe mesaje odată,
+ * prin `/api/conversations/[id]/extract`, iar răspunsul de mai jos spune
+ * clientului când e momentul s-o pornească.
+ */
 export async function POST(request: Request) {
   const user = await getSessionUser();
   if (!user) {
@@ -24,8 +33,6 @@ export async function POST(request: Request) {
   const inputMode = body?.inputMode === "voice" ? "voice" : "text";
   const requestedConversation: string | null = body?.conversationId ?? null;
 
-  // Prima tranzacție: salvăm mesajul și citim contextul. Se închide înainte de
-  // apelul la model, ca să nu ținem o conexiune blocată câteva secunde.
   const context = await withUser(user.id, async (client) => {
     let conversationId = requestedConversation;
 
@@ -64,53 +71,39 @@ export async function POST(request: Request) {
       [conversationId, saved[0].id, HISTORY_LIMIT],
     );
 
-    return {
-      conversationId,
-      messageId: saved[0].id,
-      nodes,
-      history: history.reverse(),
-    };
+    return { conversationId, nodes, history: history.reverse() };
   });
 
-  // ------------------------------------------------------------ extracție
-
-  const result = await runExtraction({
+  const result = await runReply({
     nodes: context.nodes,
     history: context.history,
     message,
   });
 
-  // A doua tranzacție: scriem ce a rezultat.
-  const outcome = await withUser(user.id, async (client) => {
-    const reply = result.ok ? result.extraction.reply : result.reply;
+  const reply = result.ok ? result.reply.reply : result.reply;
+  const safetyFlag = result.ok ? result.reply.safety_flag : result.safety;
 
-    const diff = result.ok
-      ? await applyExtraction({
-          client,
-          userId: user.id,
-          messageId: context.messageId,
-          extraction: result.extraction,
-          knownNodes: context.nodes,
-        })
-      : { created: [], strengthened: [], connected: [] };
-
+  const pending = await withUser(user.id, async (client) => {
     await client.query(
       `insert into messages (user_id, conversation_id, role, content)
        values ($1, $2, 'assistant', $3)`,
       [user.id, context.conversationId, reply],
     );
 
-    return { reply, diff };
+    const { rows } = await client.query<{ n: string }>(
+      `select count(*) as n from messages
+        where conversation_id = $1 and role = 'user' and extracted_at is null`,
+      [context.conversationId],
+    );
+
+    return Number(rows[0].n);
   });
 
   return NextResponse.json({
     conversationId: context.conversationId,
-    reply: outcome.reply,
-    diff: outcome.diff,
-    safetyFlag: result.ok
-      ? result.extraction.safety_flag
-      : result.reason === "refusal"
-        ? "crisis"
-        : "none",
+    reply,
+    safetyFlag,
+    domainInFocus: result.ok ? result.reply.domain_in_focus : null,
+    extractionDue: pending >= EXTRACTION_THRESHOLD,
   });
 }

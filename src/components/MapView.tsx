@@ -13,6 +13,12 @@ interface Props {
   initialEdges: Edge[];
 }
 
+const EMPTY_DIFF: MapDiff = { created: [], strengthened: [], connected: [] };
+
+function diffSize(diff: MapDiff): number {
+  return diff.created.length + diff.strengthened.length + diff.connected.length;
+}
+
 export function MapView({ initialNodes, initialEdges }: Props) {
   const [nodes, setNodes] = useState(initialNodes);
   const [edges, setEdges] = useState(initialEdges);
@@ -20,6 +26,7 @@ export function MapView({ initialNodes, initialEdges }: Props) {
   const [chatOpen, setChatOpen] = useState(initialNodes.length === 0);
   const [messages, setMessages] = useState<ChatMessage[]>([]);
   const [pending, setPending] = useState(false);
+  const [extracting, setExtracting] = useState(false);
   const [conversationId, setConversationId] = useState<string | null>(null);
   const [diff, setDiff] = useState<MapDiff | null>(null);
   const [safety, setSafety] = useState<SafetyFlag>("none");
@@ -32,6 +39,33 @@ export function MapView({ initialNodes, initialEdges }: Props) {
     setNodes(data.nodes);
     setEdges(data.edges);
   }, []);
+
+  /**
+   * Extracția rulează separat de conversație, pe mai multe replici odată.
+   * Harta se schimbă astfel în salturi vizibile, nu în micro-mișcări după
+   * fiecare propoziție.
+   */
+  const runExtraction = useCallback(
+    async (id: string) => {
+      setExtracting(true);
+      try {
+        const res = await fetch(`/api/conversations/${id}/extract`, { method: "POST" });
+        if (!res.ok) return;
+
+        const data = await res.json();
+        const mapDiff: MapDiff = data.diff ?? EMPTY_DIFF;
+
+        if (diffSize(mapDiff) > 0) {
+          setHighlighted(new Set(mapDiff.created.map((n) => n.id)));
+          setDiff(mapDiff);
+          await reload();
+        }
+      } finally {
+        setExtracting(false);
+      }
+    },
+    [reload],
+  );
 
   async function send(text: string) {
     setMessages((m) => [...m, { role: "user", content: text }]);
@@ -57,28 +91,21 @@ export function MapView({ initialNodes, initialEdges }: Props) {
       setMessages((m) => [...m, { role: "assistant", content: data.reply }]);
       setSafety(data.safetyFlag ?? "none");
 
-      const mapDiff = data.diff as MapDiff;
-      const changed =
-        mapDiff.created.length + mapDiff.strengthened.length + mapDiff.connected.length;
-
-      if (changed > 0) {
-        setHighlighted(new Set(mapDiff.created.map((n) => n.id)));
-        setDiff(mapDiff);
-        await reload();
-      }
+      if (data.extractionDue) void runExtraction(data.conversationId);
     } finally {
       setPending(false);
     }
   }
 
-  /** Închiderea conversației te lasă întotdeauna în hartă, cu ce s-a schimbat. */
-  function closeChat() {
+  /** Închiderea conversației te lasă în hartă, cu tot ce s-a spus prelucrat. */
+  async function closeChat() {
     setChatOpen(false);
+    if (conversationId) await runExtraction(conversationId);
   }
 
   return (
-    <div className="relative flex h-screen overflow-hidden">
-      <div className="relative flex-1">
+    <div className="flex h-screen flex-col overflow-hidden sm:flex-row">
+      <div className="relative min-w-0 flex-1">
         <header className="absolute inset-x-0 top-0 z-10 flex items-center justify-between px-6 py-5">
           <Link href="/" className="font-serif text-lg tracking-tight">
             Tipare Mentale
@@ -97,7 +124,7 @@ export function MapView({ initialNodes, initialEdges }: Props) {
         />
 
         {/* Momentul în care harta arată ce s-a schimbat. */}
-        {diff && !chatOpen && (
+        {diff && (
           <div className="animate-fade-up absolute top-20 left-1/2 w-[min(92vw,26rem)] -translate-x-1/2 rounded-xl border border-ink-line bg-ink-soft/95 p-4 backdrop-blur-md">
             <div className="flex items-start justify-between gap-4">
               <p className="text-xs tracking-[0.16em] text-paper-faint uppercase">
@@ -128,8 +155,7 @@ export function MapView({ initialNodes, initialEdges }: Props) {
               ))}
               {diff.connected.length > 0 && (
                 <li>
-                  <span className="text-paper">Conexiuni noi</span> ·{" "}
-                  {diff.connected.length}
+                  <span className="text-paper">Conexiuni noi</span> · {diff.connected.length}
                 </li>
               )}
             </ul>
@@ -148,15 +174,27 @@ export function MapView({ initialNodes, initialEdges }: Props) {
           </div>
         )}
 
+        {!chatOpen && (
+          <div className="pointer-events-none absolute inset-x-0 bottom-0 flex justify-center p-6">
+            <button
+              onClick={() => setChatOpen(true)}
+              className="pointer-events-auto rounded-full bg-paper px-6 py-3 text-sm font-medium text-ink shadow-lg transition-opacity hover:opacity-90"
+            >
+              Vorbește liber
+            </button>
+          </div>
+        )}
+      </div>
+
+      {chatOpen && (
         <ChatPanel
-          open={chatOpen}
           messages={messages}
           pending={pending}
+          extracting={extracting}
           onSend={send}
-          onOpen={() => setChatOpen(true)}
           onClose={closeChat}
         />
-      </div>
+      )}
 
       {selectedId && (
         <NodeDetail

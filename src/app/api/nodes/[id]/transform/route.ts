@@ -12,7 +12,7 @@ import type { MindNode, Observation, Transformation } from "@/lib/types";
  * Numai pentru noduri confirmate. Nu recomandăm nimic pe baza unui tipar pe
  * care omul nu l-a validat.
  */
-export async function POST(_request: Request, context: RouteContext<"/api/nodes/[id]">) {
+export async function POST(_request: Request, context: RouteContext<"/api/nodes/[id]/transform">) {
   const user = await getSessionUser();
   if (!user) {
     return NextResponse.json({ error: "Neautentificat" }, { status: 401 });

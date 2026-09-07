@@ -4,10 +4,16 @@ import type { MapDiff, MindNode } from "@/lib/types";
 import { displayLabel } from "@/lib/types";
 import type { Extraction } from "./schema";
 
+interface SourceMessage {
+  id: string;
+  content: string;
+}
+
 interface ApplyInput {
   client: PoolClient;
   userId: string;
-  messageId: string;
+  /** Mesajele din care s-a extras, ca fiecare citat să-și găsească sursa. */
+  sourceMessages: SourceMessage[];
   extraction: Extraction;
   /** Nodurile trimise modelului. Servesc drept listă de id-uri valide. */
   knownNodes: MindNode[];
@@ -15,6 +21,24 @@ interface ApplyInput {
 
 function clamp(value: number, min: number, max: number): number {
   return Math.min(max, Math.max(min, value));
+}
+
+function normalize(text: string): string {
+  return text.toLowerCase().replace(/\s+/g, " ").trim();
+}
+
+/**
+ * Extracția rulează pe mai multe mesaje odată, iar modelul nu spune din care
+ * anume provine fiecare citat. Îl căutăm: dacă textul se regăsește, citatul
+ * primește sursa exactă; altfel, ultimul mesaj din bucată.
+ */
+function resolveSource(quote: string, messages: SourceMessage[]): string | null {
+  if (messages.length === 0) return null;
+
+  const needle = normalize(quote);
+  const match = messages.find((m) => normalize(m.content).includes(needle));
+
+  return (match ?? messages[messages.length - 1]).id;
 }
 
 /**
@@ -30,7 +54,7 @@ function clamp(value: number, min: number, max: number): number {
 export async function applyExtraction({
   client,
   userId,
-  messageId,
+  sourceMessages,
   extraction,
   knownNodes,
 }: ApplyInput): Promise<MapDiff> {
@@ -69,7 +93,7 @@ export async function applyExtraction({
         row.id,
         userId,
         incoming.observation.quote,
-        messageId,
+        resolveSource(incoming.observation.quote, sourceMessages),
         incoming.observation.sentiment,
         clamp(incoming.observation.valence, -1, 1),
       ],
@@ -102,7 +126,7 @@ export async function applyExtraction({
         existing.id,
         userId,
         update.observation.quote,
-        messageId,
+        resolveSource(update.observation.quote, sourceMessages),
         update.observation.sentiment,
         clamp(update.observation.valence, -1, 1),
       ],

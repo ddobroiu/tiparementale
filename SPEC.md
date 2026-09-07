@@ -102,10 +102,28 @@ tipar e respins pentru că e adevărat și incomod, iar apoi revine.
 
 ## 5. Model și cost
 
-- `claude-opus-5`, ieșire structurată (`output_config.format`).
-- Instrucțiunile de sistem sunt un bloc de cache; indexul volatil stă după
-  breakpoint. Taie ~90% din costul de input.
-- Cost estimat: 2–4 cenți per replică.
+A purta conversația și a decide dacă o afirmație nouă se unește cu un nod
+existent sunt două meserii de dificultăți diferite. Ținute în același apel,
+fiecare „și ce s-a întâmplat apoi?" plătea indexul complet al hărții și o rundă
+de raționament greu — ~5 cenți pe replică, adică ~1,5 $ pentru o conversație de
+30 de replici. Nu se susține pentru un produs de consum.
+
+Sunt separate:
+
+| | Model | Când | Cost aproximativ |
+|---|---|---|---|
+| Conversație | `claude-sonnet-5`, efort redus, hartă compactă | fiecare replică | ~0,7 cenți |
+| Extracție | `claude-opus-5`, index complet, mai multe replici odată | la 4 replici și la închiderea panoului | ~0,8 cenți amortizat |
+
+**~1,5 cenți pe replică**, de trei ori mai puțin, cu calitatea hărții rămasă pe
+modelul bun. `messages.extracted_at` ține evidența a ce s-a prelucrat; la eșec
+nu se marchează nimic, deci bucata se reia în loc să se piardă.
+
+Efect secundar dorit: harta se schimbă în salturi vizibile, nu în micro-mișcări
+după fiecare propoziție — momentul „harta s-a schimbat" devine mai puternic.
+
+În ambele apeluri, instrucțiunile de sistem sunt un bloc de cache, iar
+conținutul volatil stă după breakpoint.
 
 ---
 
