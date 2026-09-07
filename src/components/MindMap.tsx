@@ -47,9 +47,27 @@ function domainAnchors(domains: LifeDomain[]): Map<LifeDomain, { x: number; y: n
   );
 }
 
-/** Raza spune cât de sigur este tiparul. Un nod slab arată slab. */
+/**
+ * Raza spune cât de sigur este tiparul. Un nod slab arată slab.
+ *
+ * Punctele sunt mici deliberat: o hartă de cercuri mari cu text sub fiecare
+ * devine ilizibilă la treizeci de noduri. Aici forma se citește de aproape,
+ * iar de departe rămâne o rețea de puncte — ceea ce și este.
+ */
 function radius(node: MindNode): number {
-  return 16 + node.confidence * 20;
+  return 7 + node.confidence * 11;
+}
+
+const MAX_LABEL = 34;
+
+function shortLabel(node: MindNode): string {
+  const label = displayLabel(node);
+  return label.length > MAX_LABEL ? `${label.slice(0, MAX_LABEL - 1)}…` : label;
+}
+
+/** Lățimea plăcuței din spatele etichetei, estimată din numărul de caractere. */
+function labelWidth(node: MindNode): number {
+  return shortLabel(node).length * 5.6 + 16;
 }
 
 /** Fără diacritice și fără majuscule: căutarea nu trebuie să ceară precizie. */
@@ -111,16 +129,16 @@ export function MindMap({
         "link",
         forceLink<SimNode, SimulationLinkDatum<SimNode>>(simLinks)
           .id((d) => d.id)
-          .distance(130)
+          .distance(105)
           .strength(0.5),
       )
-      .force("charge", forceManyBody().strength(-620))
+      .force("charge", forceManyBody().strength(-380))
       // Atracția către ramura proprie ține locul unei forțe de centrare.
       .force("branchX", forceX<SimNode>((d) => anchors.get(d.node.domain)!.x).strength(0.13))
       .force("branchY", forceY<SimNode>((d) => anchors.get(d.node.domain)!.y).strength(0.13))
       .force(
         "collide",
-        forceCollide<SimNode>().radius((d) => d.r + 34),
+        forceCollide<SimNode>().radius((d) => d.r + 26),
       )
       .stop()
       .tick(320);
@@ -276,11 +294,22 @@ export function MindMap({
                   d={`M ${from.x} ${from.y} Q ${mx + nx} ${my + ny} ${to.x} ${to.y}`}
                   fill="none"
                   stroke="#f4f3f0"
-                  strokeOpacity={active ? 0.5 : 0.14}
-                  strokeWidth={active ? 1.6 : 1}
+                  strokeOpacity={active ? 0.42 : 0.1}
+                  strokeWidth={active ? 1.4 : 0.8}
                   markerEnd={active ? "url(#arrow)" : undefined}
                   className="transition-all duration-300"
                 />
+                {/* Impulsul care trece prin legătura atinsă. */}
+                {active && (
+                  <path
+                    d={`M ${from.x} ${from.y} Q ${mx + nx} ${my + ny} ${to.x} ${to.y}`}
+                    fill="none"
+                    stroke={DOMAIN_COLORS.self}
+                    strokeOpacity={0.75}
+                    strokeWidth={1.4}
+                    className="edge-pulse"
+                  />
+                )}
                 {active && (
                   <text
                     x={mx + nx * 0.7}
@@ -310,6 +339,14 @@ export function MindMap({
             const offNeighbourhood = neighbours !== null && !neighbours.has(node.id);
             const offSearch = matches !== null && !matches.has(node.id);
             const opacity = offBranch || offNeighbourhood || offSearch ? 0.16 : 1;
+
+            const isHovered = hoveredId === node.id;
+            const isActive = isHovered || isSelected;
+
+            // Eticheta apare doar când o ceri. Treizeci de noduri cu text sub
+            // fiecare nu se pot citi; treizeci de puncte, da — iar textul e la
+            // un deget distanță.
+            const showLabel = isActive || isNew || matches?.has(node.id);
 
             return (
               <g
@@ -354,26 +391,48 @@ export function MindMap({
                   />
                 )}
 
+                {/* Halo: dă punctului adâncime și îl face ținta mai ușor de
+                    atins cu degetul, fără să mărească nodul însuși. */}
+                <circle
+                  r={r + 10}
+                  fill={DOMAIN_COLORS[node.domain]}
+                  fillOpacity={isActive ? 0.14 : 0.05}
+                  className="transition-all duration-300"
+                />
+
                 {/* Forma spune ce fel de lucru este; culoarea, din ce zonă vine. */}
                 <NodeGlyph
                   type={node.type}
                   r={r}
                   color={DOMAIN_COLORS[node.domain]}
-                  fillOpacity={isSelected || hoveredId === node.id ? 0.32 : 0.14}
-                  strokeOpacity={isConfirmed ? 0.95 : 0.42}
-                  strokeWidth={isConfirmed ? 2 : 1}
+                  fillOpacity={isActive ? 0.75 : 0.42}
+                  strokeOpacity={isConfirmed ? 1 : 0.5}
+                  strokeWidth={isConfirmed ? 1.6 : 1}
                   dashed={!isConfirmed}
                 />
 
-                <text
-                  y={r + 18}
-                  textAnchor="middle"
-                  className="pointer-events-none fill-paper text-[13px]"
-                >
-                  {displayLabel(node).length > 32
-                    ? `${displayLabel(node).slice(0, 31)}…`
-                    : displayLabel(node)}
-                </text>
+                {showLabel && (
+                  <g className="animate-fade-up pointer-events-none">
+                    {/* Fundal sub text: altfel eticheta se pierde peste linii
+                        și peste conturul creierului. */}
+                    <rect
+                      x={-labelWidth(node) / 2}
+                      y={r + 7}
+                      width={labelWidth(node)}
+                      height={19}
+                      rx={9.5}
+                      fill="#0a0a0f"
+                      fillOpacity={0.86}
+                    />
+                    <text
+                      y={r + 20}
+                      textAnchor="middle"
+                      className="fill-paper text-[11px]"
+                    >
+                      {shortLabel(node)}
+                    </text>
+                  </g>
+                )}
               </g>
             );
           })}

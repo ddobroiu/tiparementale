@@ -75,3 +75,16 @@ body {
 .animate-fade-up {
   animation: fade-up 0.5s cubic-bezier(0.16, 1, 0.3, 1) both;
 }
+
+/* Impulsul care trece printr-o legătură activă. Discret: sugerează transmiterea,
+   nu o animație de sine stătătoare. */
+@keyframes synapse {
+  to {
+    stroke-dashoffset: -24;
+  }
+}
+
+.edge-pulse {
+  stroke-dasharray: 3 9;
+  animation: synapse 1.6s linear infinite;
+}

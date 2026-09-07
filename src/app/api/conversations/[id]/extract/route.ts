@@ -5,6 +5,7 @@ import { withUser } from "@/lib/db";
 import { applyExtraction } from "@/lib/extraction/apply";
 import { EXTRACTION_MODEL, runExtraction } from "@/lib/extraction/extract";
 import { recordUsage } from "@/lib/billing/entitlement";
+import { recordSimilarities } from "@/lib/extraction/similarity";
 import type { MapDiff, MindNode } from "@/lib/types";
 
 const EMPTY_DIFF: MapDiff = { created: [], strengthened: [], connected: [] };
@@ -96,6 +97,21 @@ export async function POST(_request: Request, context: RouteContext<"/api/conver
         where id = any($1::uuid[])`,
       [source.pending.map((m) => m.id)],
     );
+
+    // După ce nodurile noi există, căutăm dacă vreunul spune același lucru cu
+    // altul mai vechi, formulat altfel. Rezultatul devine întrebare, nu unire.
+    if (applied.created.length > 0) {
+      const { rows: current } = await client.query<MindNode>(
+        "select * from nodes where archived_at is null",
+      );
+      const createdIds = new Set(applied.created.map((n) => n.id));
+      await recordSimilarities(
+        client,
+        user.id,
+        current.filter((n) => createdIds.has(n.id)),
+        current,
+      );
+    }
 
     return applied;
   });

@@ -18,6 +18,7 @@ export const MODELS = {
   reply: process.env.MODEL_REPLY ?? "claude-haiku-4-5",
   extraction: process.env.MODEL_EXTRACTION ?? "claude-sonnet-5",
   transformation: process.env.MODEL_TRANSFORMATION ?? "claude-opus-5",
+  prediction: process.env.MODEL_PREDICTION ?? "claude-sonnet-5",
 } as const;
 
 /** După câte replici neprelucrate pornește extracția. */
@@ -45,6 +46,7 @@ export const EFFORT = {
   reply: effortFromEnv("EFFORT_REPLY", "low"),
   extraction: effortFromEnv("EFFORT_EXTRACTION", "medium"),
   transformation: effortFromEnv("EFFORT_TRANSFORMATION", "high"),
+  prediction: effortFromEnv("EFFORT_PREDICTION", "medium"),
 } as const;
 
 /**

@@ -12,6 +12,8 @@ import { TopicPicker } from "./TopicPicker";
 import { MapLegend } from "./MapLegend";
 import { MapFilters, NO_FILTERS, applyFilters, type Filters } from "./MapFilters";
 import { MapToolbar } from "./MapToolbar";
+import { PredictionPanel } from "./PredictionPanel";
+import { SimilarityPrompt, type SimilarPair } from "./SimilarityPrompt";
 import type { Topic } from "@/lib/topics";
 
 export interface AccountSummary {
@@ -23,6 +25,7 @@ interface Props {
   initialNodes: MindNode[];
   initialEdges: Edge[];
   initialAccount: AccountSummary;
+  initialSimilarPairs: SimilarPair[];
 }
 
 const EMPTY_DIFF: MapDiff = { created: [], strengthened: [], connected: [] };
@@ -31,7 +34,12 @@ function diffSize(diff: MapDiff): number {
   return diff.created.length + diff.strengthened.length + diff.connected.length;
 }
 
-export function MapView({ initialNodes, initialEdges, initialAccount }: Props) {
+export function MapView({
+  initialNodes,
+  initialEdges,
+  initialAccount,
+  initialSimilarPairs,
+}: Props) {
   const [nodes, setNodes] = useState(initialNodes);
   const [edges, setEdges] = useState(initialEdges);
   const [selectedId, setSelectedId] = useState<string | null>(null);
@@ -283,6 +291,15 @@ export function MapView({ initialNodes, initialEdges, initialAccount }: Props) {
             </p>
           </div>
         )}
+
+        {/* Predicțiile stau lângă filtre: amândouă sunt lucruri pe care le
+            ceri hărții, nu lucruri pe care ți le spune ea singură. */}
+        <div className="absolute top-16 right-4 z-20 flex flex-col items-end gap-2 sm:top-20 sm:right-6">
+          {nodes.length > 0 && <PredictionPanel onAnswered={reload} />}
+          {initialSimilarPairs.length > 0 && (
+            <SimilarityPrompt pairs={initialSimilarPairs} onResolved={reload} />
+          )}
+        </div>
 
         <MapFilters nodes={nodes} filters={filters} onChange={setFilters} />
 

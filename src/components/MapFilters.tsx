@@ -64,7 +64,7 @@ export function MapFilters({ nodes, filters, onChange }: Props) {
   if (nodes.length === 0) return null;
 
   return (
-    <div className="absolute top-16 right-4 z-10 sm:top-20 sm:right-6">
+    <div className="absolute top-28 right-4 z-10 sm:top-32 sm:right-6">
       {open ? (
         <div className="animate-fade-up w-[min(84vw,17rem)] rounded-xl border border-ink-line bg-ink-soft/95 p-3 backdrop-blur-md">
           <div className="flex items-center justify-between">
