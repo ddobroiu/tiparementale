@@ -10,6 +10,7 @@ import {
   spendSession,
 } from "@/lib/billing/entitlement";
 import { REPLY_MODEL, runReply } from "@/lib/conversation/reply";
+import { describeAiError } from "@/lib/ai-error";
 import { EXTRACTION_THRESHOLD } from "@/lib/models";
 import { withUser } from "@/lib/db";
 import type { MindNode } from "@/lib/types";
@@ -125,11 +126,22 @@ export async function POST(request: Request) {
     );
   }
 
-  const result = await runReply({
-    nodes: context.nodes,
-    history: context.history,
-    message,
-  });
+  let result;
+  try {
+    result = await runReply({
+      nodes: context.nodes,
+      history: context.history,
+      message,
+    });
+  } catch (error) {
+    // Mesajul omului a fost deja salvat, deci nu se pierde. Ședința nu se
+    // consumă mai departe: replica lui rămâne neprelucrată și poate fi reluată.
+    const failure = describeAiError(error, "reply");
+    return NextResponse.json(
+      { error: failure.message, retryable: failure.retryable },
+      { status: failure.status },
+    );
+  }
 
   const reply = result.ok ? result.reply.reply : result.reply;
   const safetyFlag = result.ok ? result.reply.safety_flag : result.safety;

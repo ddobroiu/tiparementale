@@ -6,6 +6,7 @@ import { applyExtraction } from "@/lib/extraction/apply";
 import { EXTRACTION_MODEL, runExtraction } from "@/lib/extraction/extract";
 import { recordUsage } from "@/lib/billing/entitlement";
 import { recordSimilarities } from "@/lib/extraction/similarity";
+import { describeAiError } from "@/lib/ai-error";
 import type { MapDiff, MindNode } from "@/lib/types";
 
 const EMPTY_DIFF: MapDiff = { created: [], strengthened: [], connected: [] };
@@ -61,10 +62,17 @@ export async function POST(_request: Request, context: RouteContext<"/api/conver
     return NextResponse.json({ diff: EMPTY_DIFF, extracted: 0 });
   }
 
-  const result = await runExtraction({
+  let result;
+  try {
+    result = await runExtraction({
     nodes: source.nodes,
-    exchanges: source.pending.map((m) => ({ role: m.role, content: m.content })),
-  });
+      exchanges: source.pending.map((m) => ({ role: m.role, content: m.content })),
+    });
+  } catch (error) {
+    // Nimic nu se marchează prelucrat: bucata se reia data viitoare.
+    const failure = describeAiError(error, "extraction");
+    return NextResponse.json({ error: failure.message }, { status: failure.status });
+  }
 
   // Costul se înregistrează chiar dacă extracția a eșuat: apelul s-a plătit.
   await withUser(user.id, (client) =>

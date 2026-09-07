@@ -4,6 +4,7 @@ import { getSessionUser } from "@/lib/auth";
 import { recordUsage } from "@/lib/billing/entitlement";
 import { withUser } from "@/lib/db";
 import { PREDICTION_MODEL, generatePredictions } from "@/lib/predictions/generate";
+import { describeAiError } from "@/lib/ai-error";
 import type { MindNode } from "@/lib/types";
 
 /** Câte convingeri confirmate sunt necesare ca predicțiile să merite ceva. */
@@ -86,7 +87,15 @@ export async function POST() {
     );
   }
 
-  const { predictions, usage } = await generatePredictions({ nodes });
+  let generated;
+  try {
+    generated = await generatePredictions({ nodes });
+  } catch (error) {
+    const failure = describeAiError(error, "predictions");
+    return NextResponse.json({ error: failure.message }, { status: failure.status });
+  }
+
+  const { predictions, usage } = generated;
 
   const saved = await withUser(user.id, async (client) => {
     await recordUsage(client, {

@@ -14,6 +14,7 @@ import { MapFilters, NO_FILTERS, applyFilters, type Filters } from "./MapFilters
 import { MapToolbar } from "./MapToolbar";
 import { PredictionPanel } from "./PredictionPanel";
 import { SimilarityPrompt, type SimilarPair } from "./SimilarityPrompt";
+import { MapReading } from "./MapReading";
 import type { Topic } from "@/lib/topics";
 
 export interface AccountSummary {
@@ -295,7 +296,12 @@ export function MapView({
         {/* Predicțiile stau lângă filtre: amândouă sunt lucruri pe care le
             ceri hărții, nu lucruri pe care ți le spune ea singură. */}
         <div className="absolute top-16 right-4 z-20 flex flex-col items-end gap-2 sm:top-20 sm:right-6">
-          {nodes.length > 0 && <PredictionPanel onAnswered={reload} />}
+          {nodes.length > 0 && (
+            <div className="flex gap-2">
+              <MapReading onOpenNode={setSelectedId} />
+              <PredictionPanel onAnswered={reload} />
+            </div>
+          )}
           {initialSimilarPairs.length > 0 && (
             <SimilarityPrompt pairs={initialSimilarPairs} onResolved={reload} />
           )}

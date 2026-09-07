@@ -160,12 +160,71 @@ const observations = detail.body.observations ?? [];
 console.log(`\n  Citate-sursă păstrate: ${observations.length}`);
 for (const obs of observations) console.log(`    „${obs.quote}"`);
 
+// ---------------------------------------------------------------- predicții
+
+console.log("\n7. Predicții");
+
+// Predicțiile au nevoie de cel puțin două elemente confirmate.
+const second = nodes.find((n) => n.id !== belief.id);
+if (second) {
+  await call(`/api/nodes/${second.id}`, {
+    method: "PATCH",
+    body: JSON.stringify({ verdict: "confirmed" }),
+  });
+}
+
+const predicted = await timed("generare", () =>
+  call("/api/predictions", { method: "POST" }),
+);
+
+if (predicted.status !== 200) {
+  console.error("  ✗ eroare:", predicted.body);
+  process.exit(1);
+}
+
+const predictions = predicted.body.predictions ?? [];
+console.log(`  ✓ ${predictions.length} predicții`);
+for (const p of predictions) {
+  console.log(`    „${p.situation}”`);
+  console.log(`     → ${p.behaviour}`);
+}
+
+if (predictions.length > 0) {
+  const answered = await call(`/api/predictions/${predictions[0].id}`, {
+    method: "PATCH",
+    body: JSON.stringify({ answer: "confirmed" }),
+  });
+  console.log(
+    `  ✓ răspuns înregistrat, încredere acum ${answered.body.confidence?.toFixed?.(2)}`,
+  );
+}
+
+// ---------------------------------------------------------------- citirea hărții
+
+console.log("\n8. Citirea hărții");
+const read = await timed("generare", () => call("/api/reading", { method: "POST" }));
+
+if (read.status === 400) {
+  console.log(`  · sărită: ${read.body.error}`);
+} else if (read.status !== 200) {
+  console.error("  ✗ eroare:", read.body);
+  process.exit(1);
+} else {
+  console.log(`\n  ${read.body.reading.summary}\n`);
+  for (const theme of read.body.reading.themes?.themes ?? []) {
+    console.log(`  · ${theme.title}: ${theme.explanation}`);
+  }
+  if (read.body.reading.themes?.tension) {
+    console.log(`\n  Contradicția: ${read.body.reading.themes.tension}`);
+  }
+}
+
 // ---------------------------------------------------------------- cost real
 
 const account = await call("/api/account");
 console.log(
-  `\n7. Cont: ${account.body.planName} — ${account.body.sessionsLeft}/${account.body.sessionsIncluded} ședințe, ` +
-    `${account.body.transformationsLeft}/${account.body.transformationsIncluded} transformări`,
+  `\n9. Portofel: ${account.body.sessionsLeft} ședințe și ` +
+    `${account.body.transformationsLeft} transformări rămase`,
 );
 
 const admin = new pg.Client({ connectionString: process.env.DATABASE_URL_ADMIN });

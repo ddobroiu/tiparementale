@@ -3,6 +3,7 @@ import { NextResponse } from "next/server";
 import { getSessionUser } from "@/lib/auth";
 import { withUser } from "@/lib/db";
 import { TRANSFORMATION_MODEL, generateTransformation } from "@/lib/transformation/generate";
+import { describeAiError } from "@/lib/ai-error";
 import {
   canTransform,
   getWallet,
@@ -71,11 +72,19 @@ export async function POST(_request: Request, context: RouteContext<"/api/nodes/
     );
   }
 
-  const { plan, usage } = await generateTransformation({
-    node: source.node,
-    observations: source.observations,
-    relatedLabels: source.relatedLabels,
-  });
+  let generated;
+  try {
+    generated = await generateTransformation({
+      node: source.node,
+      observations: source.observations,
+      relatedLabels: source.relatedLabels,
+    });
+  } catch (error) {
+    const failure = describeAiError(error, "transformation");
+    return NextResponse.json({ error: failure.message }, { status: failure.status });
+  }
+
+  const { plan, usage } = generated;
 
   // Costul se înregistrează chiar dacă generarea a eșuat: apelul s-a plătit.
   await withUser(user.id, (client) =>
