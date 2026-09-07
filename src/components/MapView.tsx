@@ -3,7 +3,7 @@
 import Link from "next/link";
 import { useCallback, useState } from "react";
 
-import type { Edge, MapDiff, MindNode, SafetyFlag } from "@/lib/types";
+import type { Edge, LifeDomain, MapDiff, MindNode, SafetyFlag } from "@/lib/types";
 import { ChatPanel, type ChatMessage } from "./ChatPanel";
 import { MindMap } from "./MindMap";
 import { NodeDetail } from "./NodeDetail";
@@ -11,8 +11,8 @@ import { Logo } from "./Logo";
 import { TopicPicker } from "./TopicPicker";
 import { MapLegend } from "./MapLegend";
 import { MapFilters, NO_FILTERS, applyFilters, type Filters } from "./MapFilters";
+import { MapToolbar } from "./MapToolbar";
 import type { Topic } from "@/lib/topics";
-import type { LifeDomain } from "@/lib/types";
 
 export interface AccountSummary {
   sessionsLeft: number;
@@ -45,6 +45,8 @@ export function MapView({ initialNodes, initialEdges, initialAccount }: Props) {
   const [highlighted, setHighlighted] = useState<Set<string>>(new Set());
   const [limit, setLimit] = useState<{ reason: string; code: string } | null>(null);
   const [filters, setFilters] = useState<Filters>(NO_FILTERS);
+  const [focusDomain, setFocusDomain] = useState<LifeDomain | null>(null);
+  const [query, setQuery] = useState("");
   // Contul vine de pe server, cu prima randare: fără efect la montare și fără
   // licărire în care numărul de ședințe lipsește.
   const [account, setAccount] = useState<AccountSummary>(initialAccount);
@@ -188,15 +190,29 @@ export function MapView({ initialNodes, initialEdges, initialAccount }: Props) {
           <Link href="/">
             <Logo />
           </Link>
-          <span className="text-xs text-paper-faint">
-            <span className="hidden sm:inline">
+          <div className="flex items-center gap-3">
+            {/* Fără ședințe, cumpărarea devine acțiunea principală din antet. */}
+            {account.sessionsLeft === 0 ? (
+              <Link
+                href="/pachete"
+                className="rounded-full bg-paper px-4 py-1.5 text-xs font-semibold text-ink shadow-lg transition-opacity hover:opacity-90"
+              >
+                Cumpără ședințe
+              </Link>
+            ) : (
+              <Link
+                href="/pachete"
+                className="rounded-full border border-ink-line px-3 py-1.5 text-xs text-paper-dim transition-colors hover:border-paper-faint hover:text-paper"
+              >
+                {account.sessionsLeft} {account.sessionsLeft === 1 ? "ședință" : "ședințe"}
+              </Link>
+            )}
+            <span className="hidden text-xs text-paper-faint sm:inline">
               {visibleNodes.length}
-              {visibleNodes.length !== nodes.length && ` din `}{" "}
+              {visibleNodes.length !== nodes.length && ` din ${nodes.length}`}{" "}
               {nodes.length === 1 ? "element" : "elemente"}
             </span>
-            <span className="mx-2">·</span>
-            {account.sessionsLeft} {account.sessionsLeft === 1 ? "ședință" : "ședințe"}
-          </span>
+          </div>
         </header>
 
         <MindMap
@@ -205,6 +221,16 @@ export function MapView({ initialNodes, initialEdges, initialAccount }: Props) {
           selectedId={selectedId}
           onSelect={setSelectedId}
           highlighted={highlighted}
+          focusDomain={focusDomain}
+          query={query}
+        />
+
+        <MapToolbar
+          nodes={visibleNodes}
+          focusDomain={focusDomain}
+          onFocus={setFocusDomain}
+          query={query}
+          onQuery={setQuery}
         />
 
         {/* Momentul în care harta arată ce s-a schimbat. */}

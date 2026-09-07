@@ -2,39 +2,27 @@
 
 import { useState } from "react";
 
-import {
-  DOMAIN_COLORS,
-  DOMAIN_LABELS,
-  NODE_TYPE_LABELS,
-  type LifeDomain,
-  type MindNode,
-  type NodeType,
-} from "@/lib/types";
+import { NODE_TYPE_LABELS, type MindNode, type NodeType } from "@/lib/types";
 
 export interface Filters {
-  domains: Set<LifeDomain>;
   types: Set<NodeType>;
   onlyConfirmed: boolean;
   onlyChanged: boolean;
 }
 
 export const NO_FILTERS: Filters = {
-  domains: new Set(),
   types: new Set(),
   onlyConfirmed: false,
   onlyChanged: false,
 };
 
 export function filtersActive(f: Filters): number {
-  return (
-    f.domains.size + f.types.size + (f.onlyConfirmed ? 1 : 0) + (f.onlyChanged ? 1 : 0)
-  );
+  return f.types.size + (f.onlyConfirmed ? 1 : 0) + (f.onlyChanged ? 1 : 0);
 }
 
 /** Un set gol înseamnă „toate", nu „niciuna". */
 export function applyFilters(nodes: MindNode[], f: Filters): MindNode[] {
   return nodes.filter((node) => {
-    if (f.domains.size > 0 && !f.domains.has(node.domain)) return false;
     if (f.types.size > 0 && !f.types.has(node.type)) return false;
     if (f.onlyConfirmed && node.verdict !== "confirmed" && node.verdict !== "edited") {
       return false;
@@ -70,7 +58,6 @@ interface Props {
 export function MapFilters({ nodes, filters, onChange }: Props) {
   const [open, setOpen] = useState(false);
 
-  const domains = [...new Set(nodes.map((n) => n.domain))];
   const types = [...new Set(nodes.map((n) => n.type))];
   const active = filtersActive(filters);
 
@@ -94,31 +81,6 @@ export function MapFilters({ nodes, filters, onChange }: Props) {
           </div>
 
           <div className="mt-3 flex flex-wrap gap-1.5">
-            {domains.map((domain) => {
-              const on = filters.domains.has(domain);
-              return (
-                <button
-                  key={domain}
-                  onClick={() =>
-                    onChange({ ...filters, domains: toggle(filters.domains, domain) })
-                  }
-                  className={`flex items-center gap-1.5 rounded-full border px-2.5 py-1 text-xs transition-colors ${
-                    on
-                      ? "border-paper-faint text-paper"
-                      : "border-ink-line text-paper-faint hover:text-paper-dim"
-                  }`}
-                >
-                  <span
-                    className="h-1.5 w-1.5 rounded-full"
-                    style={{ background: DOMAIN_COLORS[domain] }}
-                  />
-                  {DOMAIN_LABELS[domain]}
-                </button>
-              );
-            })}
-          </div>
-
-          <div className="mt-2 flex flex-wrap gap-1.5 border-t border-ink-line pt-2.5">
             {types.map((type) => {
               const on = filters.types.has(type);
               return (

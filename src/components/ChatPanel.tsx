@@ -88,19 +88,32 @@ export function ChatPanel({ messages, pending, extracting, limit, onSend, onClos
       {limit ? (
         <div className="border-t border-ink-line p-4">
           <p className="text-sm leading-relaxed text-paper-dim">{limit.reason}</p>
-          <button
-            onClick={onClose}
-            className="mt-3 w-full rounded-xl bg-paper px-4 py-2.5 text-sm font-medium text-ink transition-opacity hover:opacity-90"
-          >
-            Vezi ce s-a schimbat în hartă
-          </button>
-          {limit.code === "no_sessions" && (
-            <a
-              href="/pachete"
-              className="mt-2 block rounded-xl border border-ink-line px-4 py-2.5 text-center text-sm text-paper-dim transition-colors hover:border-paper-faint hover:text-paper"
+
+          {/* Când omul a rămas fără ședințe, acțiunea principală este să
+              cumpere, nu să se întoarcă în hartă. Butonul plin merge acolo
+              unde vrem să meargă și el. */}
+          {limit.code === "no_sessions" ? (
+            <>
+              <a
+                href="/pachete"
+                className="mt-3 block rounded-xl bg-paper px-4 py-3 text-center text-sm font-semibold text-ink shadow-lg transition-opacity hover:opacity-90"
+              >
+                Cumpără ședințe
+              </a>
+              <button
+                onClick={onClose}
+                className="mt-2 w-full rounded-xl px-4 py-2 text-sm text-paper-faint transition-colors hover:text-paper-dim"
+              >
+                Mai târziu — înapoi la hartă
+              </button>
+            </>
+          ) : (
+            <button
+              onClick={onClose}
+              className="mt-3 w-full rounded-xl bg-paper px-4 py-2.5 text-sm font-medium text-ink transition-opacity hover:opacity-90"
             >
-              Vezi pachetele
-            </a>
+              Vezi ce s-a schimbat în hartă
+            </button>
           )}
         </div>
       ) : (
