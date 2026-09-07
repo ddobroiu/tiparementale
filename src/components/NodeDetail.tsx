@@ -76,43 +76,62 @@ export function NodeDetail({
 
   async function patch(body: Record<string, unknown>) {
     setBusy(true);
-    await fetch(`/api/nodes/${nodeId}`, {
-      method: "PATCH",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify(body),
-    });
-    await reload();
-    setBusy(false);
+    try {
+      await fetch(`/api/nodes/${nodeId}`, {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(body),
+      });
+      await reload();
+    } catch {
+      setError("Nu am putut salva. Verifică legătura și încearcă din nou.");
+    } finally {
+      setBusy(false);
+    }
   }
 
-  /** Pornește lucrul: convingere nouă, exerciții, exemple, carte, film. */
+  /**
+   * Pornește lucrul: convingere nouă, exerciții, exemple, carte, film.
+   *
+   * `finally` nu este decorativ: fără el, orice eroare de rețea lăsa butonul
+   * blocat pe „Pregătesc…" la nesfârșit, fără ca omul să afle că a eșuat.
+   */
   async function startTransformation() {
     setWorking(true);
     setError("");
 
-    const res = await fetch(`/api/nodes/${nodeId}/transform`, { method: "POST" });
-    const payload = await res.json().catch(() => ({}));
+    try {
+      const res = await fetch(`/api/nodes/${nodeId}/transform`, { method: "POST" });
+      const payload = await res.json().catch(() => ({}));
 
-    if (!res.ok) {
-      setError(payload.error ?? "Nu a mers. Încearcă din nou.");
+      if (!res.ok) {
+        setError(payload.error ?? "Nu a mers. Încearcă din nou.");
+        return;
+      }
+
+      setWhyOld(payload.whyOldPersists ?? null);
+      await reload();
+    } catch {
+      setError("Nu am putut ajunge la server. Încearcă din nou.");
+    } finally {
       setWorking(false);
-      return;
     }
-
-    setWhyOld(payload.whyOldPersists ?? null);
-    await reload();
-    setWorking(false);
   }
 
   async function setTransformationStatus(id: string, status: string) {
     setBusy(true);
-    await fetch(`/api/transformations/${id}`, {
-      method: "PATCH",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ status }),
-    });
-    await reload();
-    setBusy(false);
+    try {
+      await fetch(`/api/transformations/${id}`, {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ status }),
+      });
+      await reload();
+    } catch {
+      setError("Nu am putut salva. Încearcă din nou.");
+    } finally {
+      setBusy(false);
+    }
   }
 
   if (!data) {
@@ -254,6 +273,11 @@ export function NodeDetail({
             >
               {working ? "Pregătesc…" : "Lucrăm la asta"}
             </button>
+            {working && (
+              <p className="mt-2 text-center text-xs text-paper-faint">
+                Durează până la un minut. Merită așteptarea.
+              </p>
+            )}
             {error && <p className="mt-3 text-xs text-[color:var(--emotion)]">{error}</p>}
           </section>
         )}
