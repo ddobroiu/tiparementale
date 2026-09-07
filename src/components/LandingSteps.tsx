@@ -9,27 +9,27 @@ const STEPS = [
     n: "01",
     title: "Identificare",
     body:
-      "Vorbești sau scrii liber, fără formulare și fără întrebări de bifat. " +
-      "Din cuvintele tale ies la suprafață convingerile, valorile, emoțiile, " +
-      "obiectivele și tiparele care se repetă.",
+      "O conversație adevărată, nu un formular. Pui întrebări, urmezi firul, " +
+      "ceri exemple — despre bani, relații, sănătate, muncă, familie. Din " +
+      "cuvintele tale ies la suprafață convingerile care îți conduc reacțiile.",
     aside: "Fiecare element păstrează citatul exact din care a fost dedus.",
   },
   {
     n: "02",
     title: "Interpretare",
     body:
-      "Se construiește harta: elementele se leagă între ele și se vede ce " +
-      "alimentează ce. Tu confirmi, reformulezi sau respingi fiecare " +
-      "interpretare.",
+      "Se construiește harta, pe ramuri: fiecare domeniu de viață își are " +
+      "zona lui, iar elementele se leagă între ele și arată ce alimentează ce. " +
+      "Tu confirmi, reformulezi sau respingi fiecare interpretare.",
     aside: "Aici devine precisă. Ce respingi nu se mai propune.",
   },
   {
     n: "03",
     title: "Transformare",
     body:
-      "Pentru tiparele pe care le-ai confirmat, primești exerciții, cărți și " +
-      "filme alese pentru convingerea aceea anume. Și vezi ce se schimbă, " +
-      "săptămână după săptămână.",
+      "Pentru convingerile pe care le-ai confirmat, primești o convingere nouă " +
+      "care să le ia locul — plus exerciții mici, exemple concrete, o carte și " +
+      "un film alese pentru convingerea aceea anume.",
     aside: "Progresul se măsoară din ce spui, nu din ce declari că simți.",
   },
 ];

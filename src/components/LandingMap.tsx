@@ -1,6 +1,6 @@
 "use client";
 
-import { NODE_TYPE_LABELS, type NodeType } from "@/lib/types";
+import { DOMAIN_COLORS, DOMAIN_LABELS, type LifeDomain } from "@/lib/types";
 
 /**
  * Mini-harta de pe prima pagină.
@@ -11,7 +11,7 @@ import { NODE_TYPE_LABELS, type NodeType } from "@/lib/types";
 
 interface DemoNode {
   id: string;
-  type: NodeType;
+  domain: LifeDomain;
   label: string;
   x: number;
   y: number;
@@ -19,31 +19,29 @@ interface DemoNode {
 }
 
 const NODES: DemoNode[] = [
-  { id: "belief", type: "belief", label: "Trebuie să fac totul impecabil", x: 200, y: 152, r: 30 },
-  { id: "fear", type: "fear", label: "Teama că nu sunt suficient", x: 84, y: 78, r: 22 },
-  { id: "pattern", type: "pattern", label: "Epuizare spre finalul săptămânii", x: 306, y: 236, r: 21 },
-  { id: "value", type: "value", label: "Libertatea de a alege", x: 322, y: 74, r: 20 },
-  { id: "goal", type: "goal", label: "Să lucrez fără vinovăție", x: 108, y: 246, r: 20 },
+  { id: "perfect", domain: "self", label: "Trebuie să fac totul impecabil", x: 200, y: 150, r: 30 },
+  { id: "enough", domain: "self", label: "Teama că nu sunt suficient", x: 88, y: 76, r: 21 },
+  { id: "burnout", domain: "work", label: "Epuizare spre finalul săptămânii", x: 308, y: 232, r: 20 },
+  { id: "scarce", domain: "money", label: "Banii se pot termina oricând", x: 324, y: 72, r: 21 },
+  { id: "nohelp", domain: "relationships", label: "Nu cer ajutor niciodată", x: 104, y: 244, r: 20 },
 ];
 
 const EDGES = [
-  { from: "fear", to: "belief", relation: "alimentează" },
-  { from: "belief", to: "pattern", relation: "duce la" },
-  { from: "value", to: "belief", relation: "intră în conflict cu" },
-  { from: "goal", to: "belief", relation: "se lovește de" },
+  { from: "enough", to: "perfect", relation: "alimentează" },
+  { from: "perfect", to: "burnout", relation: "duce la" },
+  { from: "perfect", to: "nohelp", relation: "se sprijină pe" },
+  { from: "scarce", to: "perfect", relation: "întărește" },
 ];
 
-const COLORS: Record<NodeType, string> = {
-  belief: "var(--belief)",
-  value: "var(--value)",
-  emotion: "var(--emotion)",
-  goal: "var(--goal)",
-  pattern: "var(--pattern)",
-  fear: "var(--fear)",
-  relationship: "var(--relationship)",
-};
-
 const byId = new Map(NODES.map((n) => [n.id, n]));
+
+/** Ramurile prezente, ca reper de orientare — ca în harta reală. */
+const BRANCHES: Array<{ domain: LifeDomain; x: number; y: number }> = [
+  { domain: "self", x: 150, y: 34 },
+  { domain: "money", x: 348, y: 30 },
+  { domain: "work", x: 340, y: 292 },
+  { domain: "relationships", x: 78, y: 296 },
+];
 
 export function LandingMap({ stage }: { stage: 0 | 1 | 2 }) {
   return (
@@ -56,13 +54,24 @@ export function LandingMap({ stage }: { stage: 0 | 1 | 2 }) {
           </radialGradient>
         </defs>
 
-        <circle cx="200" cy="152" r="150" fill="url(#glow)" />
+        <circle cx="200" cy="150" r="150" fill="url(#glow)" />
 
-        {/* Etapa 2: conexiunile. Până atunci nodurile plutesc neconectate. */}
-        <g
-          className="transition-opacity duration-1000"
-          style={{ opacity: stage >= 1 ? 1 : 0 }}
-        >
+        {BRANCHES.map((branch) => (
+          <text
+            key={branch.domain}
+            x={branch.x}
+            y={branch.y}
+            textAnchor="middle"
+            className="text-[8px] tracking-[0.2em] uppercase"
+            fill={DOMAIN_COLORS[branch.domain]}
+            fillOpacity={0.42}
+          >
+            {DOMAIN_LABELS[branch.domain]}
+          </text>
+        ))}
+
+        {/* Etapa 2: conexiunile. Până atunci elementele plutesc neconectate. */}
+        <g className="transition-opacity duration-1000" style={{ opacity: stage >= 1 ? 1 : 0 }}>
           {EDGES.map((edge) => {
             const from = byId.get(edge.from)!;
             const to = byId.get(edge.to)!;
@@ -82,7 +91,8 @@ export function LandingMap({ stage }: { stage: 0 | 1 | 2 }) {
         </g>
 
         {NODES.map((node, i) => {
-          const isFocus = node.id === "belief";
+          const isFocus = node.id === "perfect";
+          const color = DOMAIN_COLORS[node.domain];
           return (
             <g
               key={node.id}
@@ -95,28 +105,21 @@ export function LandingMap({ stage }: { stage: 0 | 1 | 2 }) {
                 cx={node.x}
                 cy={node.y}
                 r={node.r}
-                fill={COLORS[node.type]}
+                fill={color}
                 fillOpacity={isFocus && stage >= 1 ? 0.24 : 0.13}
-                stroke={COLORS[node.type]}
+                stroke={color}
                 strokeOpacity={isFocus && stage >= 1 ? 0.85 : 0.4}
                 strokeWidth={isFocus && stage >= 1 ? 1.5 : 1}
+                strokeDasharray={isFocus && stage >= 1 ? undefined : "3 3"}
                 className="transition-all duration-700"
               />
               <text
                 x={node.x}
-                y={node.y + node.r + 15}
+                y={node.y + node.r + 14}
                 textAnchor="middle"
                 className="fill-paper-dim text-[9px]"
               >
                 {node.label.length > 26 ? `${node.label.slice(0, 25)}…` : node.label}
-              </text>
-              <text
-                x={node.x}
-                y={node.y + node.r + 25}
-                textAnchor="middle"
-                className="fill-paper-faint text-[7px] uppercase tracking-[0.14em]"
-              >
-                {NODE_TYPE_LABELS[node.type]}
               </text>
             </g>
           );
@@ -127,7 +130,7 @@ export function LandingMap({ stage }: { stage: 0 | 1 | 2 }) {
           <g className="animate-fade-up">
             <rect
               x={152}
-              y={100}
+              y={98}
               width={96}
               height={18}
               rx={9}
@@ -135,25 +138,23 @@ export function LandingMap({ stage }: { stage: 0 | 1 | 2 }) {
               stroke="var(--value)"
               strokeOpacity={0.5}
             />
-            <text
-              x={200}
-              y={112}
-              textAnchor="middle"
-              className="fill-paper text-[8px] tracking-wide"
-            >
+            <text x={200} y={110} textAnchor="middle" className="fill-paper text-[8px] tracking-wide">
               ✓ confirmat de tine
             </text>
           </g>
         )}
       </svg>
 
-      {/* Etapa 3: recomandările, legate de nodul confirmat. */}
+      {/* Etapa 3: convingerea nouă și sprijinul concret. */}
       {stage >= 2 && (
-        <div className="animate-fade-up absolute right-0 bottom-0 w-[74%] rounded-xl border border-ink-line bg-ink-soft/95 p-3 backdrop-blur-sm sm:w-[62%]">
+        <div className="animate-fade-up absolute right-0 bottom-0 w-[80%] rounded-xl border border-ink-line bg-ink-soft/95 p-3 backdrop-blur-sm sm:w-[68%]">
           <p className="text-[10px] tracking-[0.16em] text-paper-faint uppercase">
-            Pentru convingerea confirmată
+            Convingerea nouă
           </p>
-          <ul className="mt-2 space-y-1.5 text-[11px] leading-snug text-paper-dim">
+          <p className="mt-1 font-serif text-[13px] leading-snug text-[color:var(--value)]">
+            Pot preda ceva bun fără să fie impecabil, și tot rămân în picioare.
+          </p>
+          <ul className="mt-2.5 space-y-1.5 text-[11px] leading-snug text-paper-dim">
             <li>
               <span className="text-paper">Exercițiu</span> · Predă o singură sarcină la
               90% și notează ce s-a întâmplat de fapt

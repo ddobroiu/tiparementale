@@ -1,11 +1,11 @@
-import type { SupabaseClient } from "@supabase/supabase-js";
+import type { PoolClient } from "pg";
 
 import type { MapDiff, MindNode } from "@/lib/types";
 import { displayLabel } from "@/lib/types";
 import type { Extraction } from "./schema";
 
 interface ApplyInput {
-  supabase: SupabaseClient;
+  client: PoolClient;
   userId: string;
   messageId: string;
   extraction: Extraction;
@@ -23,9 +23,12 @@ function clamp(value: number, min: number, max: number): number {
  * Tot ce vine de la model este verificat față de nodurile cunoscute: un id
  * inventat sau o încercare de a atinge un nod respins sunt ignorate în tăcere,
  * nu propagate în hartă.
+ *
+ * Rulează pe conexiunea deschisă de `withUser`, deci în aceeași tranzacție:
+ * dacă ceva eșuează la jumătate, harta nu rămâne pe jumătate actualizată.
  */
 export async function applyExtraction({
-  supabase,
+  client,
   userId,
   messageId,
   extraction,
@@ -40,43 +43,37 @@ export async function applyExtraction({
 
   // ---------------------------------------------------------------- noduri noi
 
-  if (extraction.new_nodes.length > 0) {
-    const { data: inserted, error } = await supabase
-      .from("nodes")
-      .insert(
-        extraction.new_nodes.map((n) => ({
-          user_id: userId,
-          type: n.type,
-          label: n.label,
-          summary: n.summary,
-          confidence: clamp(n.confidence, 0, 1),
-        })),
-      )
-      .select("id, type, label");
+  for (const incoming of extraction.new_nodes) {
+    const { rows } = await client.query<{ id: string; type: MindNode["type"]; label: string }>(
+      `insert into nodes (user_id, type, domain, label, summary, confidence)
+       values ($1, $2, $3, $4, $5, $6)
+       returning id, type, label`,
+      [
+        userId,
+        incoming.type,
+        incoming.domain,
+        incoming.label,
+        incoming.summary,
+        clamp(incoming.confidence, 0, 1),
+      ],
+    );
 
-    if (error) throw error;
+    const row = rows[0];
+    resolved.set(incoming.temp_id, row.id);
+    diff.created.push({ id: row.id, type: row.type, label: row.label });
 
-    const rows = inserted ?? [];
-    const observations = [];
-
-    for (const [i, row] of rows.entries()) {
-      const source = extraction.new_nodes[i];
-      resolved.set(source.temp_id, row.id);
-      diff.created.push({ id: row.id, type: row.type, label: row.label });
-      observations.push({
-        node_id: row.id,
-        user_id: userId,
-        quote: source.observation.quote,
-        source_message_id: messageId,
-        sentiment: source.observation.sentiment,
-        valence: clamp(source.observation.valence, -1, 1),
-      });
-    }
-
-    if (observations.length > 0) {
-      const { error: obsError } = await supabase.from("observations").insert(observations);
-      if (obsError) throw obsError;
-    }
+    await client.query(
+      `insert into observations (node_id, user_id, quote, source_message_id, sentiment, valence)
+       values ($1, $2, $3, $4, $5, $6)`,
+      [
+        row.id,
+        userId,
+        incoming.observation.quote,
+        messageId,
+        incoming.observation.sentiment,
+        clamp(incoming.observation.valence, -1, 1),
+      ],
+    );
   }
 
   // ------------------------------------------------------------ actualizări
@@ -87,36 +84,36 @@ export async function applyExtraction({
     // id inventat de model, sau nod pe care utilizatorul l-a respins deja
     if (!existing || existing.verdict === "rejected") continue;
 
-    const confidence = clamp(existing.confidence + clamp(update.confidence_delta, -0.3, 0.3), 0, 1);
+    const confidence = clamp(
+      existing.confidence + clamp(update.confidence_delta, -0.3, 0.3),
+      0,
+      1,
+    );
 
-    const { error } = await supabase
-      .from("nodes")
-      .update({
-        confidence,
-        ...(update.summary ? { summary: update.summary } : {}),
-      })
-      .eq("id", existing.id);
+    await client.query(
+      `update nodes set confidence = $1, summary = coalesce($2, summary) where id = $3`,
+      [confidence, update.summary, existing.id],
+    );
 
-    if (error) throw error;
-
-    const { error: obsError } = await supabase.from("observations").insert({
-      node_id: existing.id,
-      user_id: userId,
-      quote: update.observation.quote,
-      source_message_id: messageId,
-      sentiment: update.observation.sentiment,
-      valence: clamp(update.observation.valence, -1, 1),
-    });
-    if (obsError) throw obsError;
+    await client.query(
+      `insert into observations (node_id, user_id, quote, source_message_id, sentiment, valence)
+       values ($1, $2, $3, $4, $5, $6)`,
+      [
+        existing.id,
+        userId,
+        update.observation.quote,
+        messageId,
+        update.observation.sentiment,
+        clamp(update.observation.valence, -1, 1),
+      ],
+    );
 
     if (confidence !== existing.confidence) {
-      await supabase.from("node_history").insert({
-        node_id: existing.id,
-        user_id: userId,
-        field: "confidence",
-        old_value: existing.confidence.toFixed(2),
-        new_value: confidence.toFixed(2),
-      });
+      await client.query(
+        `insert into node_history (node_id, user_id, field, old_value, new_value)
+         values ($1, $2, 'confidence', $3, $4)`,
+        [existing.id, userId, existing.confidence.toFixed(2), confidence.toFixed(2)],
+      );
     }
 
     diff.strengthened.push({ id: existing.id, label: displayLabel(existing), confidence });
@@ -124,34 +121,19 @@ export async function applyExtraction({
 
   // ---------------------------------------------------------------- muchii
 
-  const edges = extraction.new_edges
-    .map((e) => ({
-      from: resolved.get(e.from),
-      to: resolved.get(e.to),
-      relation: e.relation,
-      strength: clamp(e.strength, 0, 1),
-      rationale: e.rationale,
-    }))
-    .filter((e) => e.from && e.to && e.from !== e.to);
+  for (const edge of extraction.new_edges) {
+    const from = resolved.get(edge.from);
+    const to = resolved.get(edge.to);
+    if (!from || !to || from === to) continue;
 
-  if (edges.length > 0) {
-    const { error } = await supabase.from("edges").upsert(
-      edges.map((e) => ({
-        user_id: userId,
-        from_node: e.from!,
-        to_node: e.to!,
-        relation: e.relation,
-        strength: e.strength,
-        rationale: e.rationale,
-      })),
-      { onConflict: "from_node,to_node,relation", ignoreDuplicates: true },
+    const { rowCount } = await client.query(
+      `insert into edges (user_id, from_node, to_node, relation, strength, rationale)
+       values ($1, $2, $3, $4, $5, $6)
+       on conflict (from_node, to_node, relation) do nothing`,
+      [userId, from, to, edge.relation, clamp(edge.strength, 0, 1), edge.rationale],
     );
 
-    if (error) throw error;
-
-    for (const e of edges) {
-      diff.connected.push({ from: e.from!, to: e.to!, relation: e.relation });
-    }
+    if (rowCount) diff.connected.push({ from, to, relation: edge.relation });
   }
 
   return diff;

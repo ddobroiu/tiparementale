@@ -1,28 +1,19 @@
 "use client";
 
 import {
-  forceCenter,
   forceCollide,
   forceLink,
   forceManyBody,
   forceSimulation,
+  forceX,
+  forceY,
   type SimulationLinkDatum,
   type SimulationNodeDatum,
 } from "d3-force";
 import { useMemo, useRef, useState } from "react";
 
-import type { Edge, MindNode, NodeType } from "@/lib/types";
-import { displayLabel } from "@/lib/types";
-
-const COLORS: Record<NodeType, string> = {
-  belief: "#c8b6ff",
-  value: "#a0e7c4",
-  emotion: "#ffb4a2",
-  goal: "#a2d6f9",
-  pattern: "#f6d186",
-  fear: "#d8a0c4",
-  relationship: "#b8c9e8",
-};
+import type { Edge, LifeDomain, MindNode } from "@/lib/types";
+import { DOMAIN_COLORS, DOMAIN_LABELS, displayLabel } from "@/lib/types";
 
 const WIDTH = 1000;
 const HEIGHT = 700;
@@ -31,6 +22,27 @@ interface SimNode extends SimulationNodeDatum {
   id: string;
   node: MindNode;
   r: number;
+}
+
+/**
+ * Fiecare domeniu primește un punct de atracție propriu, așezat pe un cerc.
+ * Așa harta capătă ramuri vizibile — banii într-o parte, relațiile în alta —
+ * în loc de un ghem în care totul se amestecă.
+ */
+function domainAnchors(domains: LifeDomain[]): Map<LifeDomain, { x: number; y: number }> {
+  const radius = Math.min(WIDTH, HEIGHT) * 0.34;
+  return new Map(
+    domains.map((domain, i) => {
+      const angle = (i / domains.length) * Math.PI * 2 - Math.PI / 2;
+      return [
+        domain,
+        {
+          x: WIDTH / 2 + Math.cos(angle) * radius,
+          y: HEIGHT / 2 + Math.sin(angle) * radius,
+        },
+      ];
+    }),
+  );
 }
 
 /** Raza spune cât de sigur este tiparul. Un nod slab arată slab. */
@@ -54,6 +66,11 @@ export function MindMap({ nodes, edges, selectedId, onSelect, highlighted }: Pro
   // Layout-ul este stare derivată din graf, nu un efect secundar: simularea
   // rulează până la capăt o singură dată, iar harta nu se agită pe ecran. Când
   // graful se schimbă, nodurile alunecă spre noua poziție prin tranziție CSS.
+  const anchors = useMemo(
+    () => domainAnchors([...new Set(nodes.map((n) => n.domain))]),
+    [nodes],
+  );
+
   const positions = useMemo(() => {
     const simNodes: SimNode[] = nodes.map((node) => ({
       id: node.id,
@@ -77,7 +94,9 @@ export function MindMap({ nodes, edges, selectedId, onSelect, highlighted }: Pro
           .strength(0.5),
       )
       .force("charge", forceManyBody().strength(-620))
-      .force("center", forceCenter(WIDTH / 2, HEIGHT / 2))
+      // Atracția către ramura proprie ține locul unei forțe de centrare.
+      .force("branchX", forceX<SimNode>((d) => anchors.get(d.node.domain)!.x).strength(0.13))
+      .force("branchY", forceY<SimNode>((d) => anchors.get(d.node.domain)!.y).strength(0.13))
       .force(
         "collide",
         forceCollide<SimNode>().radius((d) => d.r + 34),
@@ -88,7 +107,7 @@ export function MindMap({ nodes, edges, selectedId, onSelect, highlighted }: Pro
     return new Map(
       simNodes.map((n) => [n.id, { x: n.x ?? WIDTH / 2, y: n.y ?? HEIGHT / 2 }]),
     );
-  }, [nodes, edges]);
+  }, [nodes, edges, anchors]);
 
   function onWheel(event: React.WheelEvent) {
     const factor = event.deltaY < 0 ? 1.12 : 1 / 1.12;
@@ -141,6 +160,21 @@ export function MindMap({ nodes, edges, selectedId, onSelect, highlighted }: Pro
       <g
         transform={`translate(${WIDTH / 2} ${HEIGHT / 2}) scale(${view.k}) translate(${-WIDTH / 2 + view.x} ${-HEIGHT / 2 + view.y})`}
       >
+        {/* Numele ramurilor, discret, ca reper de orientare. */}
+        {[...anchors].map(([domain, point]) => (
+          <text
+            key={domain}
+            x={point.x}
+            y={point.y}
+            textAnchor="middle"
+            className="pointer-events-none text-[26px] tracking-[0.2em] uppercase"
+            fill={DOMAIN_COLORS[domain]}
+            fillOpacity={0.075}
+          >
+            {DOMAIN_LABELS[domain]}
+          </text>
+        ))}
+
         {edges.map((edge) => {
           const from = positions.get(edge.from_node);
           const to = positions.get(edge.to_node);
@@ -199,16 +233,16 @@ export function MindMap({ nodes, edges, selectedId, onSelect, highlighted }: Pro
               {isNew && (
                 <circle
                   r={r + 12}
-                  fill={COLORS[node.type]}
+                  fill={DOMAIN_COLORS[node.domain]}
                   fillOpacity={0.12}
                   style={{ animation: "node-appear 0.9s ease-out both" }}
                 />
               )}
               <circle
                 r={r}
-                fill={COLORS[node.type]}
+                fill={DOMAIN_COLORS[node.domain]}
                 fillOpacity={isSelected ? 0.3 : 0.14}
-                stroke={COLORS[node.type]}
+                stroke={DOMAIN_COLORS[node.domain]}
                 strokeOpacity={isConfirmed ? 0.95 : 0.42}
                 strokeWidth={isConfirmed ? 2 : 1}
                 strokeDasharray={isConfirmed ? undefined : "3 3"}

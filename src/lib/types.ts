@@ -7,11 +7,21 @@ export type NodeType =
   | "fear"
   | "relationship";
 
+export type LifeDomain =
+  | "money"
+  | "relationships"
+  | "health"
+  | "work"
+  | "family"
+  | "self"
+  | "meaning"
+  | "other";
+
 export type NodeVerdict = "unconfirmed" | "confirmed" | "rejected" | "edited";
 
 export type InputMode = "text" | "voice";
 
-export type RecommendationKind = "exercise" | "book" | "film";
+export type RecommendationKind = "exercise" | "book" | "film" | "example";
 
 export type RecommendationStatus =
   | "suggested"
@@ -19,6 +29,8 @@ export type RecommendationStatus =
   | "done"
   | "dismissed"
   | "inaccurate";
+
+export type TransformationStatus = "proposed" | "practicing" | "adopted" | "dismissed";
 
 export type SafetyFlag = "none" | "distress" | "crisis";
 
@@ -32,10 +44,45 @@ export const NODE_TYPE_LABELS: Record<NodeType, string> = {
   relationship: "Relație",
 };
 
+/** Ramurile hărții. Discuția se poartă pe o temă, nu la întâmplare. */
+export const DOMAIN_LABELS: Record<LifeDomain, string> = {
+  money: "Bani",
+  relationships: "Relații",
+  health: "Sănătate",
+  work: "Muncă",
+  family: "Familie",
+  self: "Sine",
+  meaning: "Sens",
+  other: "Altele",
+};
+
+export const DOMAIN_COLORS: Record<LifeDomain, string> = {
+  money: "#f6d186",
+  relationships: "#ffb4a2",
+  health: "#a0e7c4",
+  work: "#a2d6f9",
+  family: "#d8a0c4",
+  self: "#c8b6ff",
+  meaning: "#b8c9e8",
+  other: "#9a98a5",
+};
+
+/** Domeniile pe care conversația chiar le explorează, în ordinea din interfață. */
+export const EXPLORABLE_DOMAINS: LifeDomain[] = [
+  "money",
+  "relationships",
+  "health",
+  "work",
+  "family",
+  "self",
+  "meaning",
+];
+
 export interface MindNode {
   id: string;
   user_id: string;
   type: NodeType;
+  domain: LifeDomain;
   label: string;
   user_label: string | null;
   summary: string | null;
@@ -67,10 +114,23 @@ export interface Edge {
   created_at: string;
 }
 
+/** Convingerea nouă care ia locul celei vechi. Nodul vechi nu se șterge. */
+export interface Transformation {
+  id: string;
+  user_id: string;
+  node_id: string;
+  new_label: string;
+  rationale: string;
+  status: TransformationStatus;
+  created_at: string;
+  adopted_at: string | null;
+}
+
 export interface Recommendation {
   id: string;
   user_id: string;
   node_id: string;
+  transformation_id: string | null;
   kind: RecommendationKind;
   title: string;
   creator: string | null;

@@ -1,33 +1,116 @@
 "use client";
 
 import Link from "next/link";
-import { useState } from "react";
+import { useRouter, useSearchParams } from "next/navigation";
+import { Suspense, useState } from "react";
 
-import { createClient } from "@/lib/supabase/client";
+function AuthForm() {
+  const router = useRouter();
+  const params = useSearchParams();
+  const redirect = params.get("redirect") ?? "/harta";
 
-export default function IntraPage() {
+  const [mode, setMode] = useState<"login" | "register">("login");
   const [email, setEmail] = useState("");
-  const [state, setState] = useState<"idle" | "sending" | "sent" | "error">("idle");
+  const [password, setPassword] = useState("");
   const [error, setError] = useState("");
+  const [busy, setBusy] = useState(false);
 
   async function submit(event: React.FormEvent) {
     event.preventDefault();
-    setState("sending");
+    setBusy(true);
+    setError("");
 
-    const supabase = createClient();
-    const { error } = await supabase.auth.signInWithOtp({
-      email,
-      options: { emailRedirectTo: `${window.location.origin}/auth/confirm` },
+    const res = await fetch("/api/auth", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ action: mode, email, password }),
     });
 
-    if (error) {
-      setError(error.message);
-      setState("error");
+    if (!res.ok) {
+      const data = await res.json().catch(() => ({}));
+      setError(data.error ?? "Ceva n-a mers. Încearcă din nou.");
+      setBusy(false);
       return;
     }
-    setState("sent");
+
+    router.push(redirect);
+    router.refresh();
   }
 
+  const isRegister = mode === "register";
+
+  return (
+    <div className="w-full max-w-sm">
+      <h1 className="font-serif text-3xl">{isRegister ? "Începe harta ta" : "Intră"}</h1>
+      <p className="mt-3 leading-relaxed text-paper-dim">
+        {isRegister
+          ? "Un cont, și harta pornește goală. O construiești vorbind."
+          : "Bine ai revenit. Harta te așteaptă unde ai lăsat-o."}
+      </p>
+
+      <form onSubmit={submit} className="mt-8 space-y-3">
+        <div>
+          <label htmlFor="email" className="sr-only">
+            Adresa de email
+          </label>
+          <input
+            id="email"
+            type="email"
+            required
+            autoComplete="email"
+            value={email}
+            onChange={(e) => setEmail(e.target.value)}
+            placeholder="adresa@exemplu.ro"
+            className="w-full rounded-xl border border-ink-line bg-ink-soft px-4 py-3 text-paper outline-none placeholder:text-paper-faint focus:border-paper-faint"
+          />
+        </div>
+
+        <div>
+          <label htmlFor="password" className="sr-only">
+            Parola
+          </label>
+          <input
+            id="password"
+            type="password"
+            required
+            minLength={isRegister ? 10 : undefined}
+            autoComplete={isRegister ? "new-password" : "current-password"}
+            value={password}
+            onChange={(e) => setPassword(e.target.value)}
+            placeholder={isRegister ? "Parolă, minimum 10 caractere" : "Parola"}
+            className="w-full rounded-xl border border-ink-line bg-ink-soft px-4 py-3 text-paper outline-none placeholder:text-paper-faint focus:border-paper-faint"
+          />
+        </div>
+
+        <button
+          type="submit"
+          disabled={busy}
+          className="w-full rounded-xl bg-paper px-4 py-3 text-sm font-medium text-ink transition-opacity hover:opacity-90 disabled:opacity-50"
+        >
+          {busy ? "Un moment…" : isRegister ? "Creează contul" : "Intră"}
+        </button>
+      </form>
+
+      {error && <p className="mt-4 text-sm text-[color:var(--emotion)]">{error}</p>}
+
+      <button
+        onClick={() => {
+          setMode(isRegister ? "login" : "register");
+          setError("");
+        }}
+        className="mt-6 text-sm text-paper-faint underline underline-offset-4 transition-colors hover:text-paper-dim"
+      >
+        {isRegister ? "Am deja cont" : "Nu am cont încă"}
+      </button>
+
+      <p className="mt-8 text-xs leading-relaxed text-paper-faint">
+        Ce scrii aici rămâne al tău. Poți exporta sau șterge tot, oricând.
+      </p>
+    </div>
+  );
+}
+
+export default function IntraPage() {
   return (
     <main className="flex min-h-screen flex-col">
       <header className="mx-auto flex w-full max-w-6xl items-center px-6 py-6">
@@ -37,55 +120,9 @@ export default function IntraPage() {
       </header>
 
       <div className="flex flex-1 items-center justify-center px-6 pb-24">
-        <div className="w-full max-w-sm">
-          {state === "sent" ? (
-            <div className="animate-fade-up">
-              <h1 className="font-serif text-3xl">Verifică-ți emailul</h1>
-              <p className="mt-4 leading-relaxed text-paper-dim">
-                Am trimis un link către <span className="text-paper">{email}</span>.
-                Deschide-l și harta ta te așteaptă.
-              </p>
-            </div>
-          ) : (
-            <>
-              <h1 className="font-serif text-3xl">Intră</h1>
-              <p className="mt-3 leading-relaxed text-paper-dim">
-                Fără parolă. Primești un link pe email.
-              </p>
-
-              <form onSubmit={submit} className="mt-8">
-                <label htmlFor="email" className="sr-only">
-                  Adresa de email
-                </label>
-                <input
-                  id="email"
-                  type="email"
-                  required
-                  autoComplete="email"
-                  value={email}
-                  onChange={(e) => setEmail(e.target.value)}
-                  placeholder="adresa@exemplu.ro"
-                  className="w-full rounded-xl border border-ink-line bg-ink-soft px-4 py-3 text-paper outline-none placeholder:text-paper-faint focus:border-paper-faint"
-                />
-                <button
-                  type="submit"
-                  disabled={state === "sending"}
-                  className="mt-3 w-full rounded-xl bg-paper px-4 py-3 text-sm font-medium text-ink transition-opacity hover:opacity-90 disabled:opacity-50"
-                >
-                  {state === "sending" ? "Se trimite…" : "Trimite linkul"}
-                </button>
-              </form>
-
-              {state === "error" && (
-                <p className="mt-4 text-sm text-[color:var(--emotion)]">{error}</p>
-              )}
-
-              <p className="mt-8 text-xs leading-relaxed text-paper-faint">
-                Ce scrii aici rămâne al tău. Poți exporta sau șterge tot, oricând.
-              </p>
-            </>
-          )}
-        </div>
+        <Suspense fallback={null}>
+          <AuthForm />
+        </Suspense>
       </div>
     </main>
   );

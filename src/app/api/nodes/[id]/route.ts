@@ -1,45 +1,63 @@
 import { NextResponse } from "next/server";
 
-import { createClient } from "@/lib/supabase/server";
-import type { NodeVerdict } from "@/lib/types";
+import { getSessionUser } from "@/lib/auth";
+import { withUser } from "@/lib/db";
+import type {
+  MindNode,
+  NodeVerdict,
+  Observation,
+  Recommendation,
+  Transformation,
+} from "@/lib/types";
 
 const VERDICTS: NodeVerdict[] = ["unconfirmed", "confirmed", "rejected", "edited"];
 
 /** Nodul cu tot ce îl susține: citatele și evoluția lui în timp. */
 export async function GET(_request: Request, context: RouteContext<"/api/nodes/[id]">) {
-  const { id } = await context.params;
-  const supabase = await createClient();
+  const user = await getSessionUser();
+  if (!user) {
+    return NextResponse.json({ error: "Neautentificat" }, { status: 401 });
+  }
 
-  const [{ data: node }, { data: observations }, { data: history }, { data: recommendations }] =
-    await Promise.all([
-      supabase.from("nodes").select("*").eq("id", id).single(),
-      supabase
-        .from("observations")
-        .select("*")
-        .eq("node_id", id)
-        .order("observed_at", { ascending: false }),
-      supabase
-        .from("node_history")
-        .select("*")
-        .eq("node_id", id)
-        .order("changed_at", { ascending: false }),
-      supabase
-        .from("recommendations")
-        .select("*")
-        .eq("node_id", id)
-        .order("created_at", { ascending: false }),
+  const { id } = await context.params;
+
+  const payload = await withUser(user.id, async (client) => {
+    const { rows: nodes } = await client.query<MindNode>("select * from nodes where id = $1", [id]);
+    if (nodes.length === 0) return null;
+
+    const [observations, history, recommendations, transformations] = await Promise.all([
+      client.query<Observation>(
+        "select * from observations where node_id = $1 order by observed_at desc",
+        [id],
+      ),
+      client.query(
+        "select * from node_history where node_id = $1 order by changed_at desc",
+        [id],
+      ),
+      client.query<Recommendation>(
+        "select * from recommendations where node_id = $1 order by created_at desc",
+        [id],
+      ),
+      client.query<Transformation>(
+        "select * from transformations where node_id = $1 order by created_at desc",
+        [id],
+      ),
     ]);
 
-  if (!node) {
+    return {
+      node: nodes[0],
+      observations: observations.rows,
+      history: history.rows,
+      recommendations: recommendations.rows,
+      transformations: transformations.rows,
+    };
+  });
+
+  if (!payload) {
     return NextResponse.json({ error: "Nodul nu există" }, { status: 404 });
   }
 
-  return NextResponse.json({
-    node,
-    observations: observations ?? [],
-    history: history ?? [],
-    recommendations: recommendations ?? [],
-  });
+  return NextResponse.json(payload);
 }
 
 /**
@@ -48,76 +66,72 @@ export async function GET(_request: Request, context: RouteContext<"/api/nodes/[
  * negativ.
  */
 export async function PATCH(request: Request, context: RouteContext<"/api/nodes/[id]">) {
-  const { id } = await context.params;
-  const supabase = await createClient();
-
-  const {
-    data: { user },
-  } = await supabase.auth.getUser();
+  const user = await getSessionUser();
   if (!user) {
     return NextResponse.json({ error: "Neautentificat" }, { status: 401 });
   }
 
+  const { id } = await context.params;
   const body = await request.json().catch(() => null);
   const verdict: unknown = body?.verdict;
   const userLabel: unknown = body?.user_label;
 
-  const { data: existing } = await supabase.from("nodes").select("*").eq("id", id).single();
-  if (!existing) {
-    return NextResponse.json({ error: "Nodul nu există" }, { status: 404 });
+  const outcome = await withUser(user.id, async (client) => {
+    const { rows } = await client.query<MindNode>("select * from nodes where id = $1", [id]);
+    const existing = rows[0];
+    if (!existing) return { status: 404 as const, error: "Nodul nu există" };
+
+    let nextVerdict: NodeVerdict | null = null;
+    let nextLabel: string | null = null;
+
+    if (typeof verdict === "string" && VERDICTS.includes(verdict as NodeVerdict)) {
+      nextVerdict = verdict as NodeVerdict;
+    }
+
+    if (typeof userLabel === "string" && userLabel.trim().length > 0) {
+      nextLabel = userLabel.trim();
+      nextVerdict = "edited";
+    }
+
+    if (!nextVerdict && !nextLabel) {
+      return { status: 400 as const, error: "Nimic de actualizat" };
+    }
+
+    // Un nod respins nu se șterge: iese din hartă, rămâne ca exemplu negativ.
+    const archivedAt = nextVerdict === "rejected" ? new Date().toISOString() : null;
+
+    const { rows: updated } = await client.query<MindNode>(
+      `update nodes
+          set verdict = coalesce($1, verdict),
+              user_label = coalesce($2, user_label),
+              archived_at = $3
+        where id = $4
+        returning *`,
+      [nextVerdict, nextLabel, archivedAt, id],
+    );
+
+    if (nextVerdict && nextVerdict !== existing.verdict) {
+      await client.query(
+        `insert into node_history (node_id, user_id, field, old_value, new_value)
+         values ($1, $2, 'verdict', $3, $4)`,
+        [id, user.id, existing.verdict, nextVerdict],
+      );
+    }
+
+    if (nextLabel && nextLabel !== existing.user_label) {
+      await client.query(
+        `insert into node_history (node_id, user_id, field, old_value, new_value)
+         values ($1, $2, 'user_label', $3, $4)`,
+        [id, user.id, existing.user_label ?? existing.label, nextLabel],
+      );
+    }
+
+    return { status: 200 as const, node: updated[0] };
+  });
+
+  if (outcome.status !== 200) {
+    return NextResponse.json({ error: outcome.error }, { status: outcome.status });
   }
 
-  const update: Record<string, unknown> = {};
-
-  if (typeof verdict === "string" && VERDICTS.includes(verdict as NodeVerdict)) {
-    update.verdict = verdict;
-    // Un nod respins nu se șterge: iese din hartă, rămâne ca semnal.
-    update.archived_at = verdict === "rejected" ? new Date().toISOString() : null;
-  }
-
-  if (typeof userLabel === "string" && userLabel.trim().length > 0) {
-    update.user_label = userLabel.trim();
-    update.verdict = "edited";
-    update.archived_at = null;
-  }
-
-  if (Object.keys(update).length === 0) {
-    return NextResponse.json({ error: "Nimic de actualizat" }, { status: 400 });
-  }
-
-  const { data: updated, error } = await supabase
-    .from("nodes")
-    .update(update)
-    .eq("id", id)
-    .select("*")
-    .single();
-
-  if (error) {
-    return NextResponse.json({ error: error.message }, { status: 500 });
-  }
-
-  const changes = [];
-  if (update.verdict && update.verdict !== existing.verdict) {
-    changes.push({
-      node_id: id,
-      user_id: user.id,
-      field: "verdict",
-      old_value: existing.verdict,
-      new_value: String(update.verdict),
-    });
-  }
-  if (update.user_label && update.user_label !== existing.user_label) {
-    changes.push({
-      node_id: id,
-      user_id: user.id,
-      field: "user_label",
-      old_value: existing.user_label ?? existing.label,
-      new_value: String(update.user_label),
-    });
-  }
-  if (changes.length > 0) {
-    await supabase.from("node_history").insert(changes);
-  }
-
-  return NextResponse.json({ node: updated });
+  return NextResponse.json({ node: outcome.node });
 }

@@ -1,26 +1,21 @@
 import { redirect } from "next/navigation";
 
 import { MapView } from "@/components/MapView";
-import { createClient } from "@/lib/supabase/server";
+import { getSessionUser } from "@/lib/auth";
+import { withUser } from "@/lib/db";
 import type { Edge, MindNode } from "@/lib/types";
 
 export default async function HartaPage() {
-  const supabase = await createClient();
-
-  const {
-    data: { user },
-  } = await supabase.auth.getUser();
+  const user = await getSessionUser();
   if (!user) redirect("/intra");
 
-  const [{ data: nodes }, { data: edges }] = await Promise.all([
-    supabase.from("nodes").select("*").is("archived_at", null).order("created_at"),
-    supabase.from("edges").select("*"),
-  ]);
+  const graph = await withUser(user.id, async (client) => {
+    const { rows: nodes } = await client.query<MindNode>(
+      "select * from nodes where archived_at is null order by created_at",
+    );
+    const { rows: edges } = await client.query<Edge>("select * from edges");
+    return { nodes, edges };
+  });
 
-  return (
-    <MapView
-      initialNodes={(nodes ?? []) as MindNode[]}
-      initialEdges={(edges ?? []) as Edge[]}
-    />
-  );
+  return <MapView initialNodes={graph.nodes} initialEdges={graph.edges} />;
 }

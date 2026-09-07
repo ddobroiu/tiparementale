@@ -1,122 +1,116 @@
 import { NextResponse } from "next/server";
 
-import { createClient } from "@/lib/supabase/server";
-import { runExtraction } from "@/lib/extraction/extract";
+import { getSessionUser } from "@/lib/auth";
+import { withUser } from "@/lib/db";
 import { applyExtraction } from "@/lib/extraction/apply";
+import { runExtraction } from "@/lib/extraction/extract";
 import type { MindNode } from "@/lib/types";
 
 const HISTORY_LIMIT = 10;
 
 export async function POST(request: Request) {
-  const supabase = await createClient();
-  const {
-    data: { user },
-  } = await supabase.auth.getUser();
-
+  const user = await getSessionUser();
   if (!user) {
     return NextResponse.json({ error: "Neautentificat" }, { status: 401 });
   }
 
   const body = await request.json().catch(() => null);
   const message: unknown = body?.message;
-  const sessionId: string | null = body?.sessionId ?? null;
 
   if (typeof message !== "string" || message.trim().length === 0) {
     return NextResponse.json({ error: "Mesaj gol" }, { status: 400 });
   }
 
   const inputMode = body?.inputMode === "voice" ? "voice" : "text";
+  const requestedConversation: string | null = body?.conversationId ?? null;
 
-  // ------------------------------------------------------------ sesiunea
+  // Prima tranzacție: salvăm mesajul și citim contextul. Se închide înainte de
+  // apelul la model, ca să nu ținem o conexiune blocată câteva secunde.
+  const context = await withUser(user.id, async (client) => {
+    let conversationId = requestedConversation;
 
-  let activeSessionId = sessionId;
-  if (!activeSessionId) {
-    const { data, error } = await supabase
-      .from("sessions")
-      .insert({ user_id: user.id })
-      .select("id")
-      .single();
-    if (error) return NextResponse.json({ error: error.message }, { status: 500 });
-    activeSessionId = data.id;
-  }
+    if (conversationId) {
+      const { rows } = await client.query<{ id: string }>(
+        "select id from conversations where id = $1",
+        [conversationId],
+      );
+      if (rows.length === 0) conversationId = null;
+    }
 
-  // ------------------------------------------------- mesajul și contextul
+    if (!conversationId) {
+      const { rows } = await client.query<{ id: string }>(
+        "insert into conversations (user_id) values ($1) returning id",
+        [user.id],
+      );
+      conversationId = rows[0].id;
+    }
 
-  const { data: savedMessage, error: messageError } = await supabase
-    .from("messages")
-    .insert({
-      user_id: user.id,
-      session_id: activeSessionId,
-      role: "user",
-      content: message,
-      input_mode: inputMode,
-    })
-    .select("id")
-    .single();
+    const { rows: saved } = await client.query<{ id: string }>(
+      `insert into messages (user_id, conversation_id, role, content, input_mode)
+       values ($1, $2, 'user', $3, $4)
+       returning id`,
+      [user.id, conversationId, message, inputMode],
+    );
 
-  if (messageError) {
-    return NextResponse.json({ error: messageError.message }, { status: 500 });
-  }
+    const { rows: nodes } = await client.query<MindNode>(
+      "select * from nodes where archived_at is null order by created_at",
+    );
 
-  const [{ data: nodes }, { data: history }] = await Promise.all([
-    supabase.from("nodes").select("*").is("archived_at", null),
-    supabase
-      .from("messages")
-      .select("role, content")
-      .eq("session_id", activeSessionId)
-      .neq("id", savedMessage.id)
-      .order("created_at", { ascending: false })
-      .limit(HISTORY_LIMIT),
-  ]);
+    const { rows: history } = await client.query<{ role: "user" | "assistant"; content: string }>(
+      `select role, content from messages
+        where conversation_id = $1 and id <> $2
+        order by created_at desc
+        limit $3`,
+      [conversationId, saved[0].id, HISTORY_LIMIT],
+    );
 
-  const knownNodes = (nodes ?? []) as MindNode[];
+    return {
+      conversationId,
+      messageId: saved[0].id,
+      nodes,
+      history: history.reverse(),
+    };
+  });
 
   // ------------------------------------------------------------ extracție
 
   const result = await runExtraction({
-    nodes: knownNodes,
-    history: (history ?? []).reverse() as Array<{
-      role: "user" | "assistant";
-      content: string;
-    }>,
+    nodes: context.nodes,
+    history: context.history,
     message,
   });
 
-  if (!result.ok) {
-    await supabase.from("messages").insert({
-      user_id: user.id,
-      session_id: activeSessionId,
-      role: "assistant",
-      content: result.reply,
-    });
+  // A doua tranzacție: scriem ce a rezultat.
+  const outcome = await withUser(user.id, async (client) => {
+    const reply = result.ok ? result.extraction.reply : result.reply;
 
-    return NextResponse.json({
-      sessionId: activeSessionId,
-      reply: result.reply,
-      diff: { created: [], strengthened: [], connected: [] },
-      safetyFlag: result.reason === "refusal" ? "crisis" : "none",
-    });
-  }
+    const diff = result.ok
+      ? await applyExtraction({
+          client,
+          userId: user.id,
+          messageId: context.messageId,
+          extraction: result.extraction,
+          knownNodes: context.nodes,
+        })
+      : { created: [], strengthened: [], connected: [] };
 
-  const diff = await applyExtraction({
-    supabase,
-    userId: user.id,
-    messageId: savedMessage.id,
-    extraction: result.extraction,
-    knownNodes,
-  });
+    await client.query(
+      `insert into messages (user_id, conversation_id, role, content)
+       values ($1, $2, 'assistant', $3)`,
+      [user.id, context.conversationId, reply],
+    );
 
-  await supabase.from("messages").insert({
-    user_id: user.id,
-    session_id: activeSessionId,
-    role: "assistant",
-    content: result.extraction.reply,
+    return { reply, diff };
   });
 
   return NextResponse.json({
-    sessionId: activeSessionId,
-    reply: result.extraction.reply,
-    diff,
-    safetyFlag: result.extraction.safety_flag,
+    conversationId: context.conversationId,
+    reply: outcome.reply,
+    diff: outcome.diff,
+    safetyFlag: result.ok
+      ? result.extraction.safety_flag
+      : result.reason === "refusal"
+        ? "crisis"
+        : "none",
   });
 }

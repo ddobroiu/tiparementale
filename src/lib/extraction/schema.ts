@@ -17,6 +17,18 @@ export const NodeTypeEnum = z.enum([
   "relationship",
 ]);
 
+/** Ramura din hartă de care aparține elementul. */
+export const DomainEnum = z.enum([
+  "money",
+  "relationships",
+  "health",
+  "work",
+  "family",
+  "self",
+  "meaning",
+  "other",
+]);
+
 /** Unitatea atomică de adevăr: ce s-a observat și din ce cuvinte anume. */
 export const ObservationSchema = z.object({
   quote: z
@@ -39,6 +51,10 @@ export const NewNodeSchema = z.object({
     .string()
     .describe("Identificator local, folosit pentru a lega muchii de acest nod nou."),
   type: NodeTypeEnum,
+  domain: DomainEnum.describe(
+    "Domeniul de viață de care ține. Folosește „other” doar când chiar nu se " +
+      "potrivește niciunul.",
+  ),
   label: z
     .string()
     .describe(
@@ -82,9 +98,11 @@ export const ExtractionSchema = z.object({
   reply: z
     .string()
     .describe(
-      "Răspunsul către utilizator: scurt, cald, fără jargon și fără sfaturi. " +
-        "O întrebare care deschide, nu o concluzie care închide.",
+      "Replica ta în conversație: două-trei propoziții, apoi o singură " +
+        "întrebare. Caldă, curioasă, în limbajul lui. Fără jargon, fără " +
+        "sfaturi, fără să reciți harta.",
     ),
+  domain_in_focus: DomainEnum.describe("Domeniul pe care îl explorezi acum."),
   new_nodes: z.array(NewNodeSchema),
   node_updates: z.array(NodeUpdateSchema),
   new_edges: z.array(NewEdgeSchema),

@@ -20,7 +20,7 @@ export function MapView({ initialNodes, initialEdges }: Props) {
   const [chatOpen, setChatOpen] = useState(initialNodes.length === 0);
   const [messages, setMessages] = useState<ChatMessage[]>([]);
   const [pending, setPending] = useState(false);
-  const [sessionId, setSessionId] = useState<string | null>(null);
+  const [conversationId, setConversationId] = useState<string | null>(null);
   const [diff, setDiff] = useState<MapDiff | null>(null);
   const [safety, setSafety] = useState<SafetyFlag>("none");
   const [highlighted, setHighlighted] = useState<Set<string>>(new Set());
@@ -41,7 +41,7 @@ export function MapView({ initialNodes, initialEdges }: Props) {
       const res = await fetch("/api/chat", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ message: text, sessionId }),
+        body: JSON.stringify({ message: text, conversationId }),
       });
       const data = await res.json();
 
@@ -53,7 +53,7 @@ export function MapView({ initialNodes, initialEdges }: Props) {
         return;
       }
 
-      setSessionId(data.sessionId);
+      setConversationId(data.conversationId);
       setMessages((m) => [...m, { role: "assistant", content: data.reply }]);
       setSafety(data.safetyFlag ?? "none");
 

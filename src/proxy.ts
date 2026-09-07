@@ -1,52 +1,28 @@
-import { createServerClient } from "@supabase/ssr";
 import { NextResponse, type NextRequest } from "next/server";
 
+import { SESSION_COOKIE } from "@/lib/auth";
+
 /**
- * Reîmprospătează sesiunea Supabase la fiecare cerere și protejează rutele
- * private. În Next.js 16 fișierul se numește `proxy`, nu `middleware`,
- * și rulează pe runtime-ul Node.
+ * Poartă ieftină: verifică doar existența cookie-ului de sesiune, fără să
+ * atingă baza de date. Validarea reală se face în pagină sau în ruta de API,
+ * care oricum au nevoie de utilizator.
+ *
+ * În Next.js 16 fișierul se numește `proxy`, nu `middleware`.
  */
-export async function proxy(request: NextRequest) {
-  let response = NextResponse.next({ request });
-
-  const supabase = createServerClient(
-    process.env.NEXT_PUBLIC_SUPABASE_URL!,
-    process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
-    {
-      cookies: {
-        getAll() {
-          return request.cookies.getAll();
-        },
-        setAll(cookiesToSet) {
-          for (const { name, value } of cookiesToSet) {
-            request.cookies.set(name, value);
-          }
-          response = NextResponse.next({ request });
-          for (const { name, value, options } of cookiesToSet) {
-            response.cookies.set(name, value, options);
-          }
-        },
-      },
-    },
-  );
-
-  const {
-    data: { user },
-  } = await supabase.auth.getUser();
-
+export function proxy(request: NextRequest) {
   const path = request.nextUrl.pathname;
   const isPrivate = path.startsWith("/harta") || path.startsWith("/setari");
 
-  if (!user && isPrivate) {
+  if (isPrivate && !request.cookies.has(SESSION_COOKIE)) {
     const url = request.nextUrl.clone();
     url.pathname = "/intra";
     url.searchParams.set("redirect", path);
     return NextResponse.redirect(url);
   }
 
-  return response;
+  return NextResponse.next();
 }
 
 export const config = {
-  matcher: ["/((?!_next/static|_next/image|favicon.ico|.*\\.(?:svg|png|jpg|jpeg|gif|webp)$).*)"],
+  matcher: ["/harta/:path*", "/setari/:path*"],
 };

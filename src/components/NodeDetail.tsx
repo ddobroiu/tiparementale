@@ -2,8 +2,14 @@
 
 import { useEffect, useState } from "react";
 
-import type { MindNode, Observation, Recommendation } from "@/lib/types";
-import { NODE_TYPE_LABELS, displayLabel } from "@/lib/types";
+import type {
+  MindNode,
+  Observation,
+  Recommendation,
+  RecommendationKind,
+  Transformation,
+} from "@/lib/types";
+import { DOMAIN_COLORS, DOMAIN_LABELS, NODE_TYPE_LABELS, displayLabel } from "@/lib/types";
 
 interface HistoryEntry {
   id: string;
@@ -18,15 +24,20 @@ interface Payload {
   observations: Observation[];
   history: HistoryEntry[];
   recommendations: Recommendation[];
+  transformations: Transformation[];
 }
 
-const KIND_LABELS = { exercise: "Exercițiu", book: "Carte", film: "Film" } as const;
+const KIND_LABELS: Record<RecommendationKind, string> = {
+  exercise: "Exercițiu",
+  example: "Exemplu concret",
+  book: "Carte",
+  film: "Film",
+};
+
+const KIND_ORDER: RecommendationKind[] = ["exercise", "example", "book", "film"];
 
 function formatDate(iso: string): string {
-  return new Date(iso).toLocaleDateString("ro-RO", {
-    day: "numeric",
-    month: "long",
-  });
+  return new Date(iso).toLocaleDateString("ro-RO", { day: "numeric", month: "long" });
 }
 
 export function NodeDetail({
@@ -41,10 +52,12 @@ export function NodeDetail({
   const [data, setData] = useState<Payload | null>(null);
   const [editing, setEditing] = useState(false);
   const [draft, setDraft] = useState("");
-  const [saving, setSaving] = useState(false);
+  const [busy, setBusy] = useState(false);
+  const [working, setWorking] = useState(false);
+  const [whyOld, setWhyOld] = useState<string | null>(null);
+  const [error, setError] = useState("");
 
-  // Componenta este montată cu `key={nodeId}`, deci starea pornește curată la
-  // fiecare nod: efectul doar aduce datele.
+  // Montat cu `key={nodeId}`, deci starea pornește curată la fiecare nod.
   useEffect(() => {
     fetch(`/api/nodes/${nodeId}`)
       .then((r) => r.json())
@@ -55,35 +68,81 @@ export function NodeDetail({
       .catch(() => setData(null));
   }, [nodeId]);
 
+  async function reload() {
+    const payload = await fetch(`/api/nodes/${nodeId}`).then((r) => r.json());
+    setData(payload);
+    onChanged();
+  }
+
   async function patch(body: Record<string, unknown>) {
-    setSaving(true);
+    setBusy(true);
     await fetch(`/api/nodes/${nodeId}`, {
       method: "PATCH",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify(body),
     });
-    setSaving(false);
-    onChanged();
+    await reload();
+    setBusy(false);
+  }
+
+  /** Pornește lucrul: convingere nouă, exerciții, exemple, carte, film. */
+  async function startTransformation() {
+    setWorking(true);
+    setError("");
+
+    const res = await fetch(`/api/nodes/${nodeId}/transform`, { method: "POST" });
+    const payload = await res.json().catch(() => ({}));
+
+    if (!res.ok) {
+      setError(payload.error ?? "Nu a mers. Încearcă din nou.");
+      setWorking(false);
+      return;
+    }
+
+    setWhyOld(payload.whyOldPersists ?? null);
+    await reload();
+    setWorking(false);
+  }
+
+  async function setTransformationStatus(id: string, status: string) {
+    setBusy(true);
+    await fetch(`/api/transformations/${id}`, {
+      method: "PATCH",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ status }),
+    });
+    await reload();
+    setBusy(false);
   }
 
   if (!data) {
     return (
-      <aside className="w-full border-l border-ink-line bg-ink-soft/60 p-6 backdrop-blur-md sm:w-[380px]">
+      <aside className="w-full border-l border-ink-line bg-ink-soft/60 p-6 backdrop-blur-md sm:w-[400px]">
         <p className="text-sm text-paper-faint">Se încarcă…</p>
       </aside>
     );
   }
 
-  const { node, observations, history, recommendations } = data;
+  const { node, observations, history, recommendations, transformations } = data;
   const confirmed = node.verdict === "confirmed" || node.verdict === "edited";
+  const active = transformations.find((t) => t.status !== "dismissed");
+  const forActive = active
+    ? recommendations.filter((r) => r.transformation_id === active.id)
+    : [];
 
   return (
-    <aside className="animate-fade-up w-full overflow-y-auto border-l border-ink-line bg-ink-soft/70 backdrop-blur-md sm:w-[380px]">
+    <aside className="animate-fade-up w-full overflow-y-auto border-l border-ink-line bg-ink-soft/70 backdrop-blur-md sm:w-[400px]">
       <div className="p-6">
         <div className="flex items-start justify-between gap-4">
-          <span className="text-[11px] tracking-[0.16em] text-paper-faint uppercase">
-            {NODE_TYPE_LABELS[node.type]}
-          </span>
+          <div className="flex items-center gap-2">
+            <span
+              className="h-2 w-2 rounded-full"
+              style={{ background: DOMAIN_COLORS[node.domain] }}
+            />
+            <span className="text-[11px] tracking-[0.16em] text-paper-faint uppercase">
+              {DOMAIN_LABELS[node.domain]} · {NODE_TYPE_LABELS[node.type]}
+            </span>
+          </div>
           <button
             onClick={onClose}
             className="text-paper-faint transition-colors hover:text-paper"
@@ -103,7 +162,7 @@ export function NodeDetail({
             />
             <div className="mt-2 flex gap-2">
               <button
-                disabled={saving}
+                disabled={busy}
                 onClick={async () => {
                   await patch({ user_label: draft });
                   setEditing(false);
@@ -132,12 +191,11 @@ export function NodeDetail({
           <span>Încredere {Math.round(node.confidence * 100)}%</span>
           <span>·</span>
           <span>
-            {observations.length}{" "}
-            {observations.length === 1 ? "mențiune" : "mențiuni"}
+            {observations.length} {observations.length === 1 ? "mențiune" : "mențiuni"}
           </span>
         </div>
 
-        {/* Bucla de precizie. Ce confirmi devine adevăr; ce respingi nu revine. */}
+        {/* Bucla de precizie: ce confirmi devine adevăr, ce respingi nu revine. */}
         {!editing && (
           <div className="mt-5 border-y border-ink-line py-5">
             {confirmed ? (
@@ -155,21 +213,21 @@ export function NodeDetail({
                 <p className="text-sm text-paper-dim">Te regăsești în asta?</p>
                 <div className="mt-3 flex flex-wrap gap-2">
                   <button
-                    disabled={saving}
+                    disabled={busy}
                     onClick={() => patch({ verdict: "confirmed" })}
                     className="rounded-full bg-paper px-4 py-1.5 text-xs font-medium text-ink transition-opacity hover:opacity-90 disabled:opacity-50"
                   >
                     Da, e adevărat
                   </button>
                   <button
-                    disabled={saving}
+                    disabled={busy}
                     onClick={() => setEditing(true)}
                     className="rounded-full border border-ink-line px-4 py-1.5 text-xs text-paper-dim transition-colors hover:border-paper-faint hover:text-paper"
                   >
                     Aproape — reformulez
                   </button>
                   <button
-                    disabled={saving}
+                    disabled={busy}
                     onClick={() => patch({ verdict: "rejected" })}
                     className="rounded-full border border-ink-line px-4 py-1.5 text-xs text-paper-faint transition-colors hover:border-paper-faint hover:text-paper-dim"
                   >
@@ -179,6 +237,107 @@ export function NodeDetail({
               </>
             )}
           </div>
+        )}
+
+        {/* Transformarea. Doar pentru ce a confirmat: nu lucrăm pe ipoteze. */}
+        {confirmed && !active && (
+          <section className="mt-6">
+            <h3 className="font-serif text-lg">Vrei să lucrăm la asta?</h3>
+            <p className="mt-2 text-sm leading-relaxed text-paper-dim">
+              Îți propun o convingere nouă care să-i ia locul, cu exerciții mici
+              și exemple concrete prin care s-o exersezi.
+            </p>
+            <button
+              onClick={startTransformation}
+              disabled={working}
+              className="mt-4 w-full rounded-xl bg-paper px-4 py-2.5 text-sm font-medium text-ink transition-opacity hover:opacity-90 disabled:opacity-50"
+            >
+              {working ? "Pregătesc…" : "Lucrăm la asta"}
+            </button>
+            {error && <p className="mt-3 text-xs text-[color:var(--emotion)]">{error}</p>}
+          </section>
+        )}
+
+        {active && (
+          <section className="mt-6">
+            <h3 className="text-[11px] tracking-[0.16em] text-paper-faint uppercase">
+              Convingerea nouă
+            </h3>
+            <p className="mt-2 font-serif text-xl leading-snug text-[color:var(--value)]">
+              {active.new_label}
+            </p>
+            <p className="mt-3 text-sm leading-relaxed text-paper-dim">{active.rationale}</p>
+
+            {whyOld && (
+              <p className="mt-3 border-l border-ink-line pl-3 text-sm leading-relaxed text-paper-faint">
+                {whyOld}
+              </p>
+            )}
+
+            <div className="mt-4 flex flex-wrap gap-2">
+              {active.status !== "practicing" && active.status !== "adopted" && (
+                <button
+                  disabled={busy}
+                  onClick={() => setTransformationStatus(active.id, "practicing")}
+                  className="rounded-full bg-paper px-4 py-1.5 text-xs font-medium text-ink disabled:opacity-50"
+                >
+                  O exersez
+                </button>
+              )}
+              {active.status === "practicing" && (
+                <button
+                  disabled={busy}
+                  onClick={() => setTransformationStatus(active.id, "adopted")}
+                  className="rounded-full bg-paper px-4 py-1.5 text-xs font-medium text-ink disabled:opacity-50"
+                >
+                  Am adoptat-o
+                </button>
+              )}
+              {active.status === "adopted" && (
+                <span className="rounded-full border border-ink-line px-4 py-1.5 text-xs text-[color:var(--value)]">
+                  ✓ Adoptată
+                </span>
+              )}
+              <button
+                disabled={busy}
+                onClick={() => setTransformationStatus(active.id, "dismissed")}
+                className="rounded-full border border-ink-line px-4 py-1.5 text-xs text-paper-faint hover:text-paper-dim"
+              >
+                Nu mi se potrivește
+              </button>
+            </div>
+
+            {KIND_ORDER.map((kind) => {
+              const items = forActive.filter((r) => r.kind === kind);
+              if (items.length === 0) return null;
+
+              return (
+                <div key={kind} className="mt-5">
+                  <h4 className="text-[11px] tracking-[0.16em] text-paper-faint uppercase">
+                    {KIND_LABELS[kind]}
+                  </h4>
+                  <ul className="mt-2 space-y-2">
+                    {items.map((item) => (
+                      <li key={item.id} className="rounded-lg border border-ink-line p-3">
+                        <p className="text-sm text-paper">
+                          {item.title}
+                          {item.creator && (
+                            <span className="text-paper-dim">, {item.creator}</span>
+                          )}
+                          {item.year && (
+                            <span className="text-paper-faint"> ({item.year})</span>
+                          )}
+                        </p>
+                        <p className="mt-1.5 text-xs leading-relaxed text-paper-dim">
+                          {item.rationale}
+                        </p>
+                      </li>
+                    ))}
+                  </ul>
+                </div>
+              );
+            })}
+          </section>
         )}
 
         {/* Răspunsul la „de unde știi asta despre mine?” */}
@@ -210,33 +369,6 @@ export function NodeDetail({
                 <li key={entry.id}>
                   {formatDate(entry.changed_at)} · {entry.field}: {entry.old_value} →{" "}
                   {entry.new_value}
-                </li>
-              ))}
-            </ul>
-          </section>
-        )}
-
-        {recommendations.length > 0 && (
-          <section className="mt-6">
-            <h3 className="text-[11px] tracking-[0.16em] text-paper-faint uppercase">
-              Pentru acest tipar
-            </h3>
-            <ul className="mt-3 space-y-3">
-              {recommendations.map((rec) => (
-                <li key={rec.id} className="rounded-lg border border-ink-line p-3">
-                  <p className="text-[10px] tracking-[0.14em] text-paper-faint uppercase">
-                    {KIND_LABELS[rec.kind]}
-                  </p>
-                  <p className="mt-1 text-sm text-paper">
-                    {rec.title}
-                    {rec.creator && (
-                      <span className="text-paper-dim">, {rec.creator}</span>
-                    )}
-                    {rec.year && <span className="text-paper-faint"> ({rec.year})</span>}
-                  </p>
-                  <p className="mt-1.5 text-xs leading-relaxed text-paper-dim">
-                    {rec.rationale}
-                  </p>
                 </li>
               ))}
             </ul>
