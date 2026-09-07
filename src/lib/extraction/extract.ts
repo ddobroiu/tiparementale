@@ -4,6 +4,7 @@ import { zodOutputFormat } from "@anthropic-ai/sdk/helpers/zod";
 import type { MindNode } from "@/lib/types";
 import { ExtractionSchema, type Extraction } from "./schema";
 import { SYSTEM_INSTRUCTIONS, buildGraphIndex } from "./prompt";
+import { readUsage, type TokenUsage } from "@/lib/billing/pricing";
 
 /**
  * Munca grea: ce este convingere, ce se unește cu ce, ce se leagă de ce.
@@ -27,15 +28,23 @@ export interface ExtractionInput {
   exchanges: Array<{ role: "user" | "assistant"; content: string }>;
 }
 
-export type ExtractionResult =
-  | { ok: true; extraction: Extraction }
-  | { ok: false; reason: "refusal" | "unparsable" };
+export const EXTRACTION_MODEL = MODEL;
+
+export type ExtractionResult = { usage: TokenUsage } &
+  ({ ok: true; extraction: Extraction } | { ok: false; reason: "refusal" | "unparsable" });
 
 const EMPTY: Extraction = { new_nodes: [], node_updates: [], new_edges: [] };
 
 export async function runExtraction(input: ExtractionInput): Promise<ExtractionResult> {
+  const noUsage: TokenUsage = {
+    input_tokens: 0,
+    output_tokens: 0,
+    cache_read_tokens: 0,
+    cache_write_tokens: 0,
+  };
+
   if (input.exchanges.length === 0) {
-    return { ok: true, extraction: EMPTY };
+    return { ok: true, usage: noUsage, extraction: EMPTY };
   }
 
   const transcript = input.exchanges
@@ -70,13 +79,15 @@ export async function runExtraction(input: ExtractionInput): Promise<ExtractionR
     output_config: { format: zodOutputFormat(ExtractionSchema) },
   });
 
+  const usage = readUsage(response.usage);
+
   if (response.stop_reason === "refusal") {
-    return { ok: false, reason: "refusal" };
+    return { ok: false, usage, reason: "refusal" };
   }
 
   if (!response.parsed_output) {
-    return { ok: false, reason: "unparsable" };
+    return { ok: false, usage, reason: "unparsable" };
   }
 
-  return { ok: true, extraction: response.parsed_output };
+  return { ok: true, usage, extraction: response.parsed_output };
 }

@@ -9,7 +9,13 @@ import type {
   RecommendationKind,
   Transformation,
 } from "@/lib/types";
-import { DOMAIN_COLORS, DOMAIN_LABELS, NODE_TYPE_LABELS, displayLabel } from "@/lib/types";
+import {
+  DOMAIN_COLORS,
+  DOMAIN_LABELS,
+  NODE_TYPE_LABELS,
+  changeDegree,
+  displayLabel,
+} from "@/lib/types";
 
 interface HistoryEntry {
   id: string;
@@ -144,6 +150,7 @@ export function NodeDetail({
 
   const { node, observations, history, recommendations, transformations } = data;
   const confirmed = node.verdict === "confirmed" || node.verdict === "edited";
+  const change = changeDegree(node);
   const active = transformations.find((t) => t.status !== "dismissed");
   const forActive = active
     ? recommendations.filter((r) => r.transformation_id === active.id)
@@ -206,12 +213,20 @@ export function NodeDetail({
           <p className="mt-3 text-sm leading-relaxed text-paper-dim">{node.summary}</p>
         )}
 
-        <div className="mt-4 flex items-center gap-2 text-xs text-paper-faint">
+        <div className="mt-4 flex flex-wrap items-center gap-2 text-xs text-paper-faint">
           <span>Încredere {Math.round(node.confidence * 100)}%</span>
           <span>·</span>
           <span>
             {observations.length} {observations.length === 1 ? "mențiune" : "mențiuni"}
           </span>
+          {change.weakened && (
+            <>
+              <span>·</span>
+              <span className="text-[color:var(--value)]">
+                ↓ {change.points} puncte față de vârf
+              </span>
+            </>
+          )}
         </div>
 
         {/* Bucla de precizie: ce confirmi devine adevăr, ce respingi nu revine. */}

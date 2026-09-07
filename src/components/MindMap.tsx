@@ -13,7 +13,8 @@ import {
 import { useMemo, useRef, useState } from "react";
 
 import type { Edge, LifeDomain, MindNode } from "@/lib/types";
-import { DOMAIN_COLORS, DOMAIN_LABELS, displayLabel } from "@/lib/types";
+import { BrainBackdrop } from "./BrainBackdrop";
+import { DOMAIN_COLORS, DOMAIN_LABELS, changeDegree, displayLabel } from "@/lib/types";
 
 const WIDTH = 1000;
 const HEIGHT = 700;
@@ -160,6 +161,8 @@ export function MindMap({ nodes, edges, selectedId, onSelect, highlighted }: Pro
       <g
         transform={`translate(${WIDTH / 2} ${HEIGHT / 2}) scale(${view.k}) translate(${-WIDTH / 2 + view.x} ${-HEIGHT / 2 + view.y})`}
       >
+          <BrainBackdrop />
+
         {/* Numele ramurilor, discret, ca reper de orientare. */}
         {[...anchors].map(([domain, point]) => (
           <text
@@ -218,6 +221,8 @@ export function MindMap({ nodes, edges, selectedId, onSelect, highlighted }: Pro
           const isNew = highlighted.has(node.id);
           const isConfirmed = node.verdict === "confirmed" || node.verdict === "edited";
           const dim = selectedId !== null && !isSelected;
+          const change = changeDegree(node);
+          const peakRadius = 16 + (node.peak_confidence ?? node.confidence) * 20;
 
           return (
             <g
@@ -236,6 +241,18 @@ export function MindMap({ nodes, edges, selectedId, onSelect, highlighted }: Pro
                   fill={DOMAIN_COLORS[node.domain]}
                   fillOpacity={0.12}
                   style={{ animation: "node-appear 0.9s ease-out both" }}
+                />
+              )}
+
+              {/* Umbra a ceea ce a fost: cercul de la vârf rămâne desenat, ca
+                  slăbirea convingerii să se vadă, nu doar să se citească. */}
+              {change.weakened && (
+                <circle
+                  r={peakRadius}
+                  fill="none"
+                  stroke={DOMAIN_COLORS[node.domain]}
+                  strokeOpacity={0.28}
+                  strokeDasharray="2 5"
                 />
               )}
               <circle

@@ -12,6 +12,8 @@ interface Props {
   pending: boolean;
   /** Extracția rulează: harta se actualizează chiar acum. */
   extracting: boolean;
+  /** Ședința s-a terminat sau planul s-a epuizat: nu se mai poate scrie. */
+  limit: { reason: string; code: string } | null;
   onSend: (text: string) => void;
   onClose: () => void;
 }
@@ -23,7 +25,7 @@ interface Props {
  * vedea. Pe ecran îngust nu există loc pentru două coloane, deci acolo devine
  * o foaie de jos, iar harta rămâne vizibilă deasupra.
  */
-export function ChatPanel({ messages, pending, extracting, onSend, onClose }: Props) {
+export function ChatPanel({ messages, pending, extracting, limit, onSend, onClose }: Props) {
   const [draft, setDraft] = useState("");
   const scrollRef = useRef<HTMLDivElement>(null);
 
@@ -83,6 +85,17 @@ export function ChatPanel({ messages, pending, extracting, onSend, onClose }: Pr
         </p>
       )}
 
+      {limit ? (
+        <div className="border-t border-ink-line p-4">
+          <p className="text-sm leading-relaxed text-paper-dim">{limit.reason}</p>
+          <button
+            onClick={onClose}
+            className="mt-3 w-full rounded-xl bg-paper px-4 py-2.5 text-sm font-medium text-ink transition-opacity hover:opacity-90"
+          >
+            Vezi ce s-a schimbat în hartă
+          </button>
+        </div>
+      ) : (
       <form onSubmit={submit} className="flex gap-2 border-t border-ink-line p-3">
         <input
           value={draft}
@@ -99,6 +112,7 @@ export function ChatPanel({ messages, pending, extracting, onSend, onClose }: Pr
           Trimite
         </button>
       </form>
+      )}
     </aside>
   );
 }

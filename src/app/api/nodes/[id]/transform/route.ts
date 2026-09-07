@@ -2,7 +2,13 @@ import { NextResponse } from "next/server";
 
 import { getSessionUser } from "@/lib/auth";
 import { withUser } from "@/lib/db";
-import { generateTransformation } from "@/lib/transformation/generate";
+import { TRANSFORMATION_MODEL, generateTransformation } from "@/lib/transformation/generate";
+import {
+  canTransform,
+  countTransformation,
+  getEntitlement,
+  recordUsage,
+} from "@/lib/billing/entitlement";
 import type { MindNode, Observation, Transformation } from "@/lib/types";
 
 /**
@@ -22,6 +28,10 @@ export async function POST(_request: Request, context: RouteContext<"/api/nodes/
 
   // Citim contextul și închidem tranzacția înainte de apelul la model.
   const source = await withUser(user.id, async (client) => {
+    const entitlement = await getEntitlement(client, user.id);
+    const decision = canTransform(entitlement);
+    if (!decision.allowed) return { denied: decision };
+
     const { rows } = await client.query<MindNode>("select * from nodes where id = $1", [id]);
     const node = rows[0];
     if (!node) return null;
@@ -40,11 +50,18 @@ export async function POST(_request: Request, context: RouteContext<"/api/nodes/
       [id],
     );
 
-    return { node, observations, relatedLabels: related.map((r) => r.label) };
+    return { denied: null, node, observations, relatedLabels: related.map((r) => r.label) };
   });
 
   if (!source) {
     return NextResponse.json({ error: "Nodul nu există" }, { status: 404 });
+  }
+
+  if (source.denied) {
+    return NextResponse.json(
+      { error: source.denied.reason, code: source.denied.code },
+      { status: 402 },
+    );
   }
 
   if (source.node.verdict !== "confirmed" && source.node.verdict !== "edited") {
@@ -54,7 +71,22 @@ export async function POST(_request: Request, context: RouteContext<"/api/nodes/
     );
   }
 
-  const plan = await generateTransformation(source);
+  const { plan, usage } = await generateTransformation({
+    node: source.node,
+    observations: source.observations,
+    relatedLabels: source.relatedLabels,
+  });
+
+  // Costul se înregistrează chiar dacă generarea a eșuat: apelul s-a plătit.
+  await withUser(user.id, (client) =>
+    recordUsage(client, {
+      userId: user.id,
+      conversationId: null,
+      kind: "transformation",
+      model: TRANSFORMATION_MODEL,
+      usage,
+    }),
+  );
 
   if (!plan) {
     return NextResponse.json(
@@ -121,6 +153,8 @@ export async function POST(_request: Request, context: RouteContext<"/api/nodes/
         ],
       );
     }
+
+    await countTransformation(client, user.id);
 
     return transformation;
   });

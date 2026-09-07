@@ -8,9 +8,16 @@ import { ChatPanel, type ChatMessage } from "./ChatPanel";
 import { MindMap } from "./MindMap";
 import { NodeDetail } from "./NodeDetail";
 
+export interface AccountSummary {
+  sessionsLeft: number;
+  sessionsIncluded: number;
+  planName: string;
+}
+
 interface Props {
   initialNodes: MindNode[];
   initialEdges: Edge[];
+  initialAccount: AccountSummary;
 }
 
 const EMPTY_DIFF: MapDiff = { created: [], strengthened: [], connected: [] };
@@ -19,7 +26,7 @@ function diffSize(diff: MapDiff): number {
   return diff.created.length + diff.strengthened.length + diff.connected.length;
 }
 
-export function MapView({ initialNodes, initialEdges }: Props) {
+export function MapView({ initialNodes, initialEdges, initialAccount }: Props) {
   const [nodes, setNodes] = useState(initialNodes);
   const [edges, setEdges] = useState(initialEdges);
   const [selectedId, setSelectedId] = useState<string | null>(null);
@@ -31,6 +38,15 @@ export function MapView({ initialNodes, initialEdges }: Props) {
   const [diff, setDiff] = useState<MapDiff | null>(null);
   const [safety, setSafety] = useState<SafetyFlag>("none");
   const [highlighted, setHighlighted] = useState<Set<string>>(new Set());
+  const [limit, setLimit] = useState<{ reason: string; code: string } | null>(null);
+  // Contul vine de pe server, cu prima randare: fără efect la montare și fără
+  // licărire în care numărul de ședințe lipsește.
+  const [account, setAccount] = useState<AccountSummary>(initialAccount);
+
+  const loadAccount = useCallback(async () => {
+    const res = await fetch("/api/account");
+    if (res.ok) setAccount(await res.json());
+  }, []);
 
   const reload = useCallback(async () => {
     const res = await fetch("/api/graph");
@@ -79,6 +95,14 @@ export function MapView({ initialNodes, initialEdges }: Props) {
       });
       const data = await res.json();
 
+      // 402: ședința s-a umplut sau planul s-a epuizat. Nu este o eroare de
+      // conversație, deci nu apare ca replică — apare ca stare a panoului.
+      if (res.status === 402) {
+        setLimit({ reason: data.error, code: data.code });
+        setMessages((m) => m.slice(0, -1));
+        return;
+      }
+
       if (!res.ok) {
         setMessages((m) => [
           ...m,
@@ -92,6 +116,15 @@ export function MapView({ initialNodes, initialEdges }: Props) {
       setSafety(data.safetyFlag ?? "none");
 
       if (data.extractionDue) void runExtraction(data.conversationId);
+      if (typeof data.turnsLeft === "number" && data.turnsLeft <= 0) {
+        setLimit({
+          reason:
+            "Ședința aceasta s-a încheiat. Închide panoul ca să vezi ce s-a " +
+            "schimbat în hartă.",
+          code: "session_full",
+        });
+      }
+      void loadAccount();
     } finally {
       setPending(false);
     }
@@ -100,7 +133,11 @@ export function MapView({ initialNodes, initialEdges }: Props) {
   /** Închiderea conversației te lasă în hartă, cu tot ce s-a spus prelucrat. */
   async function closeChat() {
     setChatOpen(false);
+    setLimit(null);
+    setMessages([]);
+    setConversationId(null);
     if (conversationId) await runExtraction(conversationId);
+    void loadAccount();
   }
 
   return (
@@ -112,6 +149,8 @@ export function MapView({ initialNodes, initialEdges }: Props) {
           </Link>
           <span className="text-xs text-paper-faint">
             {nodes.length} {nodes.length === 1 ? "element" : "elemente"}
+            <span className="mx-2">·</span>
+            {account.sessionsLeft}/{account.sessionsIncluded} ședințe
           </span>
         </header>
 
@@ -191,6 +230,7 @@ export function MapView({ initialNodes, initialEdges }: Props) {
           messages={messages}
           pending={pending}
           extracting={extracting}
+          limit={limit}
           onSend={send}
           onClose={closeChat}
         />

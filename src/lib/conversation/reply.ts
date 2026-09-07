@@ -4,6 +4,7 @@ import { zodOutputFormat } from "@anthropic-ai/sdk/helpers/zod";
 import type { LifeDomain, MindNode } from "@/lib/types";
 import { DOMAIN_LABELS, EXPLORABLE_DOMAINS, displayLabel } from "@/lib/types";
 import { ReplySchema, type Reply } from "@/lib/extraction/schema";
+import { readUsage, type TokenUsage } from "@/lib/billing/pricing";
 
 /**
  * Calea fierbinte: replica din conversație, cerută de zeci de ori pe sesiune.
@@ -120,9 +121,14 @@ export interface ReplyInput {
   message: string;
 }
 
-export type ReplyResult =
-  | { ok: true; reply: Reply }
-  | { ok: false; reply: string; safety: "crisis" | "none" };
+export const REPLY_MODEL = MODEL;
+
+interface Metered {
+  usage: TokenUsage;
+}
+
+export type ReplyResult = Metered &
+  ({ ok: true; reply: Reply } | { ok: false; reply: string; safety: "crisis" | "none" });
 
 export async function runReply(input: ReplyInput): Promise<ReplyResult> {
   const response = await anthropic().messages.parse({
@@ -153,9 +159,12 @@ export async function runReply(input: ReplyInput): Promise<ReplyResult> {
     ],
   });
 
+  const usage = readUsage(response.usage);
+
   if (response.stop_reason === "refusal") {
     return {
       ok: false,
+      usage,
       safety: "crisis",
       reply:
         "Nu pot continua pe firul acesta. Dacă treci printr-un moment greu, " +
@@ -167,10 +176,11 @@ export async function runReply(input: ReplyInput): Promise<ReplyResult> {
   if (!response.parsed_output) {
     return {
       ok: false,
+      usage,
       safety: "none",
       reply: "Nu am prins ce ai spus. Poți să reiei?",
     };
   }
 
-  return { ok: true, reply: response.parsed_output };
+  return { ok: true, usage, reply: response.parsed_output };
 }

@@ -87,6 +87,8 @@ export interface MindNode {
   user_label: string | null;
   summary: string | null;
   confidence: number;
+  /** Cea mai mare încredere atinsă vreodată. Nu coboară niciodată. */
+  peak_confidence: number | null;
   verdict: NodeVerdict;
   archived_at: string | null;
   created_at: string;
@@ -149,6 +151,34 @@ export interface MapDiff {
   created: Array<{ id: string; type: NodeType; label: string }>;
   strengthened: Array<{ id: string; label: string; confidence: number }>;
   connected: Array<{ from: string; to: string; relation: string }>;
+}
+
+/**
+ * Cât s-a mișcat o convingere de la vârful ei.
+ *
+ * Nu întrebăm omul cum se simte pe o scară de la 1 la 10 — măsurăm din ce a
+ * spus: dacă tiparul apare mai rar și mai slab decât apărea, încrederea scade,
+ * iar diferența față de vârf este schimbarea reală.
+ */
+export interface ChangeDegree {
+  points: number;
+  weakened: boolean;
+  label: string;
+}
+
+export function changeDegree(node: Pick<MindNode, "confidence" | "peak_confidence">): ChangeDegree {
+  const peak = node.peak_confidence ?? node.confidence;
+  const points = Math.round((peak - node.confidence) * 100);
+
+  if (points < 5) {
+    return { points: 0, weakened: false, label: "Neschimbată încă" };
+  }
+
+  return {
+    points,
+    weakened: true,
+    label: `S-a slăbit cu ${points} puncte față de vârf`,
+  };
 }
 
 /** Nodul așa cum îl vede utilizatorul: formularea lui o înlocuiește pe a modelului. */

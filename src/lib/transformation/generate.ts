@@ -4,8 +4,11 @@ import * as z from "zod/v4";
 
 import { DOMAIN_LABELS, NODE_TYPE_LABELS, displayLabel } from "@/lib/types";
 import type { MindNode, Observation } from "@/lib/types";
+import { readUsage, type TokenUsage } from "@/lib/billing/pricing";
 
 const MODEL = "claude-opus-5";
+
+export const TRANSFORMATION_MODEL = MODEL;
 
 let client: Anthropic | null = null;
 function anthropic(): Anthropic {
@@ -91,9 +94,14 @@ export interface TransformationInput {
   relatedLabels: string[];
 }
 
+export interface TransformationOutcome {
+  plan: TransformationPlan | null;
+  usage: TokenUsage;
+}
+
 export async function generateTransformation(
   input: TransformationInput,
-): Promise<TransformationPlan | null> {
+): Promise<TransformationOutcome> {
   const { node, observations, relatedLabels } = input;
 
   const quotes = observations
@@ -130,6 +138,8 @@ export async function generateTransformation(
     output_config: { format: zodOutputFormat(TransformationSchema) },
   });
 
-  if (response.stop_reason === "refusal") return null;
-  return response.parsed_output ?? null;
+  const usage = readUsage(response.usage);
+
+  if (response.stop_reason === "refusal") return { plan: null, usage };
+  return { plan: response.parsed_output ?? null, usage };
 }

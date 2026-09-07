@@ -3,7 +3,8 @@ import { NextResponse } from "next/server";
 import { getSessionUser } from "@/lib/auth";
 import { withUser } from "@/lib/db";
 import { applyExtraction } from "@/lib/extraction/apply";
-import { runExtraction } from "@/lib/extraction/extract";
+import { EXTRACTION_MODEL, runExtraction } from "@/lib/extraction/extract";
+import { recordUsage } from "@/lib/billing/entitlement";
 import type { MapDiff, MindNode } from "@/lib/types";
 
 const EMPTY_DIFF: MapDiff = { created: [], strengthened: [], connected: [] };
@@ -63,6 +64,17 @@ export async function POST(_request: Request, context: RouteContext<"/api/conver
     nodes: source.nodes,
     exchanges: source.pending.map((m) => ({ role: m.role, content: m.content })),
   });
+
+  // Costul se înregistrează chiar dacă extracția a eșuat: apelul s-a plătit.
+  await withUser(user.id, (client) =>
+    recordUsage(client, {
+      userId: user.id,
+      conversationId: id,
+      kind: "extraction",
+      model: EXTRACTION_MODEL,
+      usage: result.usage,
+    }),
+  );
 
   // La eșec nu marcăm nimic drept prelucrat: bucata se reia data viitoare,
   // în loc să se piardă.

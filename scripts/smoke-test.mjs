@@ -160,10 +160,40 @@ const observations = detail.body.observations ?? [];
 console.log(`\n  Citate-sursă păstrate: ${observations.length}`);
 for (const obs of observations) console.log(`    „${obs.quote}"`);
 
-// ---------------------------------------------------------------- curățenie
+// ---------------------------------------------------------------- cost real
+
+const account = await call("/api/account");
+console.log(
+  `\n7. Cont: ${account.body.planName} — ${account.body.sessionsLeft}/${account.body.sessionsIncluded} ședințe, ` +
+    `${account.body.transformationsLeft}/${account.body.transformationsIncluded} transformări`,
+);
 
 const admin = new pg.Client({ connectionString: process.env.DATABASE_URL_ADMIN });
 await admin.connect();
+
+const { rows: usage } = await admin.query(
+  `select e.kind, e.model, count(*)::int as apeluri,
+          sum(e.input_tokens)::int as intrare,
+          sum(e.output_tokens)::int as iesire,
+          sum(e.cache_read_tokens)::int as din_cache,
+          sum(e.cost_micro)::bigint as cost_micro
+     from tipare_mentale.usage_events e
+     join tipare_mentale.users u on u.id = e.user_id
+    where u.email = $1
+    group by e.kind, e.model
+    order by 1`,
+  [EMAIL],
+);
+
+console.log("\n8. Consum măsurat");
+console.table(usage);
+
+const total = usage.reduce((sum, r) => sum + Number(r.cost_micro), 0);
+console.log(`  Total: ${(total / 1_000_000).toFixed(4)} $ pentru ${TURNS.length} replici,`);
+console.log(`  o extracție și o transformare.`);
+
+// ---------------------------------------------------------------- curățenie
+
 const { rowCount } = await admin.query("delete from tipare_mentale.users where email = $1", [
   EMAIL,
 ]);

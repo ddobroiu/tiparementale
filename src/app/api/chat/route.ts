@@ -1,7 +1,14 @@
 import { NextResponse } from "next/server";
 
 import { getSessionUser } from "@/lib/auth";
-import { runReply } from "@/lib/conversation/reply";
+import {
+  canContinueSession,
+  canStartSession,
+  countSession,
+  getEntitlement,
+  recordUsage,
+} from "@/lib/billing/entitlement";
+import { REPLY_MODEL, runReply } from "@/lib/conversation/reply";
 import { withUser } from "@/lib/db";
 import type { MindNode } from "@/lib/types";
 
@@ -13,9 +20,8 @@ const EXTRACTION_THRESHOLD = 4;
 /**
  * Calea fierbinte: doar replica din conversație.
  *
- * Extracția nu se face aici. Ea rulează separat, pe mai multe mesaje odată,
- * prin `/api/conversations/[id]/extract`, iar răspunsul de mai jos spune
- * clientului când e momentul s-o pornească.
+ * Dreptul de a vorbi se verifică *înainte* de apelul la model. Un plafon
+ * verificat după ce ai plătit apelul nu este un plafon.
  */
 export async function POST(request: Request) {
   const user = await getSessionUser();
@@ -34,22 +40,37 @@ export async function POST(request: Request) {
   const requestedConversation: string | null = body?.conversationId ?? null;
 
   const context = await withUser(user.id, async (client) => {
+    const entitlement = await getEntitlement(client, user.id);
+
     let conversationId = requestedConversation;
+    let turns = 0;
 
     if (conversationId) {
-      const { rows } = await client.query<{ id: string }>(
-        "select id from conversations where id = $1",
+      const { rows } = await client.query<{ id: string; turns: number }>(
+        "select id, turns from conversations where id = $1 and closed_at is null",
         [conversationId],
       );
-      if (rows.length === 0) conversationId = null;
+      if (rows.length === 0) {
+        conversationId = null;
+      } else {
+        turns = rows[0].turns;
+      }
     }
 
+    // Ședință nouă: se cere una din cele incluse în plan.
     if (!conversationId) {
+      const decision = canStartSession(entitlement);
+      if (!decision.allowed) return { denied: decision, entitlement };
+
       const { rows } = await client.query<{ id: string }>(
         "insert into conversations (user_id) values ($1) returning id",
         [user.id],
       );
       conversationId = rows[0].id;
+      await countSession(client, user.id);
+    } else {
+      const decision = canContinueSession(entitlement, turns);
+      if (!decision.allowed) return { denied: decision, entitlement };
     }
 
     const { rows: saved } = await client.query<{ id: string }>(
@@ -58,6 +79,10 @@ export async function POST(request: Request) {
        returning id`,
       [user.id, conversationId, message, inputMode],
     );
+
+    await client.query("update conversations set turns = turns + 1 where id = $1", [
+      conversationId,
+    ]);
 
     const { rows: nodes } = await client.query<MindNode>(
       "select * from nodes where archived_at is null order by created_at",
@@ -71,8 +96,22 @@ export async function POST(request: Request) {
       [conversationId, saved[0].id, HISTORY_LIMIT],
     );
 
-    return { conversationId, nodes, history: history.reverse() };
+    return {
+      denied: null,
+      entitlement,
+      conversationId,
+      turns: turns + 1,
+      nodes,
+      history: history.reverse(),
+    };
   });
+
+  if (context.denied) {
+    return NextResponse.json(
+      { error: context.denied.reason, code: context.denied.code },
+      { status: 402 },
+    );
+  }
 
   const result = await runReply({
     nodes: context.nodes,
@@ -83,12 +122,20 @@ export async function POST(request: Request) {
   const reply = result.ok ? result.reply.reply : result.reply;
   const safetyFlag = result.ok ? result.reply.safety_flag : result.safety;
 
-  const pending = await withUser(user.id, async (client) => {
+  const after = await withUser(user.id, async (client) => {
     await client.query(
       `insert into messages (user_id, conversation_id, role, content)
        values ($1, $2, 'assistant', $3)`,
       [user.id, context.conversationId, reply],
     );
+
+    await recordUsage(client, {
+      userId: user.id,
+      conversationId: context.conversationId,
+      kind: "reply",
+      model: REPLY_MODEL,
+      usage: result.usage,
+    });
 
     const { rows } = await client.query<{ n: string }>(
       `select count(*) as n from messages
@@ -104,6 +151,7 @@ export async function POST(request: Request) {
     reply,
     safetyFlag,
     domainInFocus: result.ok ? result.reply.domain_in_focus : null,
-    extractionDue: pending >= EXTRACTION_THRESHOLD,
+    extractionDue: after >= EXTRACTION_THRESHOLD,
+    turnsLeft: context.entitlement.maxTurnsPerSession - context.turns,
   });
 }
