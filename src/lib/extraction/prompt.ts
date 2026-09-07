@@ -48,6 +48,29 @@ reacție și relațiile importante.
 - **Neconfirmate** — ipotezele de până acum. Le poți întări sau slăbi.`;
 
 /**
+ * Câte noduri intră în index. Peste acest prag, costul unei extracții ar
+ * crește la nesfârșit odată cu harta: un client cu două sute de noduri ar
+ * ajunge să coste de câteva ori cât unul nou, pentru aceeași conversație.
+ *
+ * Se taie de la coadă, nu de la cap: nodurile confirmate rămân întotdeauna,
+ * fiindcă sunt adevăr stabilit; dintre celelalte rămân cele mai sigure și cele
+ * mai recent atinse, adică exact acelea cu care o afirmație nouă are șanse să
+ * se unească.
+ */
+const MAX_INDEXED = 70;
+const MAX_REJECTED = 12;
+
+function mostRelevant(nodes: MindNode[], limit: number): MindNode[] {
+  return [...nodes]
+    .sort((a, b) => {
+      const byConfidence = b.confidence - a.confidence;
+      if (Math.abs(byConfidence) > 0.05) return byConfidence;
+      return new Date(b.updated_at).getTime() - new Date(a.updated_at).getTime();
+    })
+    .slice(0, limit);
+}
+
+/**
  * Indexul hărții existente, împărțit pe verdicte.
  * Modelul îl primește *înainte* de a extrage, ca să facă fuziunea nodurilor din
  * prima, în loc să extragem orb și să curățăm după.
@@ -63,8 +86,16 @@ export function buildGraphIndex(nodes: MindNode[]): string {
     `${n.summary ? ` — ${n.summary}` : ""}`;
 
   const confirmed = nodes.filter((n) => n.verdict === "confirmed" || n.verdict === "edited");
-  const rejected = nodes.filter((n) => n.verdict === "rejected");
-  const unconfirmed = nodes.filter((n) => n.verdict === "unconfirmed");
+  const rejected = mostRelevant(
+    nodes.filter((n) => n.verdict === "rejected"),
+    MAX_REJECTED,
+  );
+  const unconfirmed = mostRelevant(
+    nodes.filter((n) => n.verdict === "unconfirmed"),
+    Math.max(0, MAX_INDEXED - confirmed.length),
+  );
+
+  const omitted = nodes.length - confirmed.length - rejected.length - unconfirmed.length;
 
   const sections: string[] = ["## Indexul hărții"];
 
@@ -83,6 +114,14 @@ export function buildGraphIndex(nodes: MindNode[]): string {
   if (unconfirmed.length > 0) {
     sections.push(
       "### Neconfirmate — ipotezele de până acum\n" + unconfirmed.map(line).join("\n"),
+    );
+  }
+
+  if (omitted > 0) {
+    sections.push(
+      `_Încă ${omitted} elemente mai slabe nu sunt listate. Dacă o afirmație ` +
+        "pare să se potrivească cu ceva ce nu vezi aici, creează un nod nou: se " +
+        "unifică mai târziu._",
     );
   }
 

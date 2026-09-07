@@ -5,7 +5,7 @@ import * as z from "zod/v4";
 import { DOMAIN_LABELS, NODE_TYPE_LABELS, displayLabel } from "@/lib/types";
 import type { MindNode, Observation } from "@/lib/types";
 import { readUsage, type TokenUsage } from "@/lib/billing/pricing";
-import { MODELS, reasoningFor } from "@/lib/models";
+import { EFFORT, MODELS, reasoningFor } from "@/lib/models";
 
 export const TRANSFORMATION_MODEL = MODELS.transformation;
 
@@ -122,7 +122,7 @@ export async function generateTransformation(
     .filter(Boolean)
     .join("\n");
 
-  const { thinking, effort } = reasoningFor(MODELS.transformation, "high");
+  const { thinking, effort } = reasoningFor(MODELS.transformation, EFFORT.transformation);
 
   const response = await anthropic().messages.parse({
     model: MODELS.transformation,

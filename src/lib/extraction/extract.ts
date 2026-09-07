@@ -5,7 +5,7 @@ import type { MindNode } from "@/lib/types";
 import { ExtractionSchema, type Extraction } from "./schema";
 import { SYSTEM_INSTRUCTIONS, buildGraphIndex } from "./prompt";
 import { readUsage, type TokenUsage } from "@/lib/billing/pricing";
-import { MODELS, reasoningFor } from "@/lib/models";
+import { EFFORT, MODELS, reasoningFor } from "@/lib/models";
 
 /**
  * Munca grea: ce este convingere, ce se unește cu ce, ce se leagă de ce.
@@ -50,7 +50,7 @@ export async function runExtraction(input: ExtractionInput): Promise<ExtractionR
     .map((m) => `${m.role === "user" ? "EL" : "TU"}: ${m.content}`)
     .join("\n\n");
 
-  const { thinking, effort } = reasoningFor(MODELS.extraction, "high");
+  const { thinking, effort } = reasoningFor(MODELS.extraction, EFFORT.extraction);
 
   const response = await anthropic().messages.parse({
     model: MODELS.extraction,

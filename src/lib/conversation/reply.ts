@@ -5,7 +5,7 @@ import type { LifeDomain, MindNode } from "@/lib/types";
 import { DOMAIN_LABELS, EXPLORABLE_DOMAINS, displayLabel } from "@/lib/types";
 import { ReplySchema, type Reply } from "@/lib/extraction/schema";
 import { readUsage, type TokenUsage } from "@/lib/billing/pricing";
-import { MODELS, reasoningFor } from "@/lib/models";
+import { EFFORT, MODELS, reasoningFor } from "@/lib/models";
 
 /**
  * Calea fierbinte: replica din conversație, cerută de zeci de ori pe sesiune.
@@ -134,7 +134,7 @@ export async function runReply(input: ReplyInput): Promise<ReplyResult> {
   // Gândire adaptivă la efort redus, acolo unde modelul o cunoaște: se oprește
   // să cântărească doar când chiar are de ales întrebarea, nu la fiecare „da,
   // înțeleg". Pe modelele care nu o cunosc, lipsește cu totul.
-  const { thinking, effort } = reasoningFor(MODELS.reply, "low");
+  const { thinking, effort } = reasoningFor(MODELS.reply, EFFORT.reply);
 
   const response = await anthropic().messages.parse({
     model: MODELS.reply,
