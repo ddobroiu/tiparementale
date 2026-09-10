@@ -90,32 +90,55 @@ export interface LessonProgress {
 }
 
 export type LessonState =
-  | { kind: "new" }
-  | { kind: "in_progress"; step: number; steps: number; conversationId: string }
-  | { kind: "done"; closedAt: string; conversationId: string };
+  | { kind: "new"; percent: 0 }
+  | {
+      kind: "partial";
+      /** Câți pași din câți au fost parcurși, în procente. */
+      percent: number;
+      step: number;
+      steps: number;
+      conversationId: string;
+      /** Închisă înainte de final: se redeschide la reluare, fără altă ședință. */
+      closed: boolean;
+      /** Replicile s-au consumat: nu se mai poate continua, doar reface. */
+      spent: boolean;
+    }
+  | { kind: "done"; percent: 100; conversationId: string; at: string };
+
+/** O ședință ține atâtea replici; după ele, lecția se reface cu alta. */
+const TURNS_PER_SESSION = 25;
 
 /**
- * Starea unei lecții din ultima ședință pe ea. Închisă înseamnă făcută,
- * indiferent cât s-a vorbit — omul decide când a terminat. Neînchisă cu
- * replici înseamnă că se poate relua de unde a rămas.
+ * Starea unei lecții, din ultima ședință pe ea. Procentul e numărul de pași
+ * parcurși din câți are lecția — nu cât s-a vorbit. O lecție e făcută când
+ * toți pașii au fost trecuți; una începută și lăsată, la orice procent, se
+ * reia de unde a rămas cât timp mai are replici în ședința ei.
  */
 export function lessonState(
   guide: Guide,
   progress: LessonProgress | undefined,
 ): LessonState {
-  if (!progress) return { kind: "new" };
-  if (progress.closedAt) {
+  if (!progress || progress.turns === 0) return { kind: "new", percent: 0 };
+
+  const steps = guide.steps.length;
+  const done = Math.min(progress.stepIndex, steps);
+  if (done >= steps) {
     return {
       kind: "done",
-      closedAt: progress.closedAt,
+      percent: 100,
       conversationId: progress.conversationId,
+      at: progress.closedAt ?? progress.startedAt,
     };
   }
+
   return {
-    kind: "in_progress",
-    step: Math.min(progress.stepIndex + 1, guide.steps.length),
-    steps: guide.steps.length,
+    kind: "partial",
+    percent: Math.round((done / steps) * 100),
+    step: done + 1,
+    steps,
     conversationId: progress.conversationId,
+    closed: progress.closedAt !== null,
+    spent: progress.turns >= TURNS_PER_SESSION,
   };
 }
 

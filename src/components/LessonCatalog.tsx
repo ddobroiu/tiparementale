@@ -22,6 +22,8 @@ import {
   type LifeDomain,
 } from "@/lib/types";
 
+const RESOLVED = "#a0e7c4";
+
 interface Props {
   progress: LessonProgress[];
   sessionsLeft: number;
@@ -46,8 +48,65 @@ function schemaShort(code: string): string | null {
 }
 
 /**
+ * Inelul de progres: procentul, desenat, nu doar scris. La 0 arată numărul
+ * lecției; la 100, o bifă; între ele, cât s-a parcurs.
+ */
+function Ring({ state, number }: { state: LessonState; number: number }) {
+  const size = 30;
+  const r = 12.5;
+  const c = 2 * Math.PI * r;
+  const filled = state.percent / 100;
+
+  return (
+    <span className="relative flex h-[30px] w-[30px] shrink-0 items-center justify-center">
+      <svg
+        viewBox={`0 0 ${size} ${size}`}
+        className="absolute inset-0 h-full w-full -rotate-90"
+      >
+        <circle
+          cx={size / 2}
+          cy={size / 2}
+          r={r}
+          fill="none"
+          stroke="#22222e"
+          strokeWidth={2}
+        />
+        {state.percent > 0 && (
+          <circle
+            cx={size / 2}
+            cy={size / 2}
+            r={r}
+            fill={state.kind === "done" ? RESOLVED : "none"}
+            stroke={RESOLVED}
+            strokeWidth={2}
+            strokeLinecap="round"
+            strokeDasharray={`${c * filled} ${c}`}
+            className="transition-all duration-700"
+          />
+        )}
+      </svg>
+      <span
+        className={`relative text-[10px] font-medium ${
+          state.kind === "done"
+            ? "text-ink"
+            : state.kind === "partial"
+              ? "text-[color:var(--value)]"
+              : "text-paper-faint"
+        }`}
+      >
+        {state.kind === "done"
+          ? "✓"
+          : state.kind === "partial"
+            ? `${state.percent}%`
+            : number}
+      </span>
+    </span>
+  );
+}
+
+/**
  * Programul, ca listă: conversația liberă întâi, la același rang cu lecțiile;
- * apoi cele douăsprezece lecții pe module, fiecare cu starea ei; la urmă
+ * apoi cele douăsprezece lecții pe module, fiecare cu procentul ei; la urmă
  * întrebările scurte. Nimic nu e blocat: orice lecție se începe oricând, cu o
  * ședință, în orice ordine. Ordinea afișată e doar drumul recomandat.
  */
@@ -61,15 +120,29 @@ export function LessonCatalog({
   onTopic,
 }: Props) {
   const [openLesson, setOpenLesson] = useState<string | null>(null);
+  const [moduleFilter, setModuleFilter] = useState<string | null>(null);
   const [topicsOpen, setTopicsOpen] = useState(false);
   const [topicDomain, setTopicDomain] = useState<LifeDomain | null>(null);
 
   const byGuide = new Map(progress.map((p) => [p.guideId, p]));
+  const states = new Map(
+    LESSONS.map((l) => [
+      l.guide.id,
+      lessonState(l.guide, byGuide.get(l.guide.id)),
+    ]),
+  );
   const done = LESSONS.filter(
-    (l) => lessonState(l.guide, byGuide.get(l.guide.id)).kind === "done",
+    (l) => states.get(l.guide.id)!.kind === "done",
+  ).length;
+  const overall = Math.round(
+    LESSONS.reduce((sum, l) => sum + states.get(l.guide.id)!.percent, 0) /
+      LESSONS.length,
   );
   const next = nextLesson(progress);
   const canStart = sessionsLeft > 0 && !busy;
+  const visibleModules = MODULES.filter(
+    (m) => moduleFilter === null || m.id === moduleFilter,
+  );
 
   return (
     <div className="space-y-6">
@@ -93,31 +166,74 @@ export function LessonCatalog({
         </span>
       </button>
 
-      {/* Programul. */}
+      {/* Programul: progres total, filtre pe module, continuarea. */}
       <div>
         <div className="flex items-baseline justify-between">
           <h3 className="text-[11px] tracking-[0.16em] text-paper-faint uppercase">
             Programul · {LESSONS.length} lecții
           </h3>
           <span className="text-xs text-paper-faint">
-            {done.length} {done.length === 1 ? "făcută" : "făcute"}
+            {done} {done === 1 ? "făcută" : "făcute"} · {overall}%
           </span>
         </div>
-        <div className="mt-2 h-1 overflow-hidden rounded-full bg-ink-line">
+        <div className="mt-2 h-1.5 overflow-hidden rounded-full bg-ink-line">
           <div
-            className="h-full rounded-full bg-[color:var(--value)]"
-            style={{ width: `${(done.length / LESSONS.length) * 100}%` }}
+            className="h-full rounded-full transition-all duration-700"
+            style={{ width: `${overall}%`, background: RESOLVED }}
           />
         </div>
         <p className="mt-2 text-xs leading-relaxed text-paper-faint">
           O lecție = o ședință. Le faci în orice ordine; cea de mai jos e doar
-          drumul recomandat, de la rădăcini spre ce faci azi.
+          drumul recomandat. Procentul e cât ai parcurs din pașii lecției.
         </p>
 
-        {next && done.length > 0 && (
+        <div className="mt-3 flex gap-1.5 overflow-x-auto pb-1 [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
           <button
-            onClick={() => onStart(next.guide)}
-            disabled={!canStart}
+            onClick={() => setModuleFilter(null)}
+            className={`shrink-0 rounded-full border px-3 py-1 text-xs whitespace-nowrap transition-colors ${
+              moduleFilter === null
+                ? "border-paper bg-paper text-ink"
+                : "border-ink-line text-paper-dim hover:border-paper-faint"
+            }`}
+          >
+            Toate
+          </button>
+          {MODULES.map((m) => {
+            const lessons = LESSONS.filter((l) => l.moduleId === m.id);
+            const doneHere = lessons.filter(
+              (l) => states.get(l.guide.id)!.kind === "done",
+            ).length;
+            const on = moduleFilter === m.id;
+            return (
+              <button
+                key={m.id}
+                onClick={() => setModuleFilter(on ? null : m.id)}
+                className={`flex shrink-0 items-center gap-1.5 rounded-full border px-3 py-1 text-xs whitespace-nowrap transition-colors ${
+                  on
+                    ? "border-paper bg-paper text-ink"
+                    : "border-ink-line text-paper-dim hover:border-paper-faint"
+                }`}
+              >
+                {m.title}
+                <span className={on ? "text-ink/60" : "text-paper-faint"}>
+                  {doneHere}/{lessons.length}
+                </span>
+              </button>
+            );
+          })}
+        </div>
+
+        {next && (done > 0 || overall > 0) && (
+          <button
+            onClick={() => {
+              const st = states.get(next.guide.id)!;
+              if (st.kind === "partial" && !st.spent)
+                onResume(st.conversationId);
+              else onStart(next.guide);
+            }}
+            disabled={
+              !canStart && states.get(next.guide.id)!.kind !== "partial"
+            }
             className="mt-3 flex w-full items-center justify-between gap-3 rounded-xl border border-paper-faint/60 bg-ink-soft px-4 py-3 text-left disabled:opacity-50"
           >
             <span>
@@ -126,6 +242,12 @@ export function LessonCatalog({
               </span>
               <span className="block text-sm text-paper">
                 Lecția {next.number} · {next.guide.title}
+                {states.get(next.guide.id)!.kind === "partial" && (
+                  <span className="text-[color:var(--value)]">
+                    {" "}
+                    · {states.get(next.guide.id)!.percent}%
+                  </span>
+                )}
               </span>
             </span>
             <span className="text-paper-faint">→</span>
@@ -133,7 +255,7 @@ export function LessonCatalog({
         )}
       </div>
 
-      {MODULES.map((module) => {
+      {visibleModules.map((module) => {
         const lessons = LESSONS.filter((l) => l.moduleId === module.id);
         return (
           <section key={module.id}>
@@ -149,7 +271,7 @@ export function LessonCatalog({
                   key={l.guide.id}
                   number={l.number}
                   guide={l.guide}
-                  state={lessonState(l.guide, byGuide.get(l.guide.id))}
+                  state={states.get(l.guide.id)!}
                   open={openLesson === l.guide.id}
                   canStart={canStart}
                   onToggle={() =>
@@ -164,7 +286,7 @@ export function LessonCatalog({
         );
       })}
 
-      {UNLISTED_GUIDES.length > 0 && (
+      {moduleFilter === null && UNLISTED_GUIDES.length > 0 && (
         <section>
           <h4 className="font-serif text-[15px] text-paper">Alte lecții</h4>
           <ul className="mt-2.5 space-y-1.5">
@@ -276,10 +398,11 @@ function LessonRow({
     .map(schemaShort)
     .filter((s): s is string => Boolean(s))
     .slice(0, 4);
+  const resumable = state.kind === "partial" && !state.spent;
 
   return (
     <li
-      className={`rounded-xl border transition-colors ${
+      className={`overflow-hidden rounded-xl border transition-colors ${
         open
           ? "border-paper-faint bg-ink-soft"
           : "border-ink-line hover:border-paper-faint/60"
@@ -287,19 +410,9 @@ function LessonRow({
     >
       <button
         onClick={onToggle}
-        className="flex w-full items-start gap-3 px-3 py-2.5 text-left"
+        className="flex w-full items-center gap-3 px-3 py-2.5 text-left"
       >
-        <span
-          className={`mt-0.5 flex h-6 w-6 shrink-0 items-center justify-center rounded-full text-[11px] ${
-            state.kind === "done"
-              ? "bg-[color:var(--value)] text-ink"
-              : state.kind === "in_progress"
-                ? "border border-[color:var(--value)] text-[color:var(--value)]"
-                : "border border-ink-line text-paper-faint"
-          }`}
-        >
-          {state.kind === "done" ? "✓" : number}
-        </span>
+        <Ring state={state} number={number} />
         <span className="min-w-0 flex-1">
           <span className="flex items-center gap-2">
             <span
@@ -310,22 +423,33 @@ function LessonRow({
           </span>
           <span className="mt-0.5 block text-[11px] text-paper-faint">
             {guide.steps.length} pași · ~{lessonMinutes(guide)} min
-            {state.kind === "in_progress" && (
+            {state.kind === "partial" && (
               <span className="text-[color:var(--value)]">
                 {" "}
-                · în curs, pasul {state.step} din {state.steps}
+                · pasul {state.step} din {state.steps}
+                {state.spent ? ", ședință consumată" : ""}
               </span>
             )}
             {state.kind === "done" && (
-              <span> · făcută pe {dateShort(state.closedAt)}</span>
+              <span> · făcută pe {dateShort(state.at)}</span>
             )}
           </span>
         </span>
         <span className="text-paper-faint">{open ? "−" : "+"}</span>
       </button>
 
+      {/* Linia de progres de la baza cardului: se vede și fără să deschizi. */}
+      {state.percent > 0 && (
+        <div className="h-0.5 w-full bg-ink-line">
+          <div
+            className="h-full transition-all duration-700"
+            style={{ width: `${state.percent}%`, background: RESOLVED }}
+          />
+        </div>
+      )}
+
       {open && (
-        <div className="px-3 pb-3">
+        <div className="px-3 pt-3 pb-3">
           <p className="text-[13px] leading-relaxed text-paper-dim">
             {guide.summary}
           </p>
@@ -343,35 +467,70 @@ function LessonRow({
             </p>
           )}
 
-          <p className="mt-2 text-[11px] leading-snug text-paper-faint">
-            Prima întrebare: „{guide.steps[0].question}”
-          </p>
-          <p className="mt-1 text-[10px] leading-snug text-paper-faint/80">
+          {/* Pașii, ca listă: cei parcurși bifați, următorul marcat. */}
+          <ol className="mt-3 space-y-1">
+            {guide.steps.map((step, i) => {
+              const passed =
+                state.kind === "done" ||
+                (state.kind === "partial" && i < state.step - 1);
+              const current = state.kind === "partial" && i === state.step - 1;
+              return (
+                <li
+                  key={step.id}
+                  className="flex items-start gap-2 text-[11px] leading-snug"
+                >
+                  <span
+                    className={`mt-0.5 flex h-3.5 w-3.5 shrink-0 items-center justify-center rounded-full border text-[8px] ${
+                      passed
+                        ? "border-[color:var(--value)] bg-[color:var(--value)] text-ink"
+                        : current
+                          ? "border-[color:var(--value)] text-[color:var(--value)]"
+                          : "border-ink-line text-paper-faint"
+                    }`}
+                  >
+                    {passed ? "✓" : i + 1}
+                  </span>
+                  <span
+                    className={
+                      passed
+                        ? "text-paper-faint line-through decoration-ink-line"
+                        : current
+                          ? "text-paper"
+                          : "text-paper-faint"
+                    }
+                  >
+                    {step.question}
+                  </span>
+                </li>
+              );
+            })}
+          </ol>
+
+          <p className="mt-2 text-[10px] leading-snug text-paper-faint/80">
             După {guide.sources.slice(0, 2).join(" · ")}
           </p>
 
           <div className="mt-3 flex flex-wrap gap-2">
-            {state.kind === "in_progress" && (
+            {resumable && (
               <button
                 onClick={() => onResume(state.conversationId)}
-                disabled={!canStart && false}
                 className="rounded-full bg-paper px-4 py-1.5 text-xs font-medium text-ink"
               >
-                Reia de unde am rămas
+                Continuă de la {state.percent}% · fără ședință nouă
               </button>
             )}
             <button
               onClick={onStart}
               disabled={!canStart}
               className={`rounded-full px-4 py-1.5 text-xs font-medium disabled:opacity-40 ${
-                state.kind === "in_progress"
+                resumable
                   ? "border border-ink-line text-paper-dim"
                   : "bg-paper text-ink"
               }`}
             >
               {state.kind === "done"
                 ? "Refă lecția · 1 ședință"
-                : state.kind === "in_progress"
+                : state.kind === "partial"
                   ? "Începe din nou · 1 ședință"
                   : "Începe · 1 ședință"}
             </button>

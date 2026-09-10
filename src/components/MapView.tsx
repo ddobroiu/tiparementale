@@ -252,7 +252,13 @@ export function MapView({
       const res = await fetch(`/api/conversations/${id}`);
       if (!res.ok) return;
       const data = await res.json();
-      if (data.closed) return;
+      if (data.closed) {
+        // Închisă înainte de final: se redeschide, ședința e deja plătită.
+        const reopened = await fetch(`/api/conversations/${id}/reopen`, {
+          method: "POST",
+        });
+        if (!reopened.ok) return;
+      }
       setConversationId(data.conversationId);
       setChatTitle(titleFor(data.guideId));
       setMessages(

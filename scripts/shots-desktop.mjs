@@ -83,8 +83,18 @@ try {
     [userId, ids[1], ids[2]],
   );
 
+  // Două lecții cu istoric: una făcută, una la jumătate — ca procentele să se vadă.
+  await db.query(
+    `insert into tipare_mentale.conversations (user_id, guide_id, step_index, turns, closed_at, started_at)
+     values ($1, 'casa-in-care-ai-crescut', 6, 14, now() - interval '2 days', now() - interval '2 days'),
+            ($1, 'relatia-cu-tata', 3, 7, null, now() - interval '1 day')`,
+    [userId],
+  );
+
   await page.goto(`${BASE}/harta`);
   await shot("02-identificare", 1200);
+  await page.getByRole("button", { name: /Relația cu tata/ }).first().click();
+  await shot("02b-lectie-la-jumatate");
 
   await page.getByRole("button", { name: /Interpretare/ }).first().click();
   await shot("03-interpretare");

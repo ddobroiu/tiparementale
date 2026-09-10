@@ -3,7 +3,7 @@
 import Link from "next/link";
 
 import type { Guide } from "@/lib/guides";
-import { lessonNumber } from "@/lib/program";
+import { LESSONS, lessonNumber, lessonState } from "@/lib/program";
 import type { Topic } from "@/lib/topics";
 import {
   DOMAIN_COLORS,
@@ -236,7 +236,18 @@ function IdentifyTab({
   | "onChanged"
 >) {
   const none = account.sessionsLeft === 0;
-  const inProgress = account.lessons.filter((l) => !l.closedAt && l.turns > 0);
+  // Lecțiile începute și lăsate, cu replici rămase în ședința lor.
+  const inProgress = account.lessons
+    .map((l) => {
+      const lesson = LESSONS.find((x) => x.guide.id === l.guideId);
+      return lesson
+        ? { progress: l, state: lessonState(lesson.guide, l) }
+        : null;
+    })
+    .filter(
+      (x): x is NonNullable<typeof x> =>
+        x !== null && x.state.kind === "partial" && !x.state.spent,
+    );
 
   return (
     <>
@@ -273,17 +284,21 @@ function IdentifyTab({
           <p className="text-[10px] tracking-[0.14em] text-paper-faint uppercase">
             Lecție în curs
           </p>
-          {inProgress.map((l) => (
+          {inProgress.map(({ progress: l, state }) => (
             <button
               key={l.conversationId}
               onClick={() => onResume(l.conversationId)}
               className="mt-1.5 flex w-full items-center justify-between gap-3 text-left text-sm text-paper hover:underline"
             >
               <span>
-                Lecția {lessonNumber(l.guideId) ?? "·"} · pasul{" "}
-                {l.stepIndex + 1}
+                Lecția {lessonNumber(l.guideId) ?? "·"} ·{" "}
+                {state.kind === "partial"
+                  ? `${state.percent}%, pasul ${state.step} din ${state.steps}`
+                  : ""}
               </span>
-              <span className="text-xs text-[color:var(--value)]">reia →</span>
+              <span className="text-xs text-[color:var(--value)]">
+                continuă →
+              </span>
             </button>
           ))}
           <p className="mt-1.5 text-[11px] text-paper-faint">

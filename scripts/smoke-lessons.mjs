@@ -59,10 +59,21 @@ try {
   check("închiderea → 200", close.status === 200);
   const acc2 = await call("/api/account");
   const p2 = acc2.data.lessons.find((l) => l.guideId === "relatia-cu-tata");
-  check("lecția apare ca făcută (închisă)", p2 && p2.closedAt !== null);
+  check("lecția apare ca închisă în cont", p2 && p2.closedAt !== null);
 
   const again = await call(`/api/conversations/${id}/close`, "POST");
   check("a doua închidere e inofensivă", again.status === 200);
+
+  const reopen = await call(`/api/conversations/${id}/reopen`, "POST");
+  check("o lecție închisă devreme se redeschide fără ședință nouă", reopen.status === 200);
+  const accR = await call("/api/account");
+  const pr = accR.data.lessons.find((l) => l.guideId === "relatia-cu-tata");
+  check("după redeschidere, în cont nu mai e închisă", pr && pr.closedAt === null);
+  await call(`/api/conversations/${id}/close`, "POST");
+  await admin.query("update tipare_mentale.conversations set turns = 25 where id = $1", [id]);
+  const spent = await call(`/api/conversations/${id}/reopen`, "POST");
+  check("o ședință consumată nu se redeschide → 409", spent.status === 409);
+  await admin.query("update tipare_mentale.conversations set turns = 0 where id = $1", [id]);
 
   const redo = await call("/api/conversations", "POST", { guideId: "relatia-cu-tata" });
   check("aceeași lecție se poate reface, cu altă ședință", redo.status === 200 && redo.data.conversationId !== id);
