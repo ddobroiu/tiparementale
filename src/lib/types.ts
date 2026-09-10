@@ -93,6 +93,8 @@ export interface MindNode {
   confidence: number;
   /** Cea mai mare încredere atinsă vreodată. Nu coboară niciodată. */
   peak_confidence: number | null;
+  /** Schema Young de care ține, dacă se potrivește clar uneia. */
+  schema_code: string | null;
   verdict: NodeVerdict;
   archived_at: string | null;
   created_at: string;

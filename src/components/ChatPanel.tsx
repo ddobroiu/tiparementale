@@ -5,6 +5,8 @@ import { useEffect, useRef, useState } from "react";
 export interface ChatMessage {
   role: "user" | "assistant";
   content: string;
+  /** Variante de răspuns rapid, pe modelul chestionarului Young. Opționale. */
+  options?: string[] | null;
 }
 
 interface Props {
@@ -61,18 +63,46 @@ export function ChatPanel({ messages, pending, extracting, limit, onSend, onClos
             Nu trebuie să fie ordonat sau important. Scrie cum îți vine.
           </p>
         )}
-        {messages.map((message, i) => (
-          <p
-            key={i}
-            className={
-              message.role === "user"
-                ? "ml-auto max-w-[85%] rounded-2xl rounded-br-sm bg-ink px-4 py-2.5 text-sm leading-relaxed text-paper"
-                : "max-w-[90%] font-serif text-[15px] leading-relaxed text-paper-dim"
-            }
-          >
-            {message.content}
-          </p>
-        ))}
+        {messages.map((message, i) => {
+          const isLast = i === messages.length - 1;
+          const showOptions =
+            message.role === "assistant" &&
+            isLast &&
+            !pending &&
+            !limit &&
+            (message.options?.length ?? 0) > 0;
+
+          return (
+            <div key={i}>
+              <p
+                className={
+                  message.role === "user"
+                    ? "ml-auto max-w-[85%] rounded-2xl rounded-br-sm bg-ink px-4 py-2.5 text-sm leading-relaxed text-paper"
+                    : "max-w-[90%] font-serif text-[15px] leading-relaxed text-paper-dim"
+                }
+              >
+                {message.content}
+              </p>
+
+              {/* Variantele stau doar sub ultima întrebare: la cele vechi ar fi
+                  zgomot, iar răspunsul a fost dat oricum. Scrisul liber rămâne
+                  mereu posibil — variantele scurtează drumul, nu îl închid. */}
+              {showOptions && (
+                <div className="animate-fade-up mt-3 flex flex-wrap gap-2">
+                  {message.options!.map((option) => (
+                    <button
+                      key={option}
+                      onClick={() => onSend(option)}
+                      className="rounded-full border border-ink-line px-3.5 py-1.5 text-sm text-paper-dim transition-colors hover:border-[color:var(--belief)] hover:text-paper"
+                    >
+                      {option}
+                    </button>
+                  ))}
+                </div>
+              )}
+            </div>
+          );
+        })}
         {pending && <p className="text-sm text-paper-faint">…</p>}
       </div>
 

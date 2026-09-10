@@ -15,7 +15,10 @@
 export type Effort = "low" | "medium" | "high" | "xhigh" | "max";
 
 export const MODELS = {
-  reply: process.env.MODEL_REPLY ?? "claude-haiku-4-5",
+  // Haiku era mai ieftin cu ~8 cenți pe ședință, dar strica româna: „mă rog că
+  // înțeleg ce spui”, „îmi zici, plăceți”, replici tăiate la final. Conversația
+  // e primul lucru pe care îl atinge omul; nu e locul unde se economisește.
+  reply: process.env.MODEL_REPLY ?? "claude-sonnet-5",
   extraction: process.env.MODEL_EXTRACTION ?? "claude-sonnet-5",
   transformation: process.env.MODEL_TRANSFORMATION ?? "claude-opus-5",
   prediction: process.env.MODEL_PREDICTION ?? "claude-sonnet-5",

@@ -1,3 +1,4 @@
+import { schemaIndexForPrompt } from "@/lib/schemas";
 import type { MindNode } from "@/lib/types";
 import { DOMAIN_LABELS, NODE_TYPE_LABELS, displayLabel } from "@/lib/types";
 
@@ -45,7 +46,18 @@ reacție și relațiile importante.
   cum a scris-o. Nu le contrazice.
 - **Respinse** — interpretări pe care le-am greșit. Nu le repropune sub alt
   nume. Sunt exemple din care înveți ce nu este el.
-- **Neconfirmate** — ipotezele de până acum. Le poți întări sau slăbi.`;
+- **Neconfirmate** — ipotezele de până acum. Le poți întări sau slăbi.
+
+## Clasarea pe scheme
+
+Fiecare nod nou primește, dacă se potrivește clar, codul unei scheme din
+taxonomia lui Young (lista de mai jos). Schema spune „convingerea asta face
+parte din familia X” și leagă între ele lucruri care păreau fără legătură.
+Dacă potrivirea nu e clară, pune null — o clasare forțată e mai rea decât
+niciuna. Valorile și obiectivele rămân de regulă fără schemă; schemele sunt
+pentru convingeri, temeri și tipare.
+
+${schemaIndexForPrompt()}`;
 
 /**
  * Câte noduri intră în index. Peste acest prag, costul unei extracții ar

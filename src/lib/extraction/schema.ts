@@ -50,6 +50,21 @@ export const ReplySchema = z.object({
         "curioasă, în limbajul lui. Fără jargon, fără sfaturi, fără să reciți harta.",
     ),
   domain_in_focus: DomainEnum.describe("Domeniul pe care îl explorezi acum."),
+  options: z
+    .array(z.string())
+    .describe(
+      "Variante scurte de răspuns, 3–5, pe care omul le poate atinge în loc să " +
+        "scrie. Doar când întrebarea are răspunsuri tipice distincte — altfel listă " +
+        "goală. Fiecare variantă spune altceva despre el; nu pune două care înseamnă " +
+        "același lucru. Niciodată la întrebări deschise despre o poveste.",
+    ),
+  advance_step: z
+    .boolean()
+    .describe(
+      "Adevărat dacă pasul curent al ghidului și-a făcut treaba — omul a răspuns " +
+        "pe fond, nu doar tangențial — și următoarea replică poate trece la pasul " +
+        "următor. Fals dacă mai e de săpat aici.",
+    ),
   safety_flag: SafetyEnum,
 });
 
@@ -89,6 +104,13 @@ export const NewNodeSchema = z.object({
     ),
   summary: z.string().describe("O propoziție care explică nodul."),
   confidence: z.number().describe("De la 0 la 1. O singură mențiune rareori trece de 0.5."),
+  schema_code: z
+    .string()
+    .nullable()
+    .describe(
+      "Codul schemei Young de care ține (din lista dată), sau null dacă nu se " +
+        "potrivește clar niciuneia. O clasare forțată e mai rea decât niciuna.",
+    ),
   observation: ObservationSchema,
 });
 

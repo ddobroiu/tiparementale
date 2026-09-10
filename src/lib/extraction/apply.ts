@@ -1,5 +1,6 @@
 import type { PoolClient } from "pg";
 
+import { SCHEMA_BY_CODE } from "@/lib/schemas";
 import type { MapDiff, MindNode } from "@/lib/types";
 import { displayLabel } from "@/lib/types";
 import type { Extraction } from "./schema";
@@ -69,8 +70,8 @@ export async function applyExtraction({
 
   for (const incoming of extraction.new_nodes) {
     const { rows } = await client.query<{ id: string; type: MindNode["type"]; label: string }>(
-      `insert into nodes (user_id, type, domain, label, summary, confidence)
-       values ($1, $2, $3, $4, $5, $6)
+      `insert into nodes (user_id, type, domain, label, summary, confidence, schema_code)
+       values ($1, $2, $3, $4, $5, $6, $7)
        returning id, type, label`,
       [
         userId,
@@ -79,6 +80,10 @@ export async function applyExtraction({
         incoming.label,
         incoming.summary,
         clamp(incoming.confidence, 0, 1),
+        // Doar coduri din taxonomie: un cod inventat de model nu intră în bază.
+        incoming.schema_code && SCHEMA_BY_CODE.has(incoming.schema_code)
+          ? incoming.schema_code
+          : null,
       ],
     );
 

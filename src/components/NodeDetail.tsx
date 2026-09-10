@@ -16,6 +16,7 @@ import {
   changeDegree,
   displayLabel,
 } from "@/lib/types";
+import { SCHEMA_DOMAIN_LABELS, SCHEMA_DOMAIN_NEED, schemaOf } from "@/lib/schemas";
 
 interface HistoryEntry {
   id: string;
@@ -151,6 +152,7 @@ export function NodeDetail({
   const { node, observations, history, recommendations, transformations } = data;
   const confirmed = node.verdict === "confirmed" || node.verdict === "edited";
   const change = changeDegree(node);
+  const schema = schemaOf(node.schema_code);
   const active = transformations.find((t) => t.status !== "dismissed");
   const forActive = active
     ? recommendations.filter((r) => r.transformation_id === active.id)
@@ -211,6 +213,21 @@ export function NodeDetail({
 
         {node.summary && !editing && (
           <p className="mt-3 text-sm leading-relaxed text-paper-dim">{node.summary}</p>
+        )}
+
+        {/* Familia din care face parte tiparul: leagă între ele lucruri care
+            păreau fără legătură, cu un nume pe care un terapeut l-ar recunoaște. */}
+        {schema && !editing && (
+          <div className="mt-4 rounded-xl border border-ink-line p-3">
+            <p className="text-[10px] tracking-[0.16em] text-paper-faint uppercase">
+              Familia tiparului · {SCHEMA_DOMAIN_LABELS[schema.domain]}
+            </p>
+            <p className="mt-1 text-sm text-paper">{schema.name}</p>
+            <p className="mt-1 text-xs leading-relaxed text-paper-dim">{schema.essence}</p>
+            <p className="mt-2 text-[11px] leading-relaxed text-paper-faint">
+              Nevoia din spate: {SCHEMA_DOMAIN_NEED[schema.domain]}.
+            </p>
+          </div>
         )}
 
         <div className="mt-4 flex flex-wrap items-center gap-2 text-xs text-paper-faint">

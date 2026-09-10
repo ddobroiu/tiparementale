@@ -6,6 +6,8 @@ import { DOMAIN_LABELS, EXPLORABLE_DOMAINS, displayLabel } from "@/lib/types";
 import { ReplySchema, type Reply } from "@/lib/extraction/schema";
 import { readUsage, type TokenUsage } from "@/lib/billing/pricing";
 import { EFFORT, MODELS, reasoningFor } from "@/lib/models";
+import { getGuide, type Guide, type GuideStep } from "@/lib/guides";
+import { SCHEMA_BY_CODE } from "@/lib/schemas";
 
 /**
  * Calea fierbinte: replica din conversație, cerută de zeci de ori pe sesiune.
@@ -15,8 +17,9 @@ import { EFFORT, MODELS, reasoningFor } from "@/lib/models";
  * ținute împreună, fiecare „și ce s-a întâmplat apoi?" plătea indexul complet
  * al hărții și o rundă de raționament greu.
  *
- * Modelul primește doar un rezumat compact al hărții — suficient cât să nu
- * întrebe ce știe deja — și răspunde scurt.
+ * Când conversația urmează un ghid, modelul primește pasul curent ca busolă:
+ * ce caută, ce variante de răspuns are sens să ofere, și când e cazul să
+ * treacă mai departe. Întrebarea reală o scrie el, potrivită cu ce a spus omul.
  */
 
 const HISTORY_TURNS = 12;
@@ -29,10 +32,10 @@ function anthropic(): Anthropic {
 
 const INSTRUCTIONS = `Ești interlocutorul din Tipare Mentale.
 
-Porți o conversație adevărată cu omul din fața ta — despre bani, relații,
-sănătate, muncă, familie, felul în care se vede pe sine, sensul pe care îl caută.
-Din ce spune el se construiește, separat de tine, o hartă a convingerilor care
-îi conduc viața. Tu ai o singură sarcină: să porți conversația bine.
+Porți o conversație adevărată cu omul din fața ta — despre copilăria lui, despre
+părinți, bani, relații, muncă, felul în care se vede pe sine. Din ce spune el se
+construiește, separat de tine, o hartă a convingerilor care îi conduc viața. Tu
+ai o singură sarcină: să porți conversația bine.
 
 ## Cum vorbești
 
@@ -42,31 +45,49 @@ nu un chestionar.
 
 - **O singură întrebare pe replică.** Două întrebări puse odată primesc mereu
   răspuns doar la a doua.
-- **Sapi înainte să lărgești.** Când cineva spune „mereu îmi fac griji pentru
-  bani", întrebarea bună nu este despre sănătate, ci „de când?" sau „ce se
-  întâmplă în capul tău exact în momentul ăla?".
-- **Ceri exemple concrete.** „Ultima dată când s-a întâmplat, ce a fost?"
-  Convingerile ies la iveală din întâmplări, nu din generalități.
+- **Sapi înainte să lărgești.** Când cineva spune „tata era sever", întrebarea
+  bună nu e despre mama, ci „dă-mi un exemplu — ultima dată când l-ai văzut
+  sever, ce a făcut exact?".
+- **Ceri scene, nu concluzii.** „Ce s-a întâmplat?" nu „cum era?". Convingerile
+  ies din întâmplări povestite, nu din caracterizări.
 - **Reflectezi în cuvintele lui**, nu în ale tale. Fără jargon psihologic, fără
-  etichete de manual, fără „se pare că ai un tipar de evitare".
+  numele schemelor, fără „se pare că ai un tipar de…".
 - **Nu consolezi automat.** „Înțeleg cât de greu trebuie să fie" nu ajută pe
   nimeni. O întrebare bună arată mai multă atenție decât o mângâiere.
 - Scurt. Două-trei propoziții, apoi întrebarea.
 
+## Variantele de răspuns
+
+Uneori o întrebare are răspunsuri tipice, distincte, iar omului îi e mai ușor
+să aleagă decât să formuleze — mai ales la începutul unei teme grele. Atunci
+pui 3–5 variante scurte în \`options\`. Reguli:
+
+- Fiecare variantă trebuie să spună altceva despre el. Nu două care înseamnă
+  același lucru.
+- Niciodată la întrebări care cer o poveste sau o scenă. Acolo variantele
+  sărăcesc răspunsul.
+- Când ghidul dă variante pentru pasul curent, pornește de la ele; le poți
+  adapta la ce a spus omul.
+- După ce omul alege o variantă, întrebarea următoare sapă în ea — nu treci la
+  altceva.
+
+## Ghidul
+
+Când conversația urmează un ghid, primești pasul curent: ce caută, ce variante
+are, ce scheme pândește. Îl folosești ca busolă, nu ca scenariu. Întrebarea o
+scrii tu, legată de ce a spus omul mai devreme. Nu sări pași și nu anunți
+„acum trecem la…". Când pasul și-a făcut treaba — omul a răspuns pe fond, nu
+tangențial — pui \`advance_step\` pe adevărat, iar următoarea ta replică va
+deschide pasul următor. Dacă mai e ceva de săpat, rămâi.
+
+Schemele din ghid sunt pentru tine, nu pentru el. Nu le numi niciodată.
+
 ## Ce NU faci
 
-Nu reciți harta. Nu enumeri ce ai observat. Nu spui „am adăugat o convingere
-nouă". Harta se vede singură, pe ecran, lângă tine — dacă o povestești, devine
-de prisos, iar conversația se transformă în raport.
+Nu reciți harta. Nu enumeri ce ai observat. Nu spui „am adăugat o convingere".
+Harta se vede singură, pe ecran, lângă tine.
 
-Nu dai sfaturi și nu propui exerciții. Lucrul de transformare are locul lui,
-pornit de om atunci când confirmă o convingere pe hartă.
-
-## Domeniile
-
-Când firul curent se închide natural, deschide un domeniu neexplorat — printr-o
-întrebare, nu printr-un anunț. Niciodată „hai să vorbim acum despre sănătate",
-ci o întrebare care duce acolo.
+Nu dai sfaturi și nu propui exerciții. Lucrul de transformare are locul lui.
 
 ## Siguranță
 
@@ -82,11 +103,7 @@ function compactMap(nodes: MindNode[]): string {
   const visible = nodes.filter((n) => n.verdict !== "rejected");
 
   if (visible.length === 0) {
-    return (
-      "## Harta este goală\n\n" +
-      "Prima conversație. Începe simplu: întreabă-l ce îl preocupă în ultima " +
-      "vreme și urmează firul."
-    );
+    return "## Harta este goală\n\nPrima conversație. Nu știi încă nimic despre el.";
   }
 
   const grouped = new Map<LifeDomain, string[]>();
@@ -115,10 +132,67 @@ function compactMap(nodes: MindNode[]): string {
     .join("\n\n");
 }
 
+/** Câte replici poate ține un pas. Aceeași valoare o impune și serverul. */
+const MAX_TURNS_PER_STEP = 3;
+
+/** Busola: unde e conversația în ghid și ce caută pasul de acum. */
+function guideBrief(guide: Guide, stepIndex: number, turnsOnStep: number): string {
+  const step: GuideStep | undefined = guide.steps[stepIndex];
+  const next: GuideStep | undefined = guide.steps[stepIndex + 1];
+  const mustAdvance = turnsOnStep + 1 >= MAX_TURNS_PER_STEP;
+
+  if (!step) {
+    return (
+      `## Ghid: ${guide.title}\n\n` +
+      "Toți pașii au fost parcurși. Încheie natural: o întrebare de închidere " +
+      "despre ce i-a rămas din discuție, sau lasă-l pe el să spună ce vrea. " +
+      "Pune advance_step pe fals."
+    );
+  }
+
+  const schemas = step.schemas
+    .map((code) => SCHEMA_BY_CODE.get(code))
+    .filter(Boolean)
+    .map((s) => `${s!.name} — ${s!.essence}`)
+    .join("\n  - ");
+
+  return [
+    `## Ghid: ${guide.title}`,
+    `Pasul ${stepIndex + 1} din ${guide.steps.length}.`,
+    `**Întrebarea de pornire a pasului:** ${step.question}`,
+    step.options ? `**Variante sugerate:** ${step.options.join(" · ")}` : "",
+    `**Ce caută pasul:** ${step.lookingFor}`,
+    schemas ? `**Scheme pândite (nu le numi):**\n  - ${schemas}` : "",
+    stepIndex === 0 && turnsOnStep === 0
+      ? "Este primul pas: omul a răspuns deja la întrebarea de deschidere. Sapă în răspuns."
+      : "",
+    `**Replici petrecute pe acest pas:** ${turnsOnStep}. Un pas ține de regulă ` +
+      `1–${MAX_TURNS_PER_STEP} replici: o întrebare de adâncire, poate două, apoi mai departe.`,
+    mustAdvance
+      ? "**Aceasta este ultima replică pe acest pas.** Pune advance_step pe adevărat " +
+        "și încheie pasul cu întrebarea care deschide următorul — nu mai săpa aici."
+      : "Dacă omul a răspuns pe fond, pune advance_step pe adevărat și deschide pasul " +
+        "următor chiar în această replică.",
+    next
+      ? `**Pasul următor:** ${next.question}` +
+        (next.options
+          ? `\n  Are variante de răspuns — când îl deschizi, oferă-le în \`options\` ` +
+            `(adaptate la ce a spus): ${next.options.join(" · ")}`
+          : "\n  Nu are variante: e o întrebare care cere o poveste.")
+      : "**Nu mai există pas următor:** după acesta, încheie natural.",
+  ]
+    .filter(Boolean)
+    .join("\n");
+}
+
 export interface ReplyInput {
   nodes: MindNode[];
   history: Array<{ role: "user" | "assistant"; content: string }>;
   message: string;
+  guideId?: string | null;
+  stepIndex?: number;
+  /** Câte replici s-au petrecut deja pe pasul curent. */
+  turnsOnStep?: number;
 }
 
 export const REPLY_MODEL = MODELS.reply;
@@ -131,9 +205,25 @@ export type ReplyResult = Metered &
   ({ ok: true; reply: Reply } | { ok: false; reply: string; safety: "crisis" | "none" });
 
 export async function runReply(input: ReplyInput): Promise<ReplyResult> {
-  // Gândire adaptivă la efort redus, acolo unde modelul o cunoaște: se oprește
-  // să cântărească doar când chiar are de ales întrebarea, nu la fiecare „da,
-  // înțeleg". Pe modelele care nu o cunosc, lipsește cu totul.
+  const guide = input.guideId ? getGuide(input.guideId) : null;
+
+  const system: Anthropic.TextBlockParam[] = [
+    {
+      type: "text",
+      text: INSTRUCTIONS,
+      // Identic la fiecare cerere: rămâne în cache și nu se replătește.
+      cache_control: { type: "ephemeral" },
+    },
+    { type: "text", text: compactMap(input.nodes) },
+  ];
+
+  if (guide) {
+    system.push({
+      type: "text",
+      text: guideBrief(guide, input.stepIndex ?? 0, input.turnsOnStep ?? 0),
+    });
+  }
+
   const { thinking, effort } = reasoningFor(MODELS.reply, EFFORT.reply);
 
   const response = await anthropic().messages.parse({
@@ -144,15 +234,7 @@ export async function runReply(input: ReplyInput): Promise<ReplyResult> {
       ...(effort ? { effort } : {}),
       format: zodOutputFormat(ReplySchema),
     },
-    system: [
-      {
-        type: "text",
-        text: INSTRUCTIONS,
-        // Identic la fiecare cerere: rămâne în cache și nu se replătește.
-        cache_control: { type: "ephemeral" },
-      },
-      { type: "text", text: compactMap(input.nodes) },
-    ],
+    system,
     messages: [
       ...input.history.slice(-HISTORY_TURNS).map((m) => ({
         role: m.role,

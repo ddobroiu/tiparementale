@@ -17,6 +17,9 @@ import type { MindNode } from "@/lib/types";
 
 const HISTORY_LIMIT = 12;
 
+/** Câte replici poate ține un pas de ghid înainte să treacă mai departe. */
+const MAX_TURNS_PER_STEP = 3;
+
 
 
 
@@ -47,16 +50,29 @@ export async function POST(request: Request) {
 
     let conversationId = requestedConversation;
     let turns = 0;
+    let guideId: string | null = null;
+    let stepIndex = 0;
+    let stepTurns = 0;
 
     if (conversationId) {
-      const { rows } = await client.query<{ id: string; turns: number }>(
-        "select id, turns from conversations where id = $1 and closed_at is null",
+      const { rows } = await client.query<{
+        id: string;
+        turns: number;
+        guide_id: string | null;
+        step_index: number;
+        step_turns: number;
+      }>(
+        `select id, turns, guide_id, step_index, step_turns
+           from conversations where id = $1 and closed_at is null`,
         [conversationId],
       );
       if (rows.length === 0) {
         conversationId = null;
       } else {
         turns = rows[0].turns;
+        guideId = rows[0].guide_id;
+        stepIndex = rows[0].step_index;
+        stepTurns = rows[0].step_turns;
       }
     }
 
@@ -114,6 +130,9 @@ export async function POST(request: Request) {
       denied: null,
       conversationId,
       turns: turns + 1,
+      guideId,
+      stepIndex,
+      stepTurns,
       nodes,
       history: history.reverse(),
     };
@@ -132,6 +151,9 @@ export async function POST(request: Request) {
       nodes: context.nodes,
       history: context.history,
       message,
+      guideId: context.guideId,
+      stepIndex: context.stepIndex,
+      turnsOnStep: context.stepTurns,
     });
   } catch (error) {
     // Mesajul omului a fost deja salvat, deci nu se pierde. Ședința nu se
@@ -145,13 +167,37 @@ export async function POST(request: Request) {
 
   const reply = result.ok ? result.reply.reply : result.reply;
   const safetyFlag = result.ok ? result.reply.safety_flag : result.safety;
+  const options = result.ok && result.reply.options.length > 0 ? result.reply.options : null;
+  // Pasul avansează când modelul spune că și-a făcut treaba — sau, oricum, după
+  // MAX_TURNS_PER_STEP replici. Lăsat singur, modelul sapă la nesfârșit într-un
+  // pas, iar o ședință de 25 de replici ar acoperi două teme din cinci.
+  const onGuide = context.guideId !== null;
+  const advance =
+    onGuide &&
+    result.ok &&
+    (result.reply.advance_step || context.stepTurns + 1 >= MAX_TURNS_PER_STEP);
 
   const after = await withUser(user.id, async (client) => {
+    // Variantele propuse se păstrează lângă replică: istoricul arată ce i s-a
+    // oferit omului, nu doar ce a ales.
     await client.query(
-      `insert into messages (user_id, conversation_id, role, content)
-       values ($1, $2, 'assistant', $3)`,
-      [user.id, context.conversationId, reply],
+      `insert into messages (user_id, conversation_id, role, content, options)
+       values ($1, $2, 'assistant', $3, $4)`,
+      [user.id, context.conversationId, reply, options ? JSON.stringify(options) : null],
     );
+
+    if (advance) {
+      await client.query(
+        `update conversations set step_index = step_index + 1, step_turns = 0
+          where id = $1`,
+        [context.conversationId],
+      );
+    } else if (onGuide) {
+      await client.query(
+        "update conversations set step_turns = step_turns + 1 where id = $1",
+        [context.conversationId],
+      );
+    }
 
     await recordUsage(client, {
       userId: user.id,
@@ -173,6 +219,7 @@ export async function POST(request: Request) {
   return NextResponse.json({
     conversationId: context.conversationId,
     reply,
+    options,
     safetyFlag,
     domainInFocus: result.ok ? result.reply.domain_in_focus : null,
     extractionDue: after >= EXTRACTION_THRESHOLD,

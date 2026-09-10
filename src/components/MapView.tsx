@@ -8,7 +8,8 @@ import { ChatPanel, type ChatMessage } from "./ChatPanel";
 import { MindMap } from "./MindMap";
 import { NodeDetail } from "./NodeDetail";
 import { Logo } from "./Logo";
-import { TopicPicker } from "./TopicPicker";
+import { GuidePicker } from "./GuidePicker";
+import type { Guide } from "@/lib/guides";
 import { MapLegend } from "./MapLegend";
 import { MapFilters, NO_FILTERS, applyFilters, type Filters } from "./MapFilters";
 import { MapToolbar } from "./MapToolbar";
@@ -129,7 +130,10 @@ export function MapView({
       }
 
       setConversationId(data.conversationId);
-      setMessages((m) => [...m, { role: "assistant", content: data.reply }]);
+      setMessages((m) => [
+        ...m,
+        { role: "assistant", content: data.reply, options: data.options ?? null },
+      ]);
       setSafety(data.safetyFlag ?? "none");
 
       if (data.extractionDue) void runExtraction(data.conversationId);
@@ -166,7 +170,45 @@ export function MapView({
       if (!res.ok) return;
 
       setConversationId(data.conversationId);
-      setMessages(data.opener ? [{ role: "assistant", content: data.opener }] : []);
+      setMessages(
+        data.opener
+          ? [{ role: "assistant", content: data.opener, options: data.options ?? null }]
+          : [],
+      );
+      setChatOpen(true);
+      void loadAccount();
+    } finally {
+      setPending(false);
+    }
+  }
+
+  /**
+   * Deschide o ședință pe un ghid: o temă cu parcurs, gândită după literatura
+   * de specialitate. Prima întrebare vine gata scrisă, cu variantele ei.
+   */
+  async function startGuide(guide: Guide) {
+    setPending(true);
+    try {
+      const res = await fetch("/api/conversations", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ guideId: guide.id }),
+      });
+      const data = await res.json();
+
+      if (res.status === 402) {
+        setLimit({ reason: data.error, code: data.code });
+        setChatOpen(true);
+        return;
+      }
+      if (!res.ok) return;
+
+      setConversationId(data.conversationId);
+      setMessages(
+        data.opener
+          ? [{ role: "assistant", content: data.opener, options: data.options ?? null }]
+          : [],
+      );
       setChatOpen(true);
       void loadAccount();
     } finally {
@@ -317,10 +359,11 @@ export function MapView({
 
         {!chatOpen && (
           <div className="pointer-events-none absolute inset-x-0 bottom-0 flex justify-center p-4 sm:p-6">
-            <TopicPicker
+            <GuidePicker
               nodes={nodes}
               busy={pending}
               onFree={() => setChatOpen(true)}
+              onGuide={startGuide}
               onTopic={startTopic}
             />
           </div>
