@@ -70,6 +70,10 @@ pui 3–5 variante scurte în \`options\`. Reguli:
   adapta la ce a spus omul.
 - După ce omul alege o variantă, întrebarea următoare sapă în ea — nu treci la
   altceva.
+- **Variantele răspund la întrebarea din \`reply\`, din același mesaj.** Dacă
+  întrebarea ta cere o scenă („ce s-a întâmplat mai exact?"), \`options\` e
+  goală. Variantele unui pas pe care nu l-ai deschis încă nu au ce căuta
+  sub o altă întrebare — omul le vede și nu se leagă cu ce l-ai întrebat.
 
 ## Ghidul
 
@@ -176,13 +180,58 @@ function guideBrief(guide: Guide, stepIndex: number, turnsOnStep: number): strin
     next
       ? `**Pasul următor:** ${next.question}` +
         (next.options
-          ? `\n  Are variante de răspuns — când îl deschizi, oferă-le în \`options\` ` +
-            `(adaptate la ce a spus): ${next.options.join(" · ")}`
+          ? `\n  Variantele lui: ${next.options.join(" · ")}. Le pui în \`options\` ` +
+            "**numai** în replica în care advance_step e adevărat și întrebarea din " +
+            "reply este chiar această întrebare. Sub o întrebare de adâncire pe pasul " +
+            "curent, options rămâne goală."
           : "\n  Nu are variante: e o întrebare care cere o poveste.")
       : "**Nu mai există pas următor:** după acesta, încheie natural.",
   ]
     .filter(Boolean)
     .join("\n");
+}
+
+function normalizeOption(option: string): string {
+  return option.trim().toLowerCase().replace(/[.!?…]+$/, "");
+}
+
+/** Câte dintre `options` se regăsesc, ca text, în setul `pool`. */
+function overlap(options: string[], pool: string[] | undefined): number {
+  if (!pool) return 0;
+  const set = new Set(pool.map(normalizeOption));
+  return options.filter((o) => set.has(normalizeOption(o))).length;
+}
+
+/**
+ * Modelul primește variantele pasului curent și ale celui următor ca reper,
+ * și uneori le copiază sub o întrebare la care nu se potrivesc: pune o
+ * întrebare de adâncire despre tată și oferă dedesubt „Note și rezultate ·
+ * Că ajutam…”, variantele pasului despre laude. Omul vede butoane care nu au
+ * legătură cu ce a fost întrebat.
+ *
+ * Regula: variantele pasului următor sunt legitime doar când replica îl
+ * deschide (advance). Variantele pasului curent sunt legitime doar la
+ * deschiderea lui — adică în replica anterioară, nu în cele de adâncire.
+ * Restul se aruncă; omul scrie liber, ceea ce oricând e mai bine decât
+ * butoane greșite.
+ */
+export function sanitizeOptions(
+  options: string[],
+  guideId: string | null | undefined,
+  stepIndex: number,
+  advancing: boolean,
+): string[] {
+  if (options.length === 0 || !guideId) return options;
+  const guide = getGuide(guideId);
+  if (!guide) return options;
+
+  const current = guide.steps[stepIndex];
+  const next = guide.steps[stepIndex + 1];
+  const threshold = Math.max(2, Math.ceil(options.length / 2));
+
+  if (!advancing && overlap(options, next?.options) >= threshold) return [];
+  if (overlap(options, current?.options) >= threshold) return [];
+  return options;
 }
 
 export interface ReplyInput {

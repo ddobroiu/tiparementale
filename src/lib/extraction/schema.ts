@@ -56,14 +56,18 @@ export const ReplySchema = z.object({
       "Variante scurte de răspuns, 3–5, pe care omul le poate atinge în loc să " +
         "scrie. Doar când întrebarea are răspunsuri tipice distincte — altfel listă " +
         "goală. Fiecare variantă spune altceva despre el; nu pune două care înseamnă " +
-        "același lucru. Niciodată la întrebări deschise despre o poveste.",
+        "același lucru. Niciodată la întrebări deschise despre o poveste. Sunt " +
+        "răspunsuri la întrebarea din `reply`, din acest mesaj — niciodată la o " +
+        "întrebare pe care încă n-ai pus-o.",
     ),
   advance_step: z
     .boolean()
     .describe(
       "Adevărat dacă pasul curent al ghidului și-a făcut treaba — omul a răspuns " +
-        "pe fond, nu doar tangențial — și următoarea replică poate trece la pasul " +
-        "următor. Fals dacă mai e de săpat aici.",
+        "pe fond, nu doar tangențial — și chiar în această replică pui întrebarea " +
+        "de deschidere a pasului următor. Fals dacă mai e de săpat aici: atunci " +
+        "reply e o întrebare de adâncire, iar options rămâne goală sau are variante " +
+        "la ea, nu la pasul următor.",
     ),
   safety_flag: SafetyEnum,
 });

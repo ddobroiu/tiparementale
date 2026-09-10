@@ -9,7 +9,7 @@ import {
   recordUsage,
   spendSession,
 } from "@/lib/billing/entitlement";
-import { REPLY_MODEL, runReply } from "@/lib/conversation/reply";
+import { REPLY_MODEL, runReply, sanitizeOptions } from "@/lib/conversation/reply";
 import { describeAiError } from "@/lib/ai-error";
 import { EXTRACTION_THRESHOLD } from "@/lib/models";
 import { withUser } from "@/lib/db";
@@ -167,7 +167,6 @@ export async function POST(request: Request) {
 
   const reply = result.ok ? result.reply.reply : result.reply;
   const safetyFlag = result.ok ? result.reply.safety_flag : result.safety;
-  const options = result.ok && result.reply.options.length > 0 ? result.reply.options : null;
   // Pasul avansează când modelul spune că și-a făcut treaba — sau, oricum, după
   // MAX_TURNS_PER_STEP replici. Lăsat singur, modelul sapă la nesfârșit într-un
   // pas, iar o ședință de 25 de replici ar acoperi două teme din cinci.
@@ -176,6 +175,11 @@ export async function POST(request: Request) {
     onGuide &&
     result.ok &&
     (result.reply.advance_step || context.stepTurns + 1 >= MAX_TURNS_PER_STEP);
+  // Variantele care aparțin altui pas decât întrebarea pusă nu ajung la om.
+  const cleaned = result.ok
+    ? sanitizeOptions(result.reply.options, context.guideId, context.stepIndex, advance)
+    : [];
+  const options = cleaned.length > 0 ? cleaned : null;
 
   const after = await withUser(user.id, async (client) => {
     // Variantele propuse se păstrează lângă replică: istoricul arată ce i s-a
