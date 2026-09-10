@@ -13,14 +13,16 @@ export const SITE = {
   url: process.env.NEXT_PUBLIC_SITE_URL ?? "https://tiparementale.ro",
   tagline: "O hartă vie a felului în care gândești",
   description:
-    "Vorbește liber, iar convingerile care îți conduc reacțiile devin vizibile " +
-    "pe o hartă care crește în timp. Apoi lucrezi la ele, cu exerciții concrete.",
+    "Douăsprezece lecții ghidate sau conversație liberă: convingerile care îți " +
+    "conduc reacțiile devin vizibile pe o hartă care crește în timp. Le confirmi, " +
+    "apoi lucrezi la ele, cu o convingere nouă și exerciții pe care le bifezi.",
   locale: "ro_RO",
   email: "contact@tiparementale.ro",
 } as const;
 
 export const NAV = [
   { href: "/cum-functioneaza", label: "Cum funcționează" },
+  { href: "/program", label: "Program" },
   { href: "/articole", label: "Articole" },
   { href: "/pachete", label: "Pachete" },
   { href: "/intrebari", label: "Întrebări" },
@@ -31,6 +33,7 @@ export const FOOTER_LINKS = [
     title: "Produs",
     links: [
       { href: "/cum-functioneaza", label: "Cum funcționează" },
+      { href: "/program", label: "Programul: 12 lecții" },
       { href: "/pachete", label: "Pachete și prețuri" },
       { href: "/intrebari", label: "Întrebări frecvente" },
     ],

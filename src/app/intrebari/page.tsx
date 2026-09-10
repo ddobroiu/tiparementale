@@ -8,8 +8,8 @@ import { SITE, canonical } from "@/lib/site";
 export const metadata: Metadata = {
   title: "Întrebări frecvente",
   description:
-    "Ce este Tipare Mentale, cum funcționează, cât costă, ce se întâmplă cu " +
-    "datele tale și de ce nu este terapie.",
+    "Ce este Tipare Mentale, cum funcționează cele 12 lecții, cât costă, ce se " +
+    "întâmplă cu datele tale și de ce nu este terapie.",
   alternates: { canonical: canonical("/intrebari") },
 };
 
@@ -41,10 +41,27 @@ const FAQ = [
       "cuvintele tale, iar ea nu se mai propune.",
   },
   {
+    q: "Ce sunt lecțiile?",
+    a:
+      "Conversații ghidate de cinci-șase pași, pe o temă care formează convingeri: " +
+      "casa în care ai crescut, mama, tata, ce se întâmpla când greșeai, rușinea, " +
+      "banii, munca, relațiile, rolul de părinte. Sunt douăsprezece, în cinci module, " +
+      "construite pe terapia schemelor. Întrebările nu se citesc de pe listă: se " +
+      "scriu în conversație, din ce ai spus înainte.",
+  },
+  {
+    q: "Trebuie să fac lecțiile în ordine?",
+    a:
+      "Nu. Ordinea din program e o recomandare — de la rădăcini spre ce faci azi — " +
+      "nu o condiție. Orice lecție se poate începe oricând, cu o ședință. Poți " +
+      "vorbi și liber, fără temă, tot cu o ședință. O lecție lăsată la jumătate se " +
+      "reia de unde a rămas, fără să plătești altă ședință.",
+  },
+  {
     q: "Cât costă?",
     a:
-      "Prima ședință este gratuită, împreună cu predicțiile — ca să vezi ce " +
-      "cumperi. După ea, lucrezi pe programe: „Un tipar” (4 ședințe și 2 " +
+      "Prima ședință este gratuită — orice lecție sau o conversație liberă — ca " +
+      "să vezi ce cumperi. După ea, lucrezi pe programe: „Un tipar” (4 ședințe și 2 " +
       "transformări, 149 lei), „Harta completă” (12 ședințe, 6 transformări, " +
       "349 lei) sau „Însoțire 3 luni” (24 ședințe, 12 transformări, 599 lei). " +
       "Programele nu expiră, nu există abonament și nu se reînnoiește nimic automat.",
@@ -108,7 +125,9 @@ export default function IntrebariPage() {
         <dl className="mt-12 space-y-8">
           {FAQ.map((item) => (
             <div key={item.q} className="border-t border-ink-line pt-8">
-              <dt className="font-serif text-xl leading-snug text-paper">{item.q}</dt>
+              <dt className="font-serif text-xl leading-snug text-paper">
+                {item.q}
+              </dt>
               <dd className="mt-3 leading-relaxed text-paper-dim">{item.a}</dd>
             </div>
           ))}
@@ -118,7 +137,10 @@ export default function IntrebariPage() {
           <h2 className="font-serif text-2xl">Altă întrebare?</h2>
           <p className="mt-3 leading-relaxed text-paper-dim">
             Scrie-ne la{" "}
-            <a href={`mailto:${SITE.email}`} className="text-paper hover:underline">
+            <a
+              href={`mailto:${SITE.email}`}
+              className="text-paper hover:underline"
+            >
               {SITE.email}
             </a>
             . Răspundem.

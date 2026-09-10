@@ -86,6 +86,24 @@ export default function CumFunctioneazaPage() {
         </div>
 
         <section className="mt-16 border-t border-ink-line pt-10">
+          <h2 className="font-serif text-2xl leading-snug">
+            Cele douăsprezece lecții
+          </h2>
+          <p className="mt-4 leading-relaxed text-paper-dim">
+            Identificarea se face pe lecții: conversații ghidate de cinci-șase
+            pași, în cinci module — rădăcini, sinele, relațiile, bani și muncă,
+            ca părinte. Le faci în orice ordine, sau vorbești liber. O lecție
+            costă o ședință.
+          </p>
+          <Link
+            href="/program"
+            className="mt-4 inline-block text-sm text-paper-dim underline underline-offset-4 hover:text-paper"
+          >
+            Vezi programul complet →
+          </Link>
+        </section>
+
+        <section className="mt-16 border-t border-ink-line pt-10">
           <h2 className="font-serif text-2xl leading-snug">Ce nu face</h2>
           <ul className="mt-5 space-y-3 text-paper-dim">
             <li>Nu pune diagnostic și nu tratează nimic.</li>

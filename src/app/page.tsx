@@ -17,8 +17,11 @@ export const metadata: Metadata = {
     "harta mentala",
     "auto-cunoastere",
     "dezvoltare personala",
+    "terapia schemelor",
+    "lectii ghidate",
     "perfectionism",
     "convingeri despre bani",
+    "reprogramare mentala",
   ],
   alternates: { canonical: canonical("/") },
 };

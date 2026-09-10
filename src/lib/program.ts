@@ -74,6 +74,41 @@ export function lessonNumber(guideId: string): number | null {
 /** Orice ghid care nu e în module apare totuși, la final — nimic nu se pierde. */
 export const UNLISTED_GUIDES = GUIDES.filter((g) => !NUMBER_BY_GUIDE.has(g.id));
 
+/**
+ * Ce lecție continuă fiecare articol. Articolul explică tiparul la modul
+ * general; lecția îl caută în viața omului. Linkul dintre ele duce cititorul
+ * de la înțeles la lucrat — și motoarele de căutare, de la o pagină la alta.
+ */
+const ARTICLE_LESSON: Record<string, string> = {
+  "convingeri-limitative": "casa-in-care-ai-crescut",
+  "ce-mostenim-de-la-parinti": "casa-in-care-ai-crescut",
+  perfectionism: "cand-greseai",
+  amanarea: "cand-greseai",
+  "vocea-critica": "cand-greseai",
+  "nu-sunt-suficient": "rusinea",
+  "nevoia-de-control": "siguranta",
+  "tipare-care-se-repeta": "apropiere-si-retragere",
+  "sa-spui-nu": "apropiere-si-retragere",
+  "convingeri-despre-bani": "banii-in-copilarie",
+  "sindromul-impostorului": "munca-si-valoarea",
+  "comparatia-cu-ceilalti": "munca-si-valoarea",
+  "burnout-si-convingeri": "munca-si-valoarea",
+  "tiparul-care-tine-firma-pe-loc": "tiparul-care-tine-firma-pe-loc",
+  "convingeri-si-copiii-nostri": "ca-parinte",
+  "jurnal-de-convingeri": "emotiile-acasa",
+};
+
+export function articleLesson(slug: string): (typeof LESSONS)[number] | null {
+  const guideId = ARTICLE_LESSON[slug];
+  return guideId ? (LESSONS.find((l) => l.guide.id === guideId) ?? null) : null;
+}
+
+export function lessonArticles(guideId: string): string[] {
+  return Object.entries(ARTICLE_LESSON)
+    .filter(([, g]) => g === guideId)
+    .map(([slug]) => slug);
+}
+
 /** Cât durează o lecție, cu aproximație: trei minute de pas. */
 export function lessonMinutes(guide: Guide): number {
   return guide.steps.length * 3;

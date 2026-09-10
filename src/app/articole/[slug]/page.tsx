@@ -6,6 +6,7 @@ import { ArticleBody } from "@/components/ArticleBody";
 import { SiteFooter } from "@/components/SiteFooter";
 import { SiteHeader } from "@/components/SiteHeader";
 import { ARTICLES, getArticle, sortedArticles } from "@/lib/articles";
+import { articleLesson } from "@/lib/program";
 import { SITE, canonical } from "@/lib/site";
 
 /** Toate articolele sunt cunoscute la build: se pot genera static. */
@@ -54,7 +55,9 @@ function formatDate(iso: string): string {
   });
 }
 
-export default async function ArticolPage(props: PageProps<"/articole/[slug]">) {
+export default async function ArticolPage(
+  props: PageProps<"/articole/[slug]">,
+) {
   const { slug } = await props.params;
   const article = getArticle(slug);
 
@@ -66,17 +69,45 @@ export default async function ArticolPage(props: PageProps<"/articole/[slug]">) 
 
   // Date structurate pentru motoarele de căutare: fără ele, articolul apare ca
   // pagină oarecare, nu ca text cu autor și dată.
+  const lesson = articleLesson(article.slug);
   const jsonLd = {
     "@context": "https://schema.org",
-    "@type": "Article",
-    headline: article.metaTitle,
-    description: article.description,
-    datePublished: article.published,
-    dateModified: article.updated,
-    inLanguage: "ro-RO",
-    mainEntityOfPage: canonical(`/articole/${article.slug}`),
-    author: { "@type": "Organization", name: SITE.name, url: SITE.url },
-    publisher: { "@type": "Organization", name: SITE.name, url: SITE.url },
+    "@graph": [
+      {
+        "@type": "Article",
+        headline: article.metaTitle,
+        description: article.description,
+        datePublished: article.published,
+        dateModified: article.updated,
+        inLanguage: "ro-RO",
+        mainEntityOfPage: canonical(`/articole/${article.slug}`),
+        author: { "@type": "Organization", name: SITE.name, url: SITE.url },
+        publisher: { "@id": `${SITE.url}#organization` },
+        keywords: article.keywords.join(", "),
+        wordCount: article.body.reduce(
+          (n, b) => n + ("text" in b ? String(b.text).split(/\s+/).length : 0),
+          0,
+        ),
+      },
+      {
+        "@type": "BreadcrumbList",
+        itemListElement: [
+          { "@type": "ListItem", position: 1, name: "Acasă", item: SITE.url },
+          {
+            "@type": "ListItem",
+            position: 2,
+            name: "Articole",
+            item: canonical("/articole"),
+          },
+          {
+            "@type": "ListItem",
+            position: 3,
+            name: article.title,
+            item: canonical(`/articole/${article.slug}`),
+          },
+        ],
+      },
+    ],
   };
 
   return (
@@ -89,13 +120,17 @@ export default async function ArticolPage(props: PageProps<"/articole/[slug]">) 
       />
 
       <main className="mx-auto max-w-3xl px-6 py-12 sm:py-16">
-        <Link href="/articole" className="text-sm text-paper-faint hover:text-paper-dim">
+        <Link
+          href="/articole"
+          className="text-sm text-paper-faint hover:text-paper-dim"
+        >
           ← Toate articolele
         </Link>
 
         <article className="mt-8">
           <p className="text-xs text-paper-faint">
-            {formatDate(article.published)} · {article.readingMinutes} min de citit
+            {formatDate(article.published)} · {article.readingMinutes} min de
+            citit
           </p>
 
           <h1 className="mt-3 font-serif text-4xl leading-[1.15] text-balance sm:text-5xl">
@@ -109,14 +144,37 @@ export default async function ArticolPage(props: PageProps<"/articole/[slug]">) 
           <ArticleBody body={article.body} />
         </article>
 
-        <aside className="mt-16 rounded-2xl border border-ink-line p-8">
+        {lesson && (
+          <aside className="mt-12 rounded-2xl border border-[color:var(--value)]/30 p-6">
+            <p className="text-[11px] tracking-[0.16em] text-paper-faint uppercase">
+              Lecția potrivită
+            </p>
+            <Link
+              href={`/program/${lesson.guide.id}`}
+              className="mt-2 block font-serif text-xl text-paper hover:underline"
+            >
+              Lecția {lesson.number} · {lesson.guide.title}
+            </Link>
+            <p className="mt-2 text-sm leading-relaxed text-paper-dim">
+              {lesson.guide.summary}
+            </p>
+            <p className="mt-2 text-xs text-paper-faint">
+              {lesson.guide.steps.length} pași · din{" "}
+              <Link href="/program" className="underline underline-offset-4">
+                programul de 12 lecții
+              </Link>
+            </p>
+          </aside>
+        )}
+
+        <aside className="mt-8 rounded-2xl border border-ink-line p-8">
           <h2 className="font-serif text-2xl leading-snug">
             Tiparele tale, nu tiparele în general
           </h2>
           <p className="mt-3 max-w-lg leading-relaxed text-paper-dim">
-            Articolul de mai sus e despre oameni în general. {SITE.name} lucrează
-            cu ce spui tu: convingerile ies din propriile tale cuvinte, cu citatul
-            din care au fost deduse. Prima ședință e gratuită.
+            Articolul de mai sus e despre oameni în general. {SITE.name}{" "}
+            lucrează cu ce spui tu: convingerile ies din propriile tale cuvinte,
+            cu citatul din care au fost deduse. Prima ședință e gratuită.
           </p>
           <Link
             href="/intra"
@@ -134,7 +192,10 @@ export default async function ArticolPage(props: PageProps<"/articole/[slug]">) 
             <ul className="mt-5 space-y-5">
               {others.map((other) => (
                 <li key={other.slug} className="border-t border-ink-line pt-5">
-                  <Link href={`/articole/${other.slug}`} className="group block">
+                  <Link
+                    href={`/articole/${other.slug}`}
+                    className="group block"
+                  >
                     <h3 className="font-serif text-xl text-paper transition-colors group-hover:text-[color:var(--belief)]">
                       {other.title}
                     </h3>
