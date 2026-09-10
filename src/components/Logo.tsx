@@ -1,33 +1,24 @@
-import Image from "next/image";
+import { BrandMark } from "./BrandMark";
 
 /**
- * Marca produsului: ecusonul rotund — sculptorul care își cioplește propria
- * minte — cu numele alături. Ecusonul singur, la 36 de pixeli, nu-și mai
- * poate arăta textul, așa că numele stă lângă el, cu serife, ca pe site.
+ * Marca produsului în antet și subsol: simbolul — creierul cu dalta — și
+ * numele alături. Ecusonul pictat rămâne pentru locurile unde e loc să se
+ * vadă (pagina principală, imaginea de partajare); la 40 de pixeli nu arată
+ * nimic, de aceea aici e semnul simplu.
  */
 
 interface Props {
   className?: string;
-  /** Doar ecusonul, fără text. Pentru spații strâmte. */
+  /** Doar simbolul, fără text. Pentru spații strâmte. */
   markOnly?: boolean;
   /** `lg` pentru subsol și paginile de cont, unde e loc. */
   size?: "sm" | "lg";
 }
 
 export function Logo({ className = "", markOnly = false, size = "sm" }: Props) {
-  const px = size === "lg" ? 56 : 40;
-
   return (
-    <span className={`inline-flex items-center gap-3 ${className}`}>
-      <Image
-        src="/logo-192.png"
-        alt=""
-        width={px}
-        height={px}
-        priority={size === "sm"}
-        className="shrink-0 rounded-full"
-        style={{ width: px, height: px }}
-      />
+    <span className={`inline-flex items-center gap-2.5 ${className}`}>
+      <BrandMark size={size === "lg" ? 48 : 34} />
 
       {!markOnly && (
         <span

@@ -22,11 +22,17 @@ const BELIEF = "#c8b6ff";
 const VALUE = "#a0e7c4";
 
 import { readFileSync } from "node:fs";
+import { brandMarkSvg } from "../src/lib/brand-mark.ts";
 const LOGO = `data:image/png;base64,${readFileSync("public/logo-512.png").toString("base64")}`;
 
-/** Ecusonul mărcii, din fișier. */
-function mark(size) {
+/** Ecusonul pictat, pentru locurile unde e mare. */
+function badge(size) {
   return `<img src="${LOGO}" width="${size}" height="${size}" style="border-radius:999px;display:block">`;
+}
+
+/** Simbolul — creierul cu dalta — lângă nume. */
+function mark(size) {
+  return brandMarkSvg(size);
 }
 
 /** Vechiul semn vectorial, păstrat pentru comparație; nu se mai folosește. */
@@ -99,7 +105,7 @@ const IMAGES = [
     html: page(
       512,
       512,
-      `<div style="width:512px;height:512px;display:flex;align-items:center;justify-content:center;background:${INK}">${mark(500)}</div>`,
+      `<div style="width:512px;height:512px;display:flex;align-items:center;justify-content:center;background:${INK}">${badge(500)}</div>`,
     ),
   },
   {
@@ -111,7 +117,7 @@ const IMAGES = [
       624,
       `<div style="position:relative;width:1640px;height:624px;overflow:hidden">
         <div style="position:absolute;right:0;top:0;opacity:.9">${miniMap(820, 624, 7)}</div>
-        <div style="position:absolute;left:150px;top:112px">${mark(400)}</div>
+        <div style="position:absolute;left:150px;top:112px">${badge(400)}</div>
         <div style="position:absolute;left:600px;top:0;width:640px;height:624px;display:flex;flex-direction:column;justify-content:center;gap:26px;padding:0 20px">
           <div class="brand">${mark(48)}<span>Tipare <b>Mentale</b></span></div>
           <div class="serif" style="font-size:56px;line-height:1.1">O hartă vie a felului în care gândești.</div>

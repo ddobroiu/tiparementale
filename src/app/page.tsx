@@ -1,10 +1,10 @@
 import type { Metadata } from "next";
-import Image from "next/image";
 import Link from "next/link";
 
 import { LandingSteps } from "@/components/LandingSteps";
 import { SiteFooter } from "@/components/SiteFooter";
 import { SiteHeader } from "@/components/SiteHeader";
+import { SpinningBadge } from "@/components/SpinningBadge";
 import { sortedArticles } from "@/lib/articles";
 import { SITE, canonical } from "@/lib/site";
 
@@ -60,16 +60,12 @@ export default function Home() {
             </p>
           </div>
 
-          {/* Ecusonul, în spațiul din dreapta al primului ecran. Pe telefon nu
-              e loc: acolo rămâne în antet. */}
-          <Image
-            src="/logo-512.png"
-            alt="Tipare Mentale — reprogramează-ți viața"
-            width={360}
-            height={360}
-            priority
-            className="hidden shrink-0 rounded-full shadow-[0_0_80px_rgba(216,179,106,0.18)] lg:block"
-          />
+          {/* Ecusonul, în spațiul din dreapta al primului ecran: o monedă care se
+              rotește și poate fi învârtită. Pe telefon nu e loc; acolo rămâne
+              simbolul din antet. */}
+          <div className="hidden lg:block">
+            <SpinningBadge size={460} />
+          </div>
         </section>
 
         <LandingSteps />
