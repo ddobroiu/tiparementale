@@ -103,6 +103,11 @@ try {
   await page.getByRole("button", { name: /Copiii mei/ }).first().click();
   await page.getByText("Te regăsești în asta?").waitFor({ timeout: 8000 }).catch(() => {});
   await shot("06-nod-neconfirmat");
+
+  // Și pe telefon, aceeași hartă.
+  await page.setViewportSize({ width: 390, height: 664 });
+  await page.goto(`${BASE}/harta`);
+  await shot("07-mobil", 1200);
 } finally {
   await browser.close();
   await db.query("delete from tipare_mentale.users where email = $1", [EMAIL]);

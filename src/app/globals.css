@@ -98,3 +98,36 @@ body {
   stroke-dasharray: 3 9;
   animation: synapse 1.6s linear infinite;
 }
+
+/* Creierul din spatele hărții: respiră, sinapsele pâlpâie, impulsurile circulă. */
+@keyframes brain-breathe {
+  0%, 100% { stroke-opacity: 0.22; }
+  50% { stroke-opacity: 0.42; }
+}
+.brain-breathe {
+  animation: brain-breathe 6s ease-in-out infinite;
+}
+
+@keyframes brain-synapse {
+  0%, 100% { opacity: 0.12; }
+  50% { opacity: 0.9; }
+}
+.brain-synapse {
+  opacity: 0.12;
+  animation: brain-synapse 4.5s ease-in-out infinite;
+}
+
+@keyframes brain-impulse {
+  to { stroke-dashoffset: -1400; }
+}
+.brain-impulse {
+  stroke-dasharray: 26 1374;
+  animation: brain-impulse 7s linear infinite;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .brain-breathe, .brain-synapse, .brain-impulse, .work-ring, .edge-pulse {
+    animation: none;
+  }
+  .brain-synapse { opacity: 0.4; }
+}
