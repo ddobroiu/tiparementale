@@ -43,6 +43,16 @@ html {
   animation: work-dash 3s linear infinite;
 }
 
+/* iOS face zoom pe pagină la orice câmp cu text sub 16px. Pe telefon, toate
+   câmpurile au 16px, indiferent de clasa lor; layout-ul nu mai sare. */
+@media (max-width: 639px) {
+  input,
+  textarea,
+  select {
+    font-size: 16px;
+  }
+}
+
 body {
   background: var(--ink);
   color: var(--paper);

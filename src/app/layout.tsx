@@ -32,6 +32,9 @@ export const viewport: Viewport = {
   width: "device-width",
   initialScale: 1,
   viewportFit: "cover",
+  // Android: tastatura micșorează fereastra paginii, nu o acoperă. Așa
+  // `dvh` și foile fixate jos rămân deasupra ei fără cod în plus.
+  interactiveWidget: "resizes-content",
   themeColor: "#0a0a0f",
 };
 

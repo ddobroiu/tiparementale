@@ -2,6 +2,8 @@
 
 import { useEffect, useRef, useState } from "react";
 
+import { useVisualViewport } from "@/lib/use-visual-viewport";
+
 export interface ChatMessage {
   role: "user" | "assistant";
   content: string;
@@ -46,13 +48,23 @@ export function ChatPanel({
 }: Props) {
   const [draft, setDraft] = useState("");
   const scrollRef = useRef<HTMLDivElement>(null);
+  const viewport = useVisualViewport();
+  const keyboard = viewport?.keyboardOpen ?? false;
 
   useEffect(() => {
     scrollRef.current?.scrollTo({
       top: scrollRef.current.scrollHeight,
       behavior: "smooth",
     });
-  }, [messages, pending]);
+  }, [messages, pending, keyboard]);
+
+  // Pe telefon, cu tastatura deschisă, foaia ia exact fereastra rămasă
+  // vizibilă: câmpul de scris stă deasupra tastaturii, nu sub ea. Harta e
+  // oricum acoperită de tastatură în acel moment.
+  const sheetStyle =
+    viewport && keyboard
+      ? { top: viewport.offsetTop, height: viewport.height, bottom: "auto" }
+      : undefined;
 
   function submit(event: React.FormEvent) {
     event.preventDefault();
@@ -63,7 +75,10 @@ export function ChatPanel({
   }
 
   return (
-    <aside className="animate-fade-up fixed inset-x-0 bottom-0 z-20 flex h-[56dvh] flex-col border-t border-ink-line bg-ink-soft/95 backdrop-blur-md sm:static sm:h-full sm:w-full sm:border-t-0 sm:bg-transparent sm:backdrop-blur-none">
+    <aside
+      style={sheetStyle}
+      className="animate-fade-up fixed inset-x-0 bottom-0 z-20 flex h-[56dvh] flex-col border-t border-ink-line bg-ink-soft/95 backdrop-blur-md sm:static sm:h-full sm:w-full sm:border-t-0 sm:bg-transparent sm:backdrop-blur-none"
+    >
       <div className="flex items-center justify-between border-b border-ink-line px-5 py-3">
         <span className="min-w-0 truncate text-xs tracking-[0.16em] text-paper-faint uppercase">
           {title ?? "Conversație liberă"}
@@ -209,7 +224,8 @@ export function ChatPanel({
             onChange={(e) => setDraft(e.target.value)}
             placeholder="Scrie aici…"
             autoFocus
-            className="min-w-0 flex-1 rounded-xl bg-ink px-4 py-2.5 text-sm text-paper outline-none placeholder:text-paper-faint"
+            enterKeyHint="send"
+            className="min-w-0 flex-1 rounded-xl bg-ink px-4 py-2.5 text-base text-paper outline-none placeholder:text-paper-faint sm:text-sm"
           />
           <button
             type="submit"
