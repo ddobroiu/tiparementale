@@ -32,13 +32,14 @@ export default async function PachetePage() {
 
       <section className="mx-auto max-w-5xl px-6 pt-10 pb-20 sm:pt-16">
         <h1 className="font-serif text-3xl leading-tight text-balance sm:text-5xl">
-          Plătești ședințele, nu luna.
+          Un program pe o convingere, nu minute de chat.
         </h1>
         <p className="mt-5 max-w-xl leading-relaxed text-paper-dim">
-          Nimeni nu lucrează la convingerile lui uniform, câte patru ședințe pe
-          lună. Se lucrează în valuri. Așa că ședințele se cumpără o dată și{" "}
-          <span className="text-paper">nu expiră niciodată</span> — le folosești
-          când ai chef și când ai ce spune.
+          Ghiduri construite pe terapia schemelor, predicții pe care le confirmi
+          sau le respingi, o convingere nouă cu exerciții urmărite în timp, și
+          citirea hărții. Programele se cumpără o dată și{" "}
+          <span className="text-paper">nu expiră niciodată</span> — nimeni nu
+          lucrează la sine uniform, câte patru ședințe pe lună.
         </p>
 
         {wallet && (
@@ -77,9 +78,16 @@ export default async function PachetePage() {
               </p>
 
               <ul className="mt-5 flex-1 space-y-2 text-sm text-paper-dim">
-                <li>{pack.sessions} ședințe de conversație</li>
-                <li>{pack.transformations} lucrări de transformare</li>
-                <li>Nu expiră</li>
+                <li>
+                  <span className="text-paper">{pack.sessions} ședințe</span> ghidate pe
+                  teme — copilăria, părinții, banii, relațiile, munca
+                </li>
+                <li>
+                  <span className="text-paper">{pack.transformations} transformări</span>:
+                  convingere nouă, exerciții cu urmărire, carte, film
+                </li>
+                <li>Predicții „te regăsești?” și citirea hărții, nelimitate</li>
+                <li>Harta rămâne a ta. Nu expiră nimic.</li>
               </ul>
 
               <BuyButton pack={pack.code} highlighted={i === 1} loggedIn={Boolean(user)} />
@@ -88,9 +96,11 @@ export default async function PachetePage() {
         </div>
 
         <p className="mt-8 max-w-xl text-sm leading-relaxed text-paper-faint">
-          O ședință înseamnă până la 25 de replici, plus tot ce se adaugă în
-          hartă din ele. O lucrare de transformare îți dă o convingere nouă
-          pentru un tipar confirmat, cu exerciții, exemple, o carte și un film.
+          O ședință înseamnă până la 25 de replici pe o temă, plus tot ce se
+          adaugă în hartă din ele. O transformare îți dă o convingere nouă pentru
+          un tipar confirmat, cu exerciții pe care le faci și le notezi în timp,
+          exemple concrete, o carte și un film. Prima ședință și predicțiile sunt
+          gratuite la crearea contului.
         </p>
       </section>
     </main>

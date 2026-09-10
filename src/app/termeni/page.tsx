@@ -42,7 +42,7 @@ const SECTIONS = [
       "Ședințele se achiziționează în pachete, cu plată unică. Nu există abonament și nu se face nicio reînnoire automată.",
       "O ședință înseamnă o conversație de până la 25 de replici, împreună cu prelucrarea acesteia în hartă. O lucrare de transformare înseamnă generarea unei convingeri alternative pentru un element confirmat, cu exercițiile și recomandările aferente.",
       "Ședințele cumpărate nu expiră.",
-      "Fiecare cont nou primește gratuit o ședință și o lucrare de transformare.",
+      "Fiecare cont nou primește gratuit o ședință de conversație și predicțiile de comportament aferente hărții.",
     ],
   },
   {

@@ -16,6 +16,7 @@ import { MapToolbar } from "./MapToolbar";
 import { PredictionPanel } from "./PredictionPanel";
 import { SimilarityPrompt, type SimilarPair } from "./SimilarityPrompt";
 import { MapReading } from "./MapReading";
+import { AddNodeForm } from "./AddNodeForm";
 import type { Topic } from "@/lib/topics";
 
 export interface AccountSummary {
@@ -338,12 +339,22 @@ export function MapView({
         {/* Predicțiile stau lângă filtre: amândouă sunt lucruri pe care le
             ceri hărții, nu lucruri pe care ți le spune ea singură. */}
         <div className="absolute top-16 right-4 z-20 flex flex-col items-end gap-2 sm:top-20 sm:right-6">
-          {nodes.length > 0 && (
-            <div className="flex gap-2">
-              <MapReading onOpenNode={setSelectedId} />
-              <PredictionPanel onAnswered={reload} />
-            </div>
-          )}
+          <div className="flex flex-wrap justify-end gap-2">
+            {/* „Știu deja ceva" e disponibil și pe harta goală: cine își cunoaște
+                un tipar nu trebuie să treacă printr-o conversație ca să-l pună. */}
+            <AddNodeForm
+              onAdded={async (id) => {
+                await reload();
+                setSelectedId(id);
+              }}
+            />
+            {nodes.length > 0 && (
+              <>
+                <MapReading onOpenNode={setSelectedId} />
+                <PredictionPanel onAnswered={reload} />
+              </>
+            )}
+          </div>
           {initialSimilarPairs.length > 0 && (
             <SimilarityPrompt pairs={initialSimilarPairs} onResolved={reload} />
           )}

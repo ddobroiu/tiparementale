@@ -43,9 +43,11 @@ const FAQ = [
   {
     q: "Cât costă?",
     a:
-      "Prima ședință este gratuită, ca să vezi ce cumperi. După ea, ședințele se " +
-      "cumpără în pachete, de la 35 de lei. Pachetele nu expiră: le folosești " +
-      "când vrei. Nu există abonament și nu se reînnoiește nimic automat.",
+      "Prima ședință este gratuită, împreună cu predicțiile — ca să vezi ce " +
+      "cumperi. După ea, lucrezi pe programe: „Un tipar” (4 ședințe și 2 " +
+      "transformări, 149 lei), „Harta completă” (12 ședințe, 6 transformări, " +
+      "349 lei) sau „Însoțire 3 luni” (24 ședințe, 12 transformări, 599 lei). " +
+      "Programele nu expiră, nu există abonament și nu se reînnoiește nimic automat.",
   },
   {
     q: "Cât durează o ședință?",
