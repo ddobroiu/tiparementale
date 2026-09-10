@@ -21,8 +21,16 @@ const FAINT = "#6a6875";
 const BELIEF = "#c8b6ff";
 const VALUE = "#a0e7c4";
 
-/** Semnul mărcii, identic cu componenta Logo. */
-function mark(size, opacity = 1) {
+import { readFileSync } from "node:fs";
+const LOGO = `data:image/png;base64,${readFileSync("public/logo-512.png").toString("base64")}`;
+
+/** Ecusonul mărcii, din fișier. */
+function mark(size) {
+  return `<img src="${LOGO}" width="${size}" height="${size}" style="border-radius:999px;display:block">`;
+}
+
+/** Vechiul semn vectorial, păstrat pentru comparație; nu se mai folosește. */
+function oldMark(size, opacity = 1) {
   const nodes = [
     [11, 9, 2.6, 0.5],
     [21, 12.5, 1.9, 0.5],
@@ -91,7 +99,7 @@ const IMAGES = [
     html: page(
       512,
       512,
-      `<div style="width:512px;height:512px;display:flex;align-items:center;justify-content:center;background:radial-gradient(circle at 50% 45%, ${SOFT} 0%, ${INK} 70%)">${mark(340)}</div>`,
+      `<div style="width:512px;height:512px;display:flex;align-items:center;justify-content:center;background:${INK}">${mark(500)}</div>`,
     ),
   },
   {
@@ -103,7 +111,8 @@ const IMAGES = [
       624,
       `<div style="position:relative;width:1640px;height:624px;overflow:hidden">
         <div style="position:absolute;right:0;top:0;opacity:.9">${miniMap(820, 624, 7)}</div>
-        <div style="position:absolute;left:500px;top:0;width:640px;height:624px;display:flex;flex-direction:column;justify-content:center;gap:26px;padding:0 20px">
+        <div style="position:absolute;left:150px;top:112px">${mark(400)}</div>
+        <div style="position:absolute;left:600px;top:0;width:640px;height:624px;display:flex;flex-direction:column;justify-content:center;gap:26px;padding:0 20px">
           <div class="brand">${mark(48)}<span>Tipare <b>Mentale</b></span></div>
           <div class="serif" style="font-size:56px;line-height:1.1">O hartă vie a felului în care gândești.</div>
           <div class="dim" style="font-size:24px;line-height:1.5">Convingerile care îți conduc reacțiile, vizibile și schimbabile. Prima ședință e gratuită.</div>
