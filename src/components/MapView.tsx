@@ -29,6 +29,8 @@ interface Props {
   initialEdges: Edge[];
   initialAccount: AccountSummary;
   initialSimilarPairs: SimilarPair[];
+  /** Omul s-a întors de la plată: confirmăm, ca să nu se întrebe dacă a mers. */
+  justPaid?: boolean;
 }
 
 const EMPTY_DIFF: MapDiff = { created: [], strengthened: [], connected: [] };
@@ -42,11 +44,16 @@ export function MapView({
   initialEdges,
   initialAccount,
   initialSimilarPairs,
+  justPaid = false,
 }: Props) {
+  const [paidNotice, setPaidNotice] = useState(justPaid);
   const [nodes, setNodes] = useState(initialNodes);
   const [edges, setEdges] = useState(initialEdges);
   const [selectedId, setSelectedId] = useState<string | null>(null);
-  const [chatOpen, setChatOpen] = useState(initialNodes.length === 0);
+  // Închis la început, chiar și pe harta goală: omul nou trebuie să vadă întâi
+  // „pe ce vrei să lucrezi", nu un cursor gol. Un chat deschis peste selectorul
+  // de teme îl ascundea exact utilizatorilor pentru care a fost făcut.
+  const [chatOpen, setChatOpen] = useState(false);
   const [messages, setMessages] = useState<ChatMessage[]>([]);
   const [pending, setPending] = useState(false);
   const [extracting, setExtracting] = useState(false);
@@ -243,6 +250,12 @@ export function MapView({
             <Logo />
           </Link>
           <div className="flex items-center gap-3">
+            <Link
+              href="/setari"
+              className="hidden text-xs text-paper-faint transition-colors hover:text-paper-dim sm:inline"
+            >
+              Contul
+            </Link>
             {/* Fără ședințe, cumpărarea devine acțiunea principală din antet. */}
             {account.sessionsLeft === 0 ? (
               <Link
@@ -284,6 +297,24 @@ export function MapView({
           query={query}
           onQuery={setQuery}
         />
+
+        {paidNotice && (
+          <div className="animate-fade-up absolute top-20 left-1/2 z-20 w-[min(92vw,24rem)] -translate-x-1/2 rounded-xl border border-[color:var(--value)]/40 bg-ink-soft/95 p-4 backdrop-blur-md">
+            <div className="flex items-start justify-between gap-4">
+              <p className="text-sm text-paper">
+                Plata a reușit. Ședințele sunt în cont — {account.sessionsLeft}{" "}
+                {account.sessionsLeft === 1 ? "disponibilă" : "disponibile"}.
+              </p>
+              <button
+                onClick={() => setPaidNotice(false)}
+                className="text-paper-faint hover:text-paper"
+                aria-label="Închide"
+              >
+                ✕
+              </button>
+            </div>
+          </div>
+        )}
 
         {/* Momentul în care harta arată ce s-a schimbat. */}
         {diff && (

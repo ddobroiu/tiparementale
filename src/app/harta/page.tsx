@@ -7,9 +7,14 @@ import { getWallet } from "@/lib/billing/entitlement";
 import { withUser } from "@/lib/db";
 import type { Edge, MindNode } from "@/lib/types";
 
-export default async function HartaPage() {
+export default async function HartaPage(props: PageProps<"/harta">) {
   const user = await getSessionUser();
   if (!user) redirect("/intra");
+
+  // Întoarcerea de la Stripe: confirmăm în hartă, ca omul să nu se întrebe
+  // dacă plata a mers. Creditarea propriu-zisă vine din webhook, nu de aici.
+  const search = await props.searchParams;
+  const justPaid = search.plata === "reusita";
 
   const data = await withUser(user.id, async (client) => {
     const { rows: nodes } = await client.query<MindNode>(
@@ -39,6 +44,7 @@ export default async function HartaPage() {
       initialNodes={data.nodes}
       initialEdges={data.edges}
       initialSimilarPairs={data.similarPairs as SimilarPair[]}
+      justPaid={justPaid}
       initialAccount={{
         sessionsLeft: data.wallet.sessionsLeft,
         transformationsLeft: data.wallet.transformationsLeft,
