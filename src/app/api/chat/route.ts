@@ -9,7 +9,12 @@ import {
   recordUsage,
   spendSession,
 } from "@/lib/billing/entitlement";
-import { REPLY_MODEL, runReply, sanitizeOptions } from "@/lib/conversation/reply";
+import {
+  REPLY_MODEL,
+  runReply,
+  sanitizeOptions,
+} from "@/lib/conversation/reply";
+import { getGuide } from "@/lib/guides";
 import { describeAiError } from "@/lib/ai-error";
 import { EXTRACTION_THRESHOLD } from "@/lib/models";
 import { withUser } from "@/lib/db";
@@ -19,9 +24,6 @@ const HISTORY_LIMIT = 12;
 
 /** Câte replici poate ține un pas de ghid înainte să treacă mai departe. */
 const MAX_TURNS_PER_STEP = 3;
-
-
-
 
 /**
  * Calea fierbinte: doar replica din conversație.
@@ -110,15 +112,19 @@ export async function POST(request: Request) {
       [user.id, conversationId, message, inputMode],
     );
 
-    await client.query("update conversations set turns = turns + 1 where id = $1", [
-      conversationId,
-    ]);
+    await client.query(
+      "update conversations set turns = turns + 1 where id = $1",
+      [conversationId],
+    );
 
     const { rows: nodes } = await client.query<MindNode>(
       "select * from nodes where archived_at is null order by created_at",
     );
 
-    const { rows: history } = await client.query<{ role: "user" | "assistant"; content: string }>(
+    const { rows: history } = await client.query<{
+      role: "user" | "assistant";
+      content: string;
+    }>(
       `select role, content from messages
         where conversation_id = $1 and id <> $2
         order by created_at desc
@@ -165,7 +171,6 @@ export async function POST(request: Request) {
     );
   }
 
-  const reply = result.ok ? result.reply.reply : result.reply;
   const safetyFlag = result.ok ? result.reply.safety_flag : result.safety;
   // Pasul avansează când modelul spune că și-a făcut treaba — sau, oricum, după
   // MAX_TURNS_PER_STEP replici. Lăsat singur, modelul sapă la nesfârșit într-un
@@ -175,11 +180,45 @@ export async function POST(request: Request) {
     onGuide &&
     result.ok &&
     (result.reply.advance_step || context.stepTurns + 1 >= MAX_TURNS_PER_STEP);
+  // Lecția s-a încheiat când s-a trecut de ultimul ei pas.
+  const guide = context.guideId ? getGuide(context.guideId) : null;
+  const guideComplete = Boolean(
+    guide && advance && context.stepIndex + 1 >= guide.steps.length,
+  );
+
   // Variantele care aparțin altui pas decât întrebarea pusă nu ajung la om.
   const cleaned = result.ok
-    ? sanitizeOptions(result.reply.options, context.guideId, context.stepIndex, advance)
+    ? sanitizeOptions(
+        result.reply.options,
+        context.guideId,
+        context.stepIndex,
+        advance,
+      )
     : [];
-  const options = cleaned.length > 0 ? cleaned : null;
+  let options: string[] | null = cleaned.length > 0 ? cleaned : null;
+
+  // Modelul a livrat, rar, o replică goală: o structură validă, fără text.
+  // Omului nu i se arată liniște. Pe ghid, întrebarea pasului următor e mereu
+  // la îndemână; altfel, o invitație să continue.
+  let reply = result.ok ? result.reply.reply.trim() : result.reply;
+  if (reply.length === 0) {
+    const nextStep =
+      guide && advance ? guide.steps[context.stepIndex + 1] : null;
+    if (nextStep) {
+      reply = nextStep.question;
+      options = nextStep.options ?? null;
+    } else if (guideComplete) {
+      reply =
+        "Asta a fost lecția. Ce mi-ai povestit se așază acum pe hartă — " +
+        "deschide-o ca să vezi ce a apărut și să confirmi ce e adevărat.";
+      options = null;
+    } else {
+      reply = "Spune-mi mai mult despre asta — ce s-a întâmplat mai exact?";
+    }
+    console.warn(
+      `[chat] replică goală de la model, înlocuită (conversația ${context.conversationId})`,
+    );
+  }
 
   const after = await withUser(user.id, async (client) => {
     // Variantele propuse se păstrează lângă replică: istoricul arată ce i s-a
@@ -187,7 +226,12 @@ export async function POST(request: Request) {
     await client.query(
       `insert into messages (user_id, conversation_id, role, content, options)
        values ($1, $2, 'assistant', $3, $4)`,
-      [user.id, context.conversationId, reply, options ? JSON.stringify(options) : null],
+      [
+        user.id,
+        context.conversationId,
+        reply,
+        options ? JSON.stringify(options) : null,
+      ],
     );
 
     if (advance) {
@@ -226,7 +270,11 @@ export async function POST(request: Request) {
     options,
     safetyFlag,
     domainInFocus: result.ok ? result.reply.domain_in_focus : null,
-    extractionDue: after >= EXTRACTION_THRESHOLD,
+    // Harta se actualizează la pragul obișnuit, dar și la fiecare pas încheiat
+    // al lecției (dacă are din ce) și, oricum, la sfârșitul ei.
+    extractionDue:
+      after >= EXTRACTION_THRESHOLD || (advance && after >= 3) || guideComplete,
+    guideComplete,
     turnsLeft: MAX_TURNS_PER_SESSION - context.turns,
   });
 }

@@ -20,6 +20,10 @@ interface Props {
   onClose: () => void;
   /** Lecția în curs, sau nimic pentru conversația liberă. */
   title?: string | null;
+  /** Lecția s-a încheiat: ce s-a schimbat pe hartă, și ce poate face omul. */
+  done?: { created: number; strengthened: number } | null;
+  /** Continuă conversația după încheiere, în aceeași ședință. */
+  onContinue?: () => void;
 }
 
 /**
@@ -37,12 +41,17 @@ export function ChatPanel({
   onSend,
   onClose,
   title = null,
+  done = null,
+  onContinue,
 }: Props) {
   const [draft, setDraft] = useState("");
   const scrollRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
-    scrollRef.current?.scrollTo({ top: scrollRef.current.scrollHeight, behavior: "smooth" });
+    scrollRef.current?.scrollTo({
+      top: scrollRef.current.scrollHeight,
+      behavior: "smooth",
+    });
   }, [messages, pending]);
 
   function submit(event: React.FormEvent) {
@@ -67,7 +76,10 @@ export function ChatPanel({
         </button>
       </div>
 
-      <div ref={scrollRef} className="flex-1 space-y-4 overflow-y-auto px-5 py-4">
+      <div
+        ref={scrollRef}
+        className="flex-1 space-y-4 overflow-y-auto px-5 py-4"
+      >
         {messages.length === 0 && (
           <p className="text-sm leading-relaxed text-paper-faint">
             Nu trebuie să fie ordonat sau important. Scrie cum îți vine.
@@ -125,9 +137,40 @@ export function ChatPanel({
         </p>
       )}
 
-      {limit ? (
+      {done && !limit ? (
+        <div className="border-t border-[color:var(--value)]/40 bg-[color:var(--value)]/5 p-4">
+          <p className="text-[11px] tracking-[0.16em] text-[color:var(--value)] uppercase">
+            Lecția s-a încheiat
+          </p>
+          <p className="mt-2 text-sm leading-relaxed text-paper">
+            {done.created + done.strengthened === 0
+              ? "Harta e la zi cu ce ai povestit."
+              : `Pe hartă ${done.created > 0 ? `au apărut ${done.created} ${done.created === 1 ? "element nou" : "elemente noi"}` : ""}${done.created > 0 && done.strengthened > 0 ? " și " : ""}${done.strengthened > 0 ? `s-au întărit ${done.strengthened}` : ""}.`}
+          </p>
+          <p className="mt-1 text-xs leading-relaxed text-paper-faint">
+            Pasul următor: deschide elementele și spune dacă am nimerit. Ce
+            confirmi poate fi lucrat.
+          </p>
+          <button
+            onClick={onClose}
+            className="mt-3 w-full rounded-xl bg-paper px-4 py-2.5 text-sm font-medium text-ink transition-opacity hover:opacity-90"
+          >
+            Vezi harta și confirmă
+          </button>
+          {onContinue && (
+            <button
+              onClick={onContinue}
+              className="mt-2 w-full rounded-xl px-4 py-2 text-sm text-paper-faint transition-colors hover:text-paper-dim"
+            >
+              Mai am ceva de spus — continui în aceeași ședință
+            </button>
+          )}
+        </div>
+      ) : limit ? (
         <div className="border-t border-ink-line p-4">
-          <p className="text-sm leading-relaxed text-paper-dim">{limit.reason}</p>
+          <p className="text-sm leading-relaxed text-paper-dim">
+            {limit.reason}
+          </p>
 
           {/* Când omul a rămas fără ședințe, acțiunea principală este să
               cumpere, nu să se întoarcă în hartă. Butonul plin merge acolo
@@ -157,25 +200,25 @@ export function ChatPanel({
           )}
         </div>
       ) : (
-      <form
-        onSubmit={submit}
-        className="flex gap-2 border-t border-ink-line p-3 pb-[calc(0.75rem+env(safe-area-inset-bottom))] sm:pb-3"
-      >
-        <input
-          value={draft}
-          onChange={(e) => setDraft(e.target.value)}
-          placeholder="Scrie aici…"
-          autoFocus
-          className="min-w-0 flex-1 rounded-xl bg-ink px-4 py-2.5 text-sm text-paper outline-none placeholder:text-paper-faint"
-        />
-        <button
-          type="submit"
-          disabled={pending || draft.trim().length === 0}
-          className="shrink-0 rounded-xl bg-paper px-5 py-2.5 text-sm font-medium text-ink transition-opacity hover:opacity-90 disabled:opacity-40"
+        <form
+          onSubmit={submit}
+          className="flex gap-2 border-t border-ink-line p-3 pb-[calc(0.75rem+env(safe-area-inset-bottom))] sm:pb-3"
         >
-          Trimite
-        </button>
-      </form>
+          <input
+            value={draft}
+            onChange={(e) => setDraft(e.target.value)}
+            placeholder="Scrie aici…"
+            autoFocus
+            className="min-w-0 flex-1 rounded-xl bg-ink px-4 py-2.5 text-sm text-paper outline-none placeholder:text-paper-faint"
+          />
+          <button
+            type="submit"
+            disabled={pending || draft.trim().length === 0}
+            className="shrink-0 rounded-xl bg-paper px-5 py-2.5 text-sm font-medium text-ink transition-opacity hover:opacity-90 disabled:opacity-40"
+          >
+            Trimite
+          </button>
+        </form>
       )}
     </aside>
   );

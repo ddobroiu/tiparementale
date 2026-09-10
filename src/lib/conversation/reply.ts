@@ -112,14 +112,18 @@ function compactMap(nodes: MindNode[]): string {
 
   const grouped = new Map<LifeDomain, string[]>();
   for (const node of visible) {
-    const mark = node.verdict === "confirmed" || node.verdict === "edited" ? "✓ " : "";
+    const mark =
+      node.verdict === "confirmed" || node.verdict === "edited" ? "✓ " : "";
     const list = grouped.get(node.domain) ?? [];
     list.push(`${mark}${displayLabel(node)}`);
     grouped.set(node.domain, list);
   }
 
   const explored = [...grouped.entries()]
-    .map(([domain, labels]) => `**${DOMAIN_LABELS[domain]}**: ${labels.join("; ")}`)
+    .map(
+      ([domain, labels]) =>
+        `**${DOMAIN_LABELS[domain]}**: ${labels.join("; ")}`,
+    )
     .join("\n");
 
   const untouched = EXPLORABLE_DOMAINS.filter((d) => !grouped.has(d));
@@ -140,7 +144,11 @@ function compactMap(nodes: MindNode[]): string {
 const MAX_TURNS_PER_STEP = 3;
 
 /** Busola: unde e conversația în ghid și ce caută pasul de acum. */
-function guideBrief(guide: Guide, stepIndex: number, turnsOnStep: number): string {
+function guideBrief(
+  guide: Guide,
+  stepIndex: number,
+  turnsOnStep: number,
+): string {
   const step: GuideStep | undefined = guide.steps[stepIndex];
   const next: GuideStep | undefined = guide.steps[stepIndex + 1];
   const mustAdvance = turnsOnStep + 1 >= MAX_TURNS_PER_STEP;
@@ -172,13 +180,28 @@ function guideBrief(guide: Guide, stepIndex: number, turnsOnStep: number): strin
       : "",
     `**Replici petrecute pe acest pas:** ${turnsOnStep}. Un pas ține de regulă ` +
       `1–${MAX_TURNS_PER_STEP} replici: o întrebare de adâncire, poate două, apoi mai departe.`,
-    mustAdvance
-      ? "**Aceasta este ultima replică pe acest pas.** Pune advance_step pe adevărat " +
-        "și încheie pasul cu întrebarea care deschide următorul — nu mai săpa aici."
-      : "Dacă omul a răspuns pe fond, pune advance_step pe adevărat și deschide pasul " +
-        "următor chiar în această replică.",
+    // Ultimul pas nu deschide nimic: încheie lecția, cu o concluzie și fără
+    // întrebare. O lecție care se termină cu o întrebare nu se termină.
+    !next && mustAdvance
+      ? "**Aceasta este ultima replică a lecției.** Pune advance_step pe adevărat și " +
+        "încheie: două-trei propoziții cu ce ai auzit de la el, în cuvintele lui, " +
+        "legate între ele — nu diagnostic, nu sfat, nu întrebare nouă. Spune-i că " +
+        "harta lui se actualizează acum cu ce a povestit. options goală."
+      : !next
+        ? "Dacă omul a răspuns pe fond, pune advance_step pe adevărat și încheie " +
+          "lecția chiar în această replică: două-trei propoziții cu ce ai auzit, " +
+          "fără întrebare nouă, și spune-i că harta se actualizează. Dacă mai e de " +
+          "săpat, o singură întrebare, apoi încheierea vine oricum la următoarea."
+        : mustAdvance
+          ? "**Aceasta este ultima replică pe acest pas.** Pune advance_step pe adevărat " +
+            "și încheie pasul cu întrebarea care deschide următorul — nu mai săpa aici."
+          : "Dacă omul a răspuns pe fond, pune advance_step pe adevărat și deschide pasul " +
+            "următor chiar în această replică.",
     next
-      ? `**Pasul următor:** ${next.question}` +
+      ? "**Cum treci la pasul următor:** o propoziție care leagă ce a spus de noua " +
+        "temă, apoi întrebarea. Nu anunța trecerea („hai să trecem altundeva”, " +
+        "„să mergem mai departe”): omul o simte ca pe un chestionar.\n" +
+        `**Pasul următor:** ${next.question}` +
         (next.options
           ? `\n  Variantele lui: ${next.options.join(" · ")}. Le pui în \`options\` ` +
             "**numai** în replica în care advance_step e adevărat și întrebarea din " +
@@ -192,7 +215,10 @@ function guideBrief(guide: Guide, stepIndex: number, turnsOnStep: number): strin
 }
 
 function normalizeOption(option: string): string {
-  return option.trim().toLowerCase().replace(/[.!?…]+$/, "");
+  return option
+    .trim()
+    .toLowerCase()
+    .replace(/[.!?…]+$/, "");
 }
 
 /** Câte dintre `options` se regăsesc, ca text, în setul `pool`. */
@@ -251,7 +277,10 @@ interface Metered {
 }
 
 export type ReplyResult = Metered &
-  ({ ok: true; reply: Reply } | { ok: false; reply: string; safety: "crisis" | "none" });
+  (
+    | { ok: true; reply: Reply }
+    | { ok: false; reply: string; safety: "crisis" | "none" }
+  );
 
 export async function runReply(input: ReplyInput): Promise<ReplyResult> {
   const guide = input.guideId ? getGuide(input.guideId) : null;

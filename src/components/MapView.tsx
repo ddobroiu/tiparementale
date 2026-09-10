@@ -79,6 +79,10 @@ export function MapView({
   const [extracting, setExtracting] = useState(false);
   const [conversationId, setConversationId] = useState<string | null>(null);
   const [chatTitle, setChatTitle] = useState<string | null>(null);
+  const [lessonDone, setLessonDone] = useState<{
+    created: number;
+    strengthened: number;
+  } | null>(null);
   const [diff, setDiff] = useState<MapDiff | null>(null);
   const [safety, setSafety] = useState<SafetyFlag>("none");
   const [highlighted, setHighlighted] = useState<Set<string>>(new Set());
@@ -115,13 +119,13 @@ export function MapView({
    * fiecare propoziție.
    */
   const runExtraction = useCallback(
-    async (id: string) => {
+    async (id: string): Promise<MapDiff> => {
       setExtracting(true);
       try {
         const res = await fetch(`/api/conversations/${id}/extract`, {
           method: "POST",
         });
-        if (!res.ok) return;
+        if (!res.ok) return EMPTY_DIFF;
 
         const data = await res.json();
         const mapDiff: MapDiff = data.diff ?? EMPTY_DIFF;
@@ -131,6 +135,7 @@ export function MapView({
           setDiff(mapDiff);
           await reload();
         }
+        return mapDiff;
       } finally {
         setExtracting(false);
       }
@@ -180,6 +185,18 @@ export function MapView({
       ]);
       setSafety(data.safetyFlag ?? "none");
 
+      if (data.guideComplete) {
+        // Sfârșitul lecției: harta se actualizează acum, iar omul vede bilanțul
+        // înainte să decidă dacă se întoarce pe hartă sau mai vorbește.
+        const mapDiff = await runExtraction(data.conversationId);
+        setLessonDone({
+          created: mapDiff.created.length,
+          strengthened: mapDiff.strengthened.length,
+        });
+        void loadAccount();
+        return;
+      }
+
       if (data.extractionDue) void runExtraction(data.conversationId);
       if (typeof data.turnsLeft === "number" && data.turnsLeft <= 0) {
         setLimit({
@@ -215,6 +232,7 @@ export function MapView({
       if (!res.ok) return;
 
       setConversationId(data.conversationId);
+      setLessonDone(null);
       setChatTitle(titleFor(body.guideId as string | undefined));
       setMessages(
         data.opener
@@ -260,6 +278,7 @@ export function MapView({
         if (!reopened.ok) return;
       }
       setConversationId(data.conversationId);
+      setLessonDone(null);
       setChatTitle(titleFor(data.guideId));
       setMessages(
         (data.messages as ChatMessage[]).map((m) => ({
@@ -284,6 +303,7 @@ export function MapView({
     setSheetOpen(false);
     setSelectedId(null);
     setChatTitle(null);
+    setLessonDone(null);
     setChatOpen(true);
   }
 
@@ -295,6 +315,7 @@ export function MapView({
     setMessages([]);
     setConversationId(null);
     setChatTitle(null);
+    setLessonDone(null);
     // După o ședință, următorul pas firesc e să confirmi ce a apărut.
     setTab("interpret");
     if (id) {
@@ -556,6 +577,8 @@ export function MapView({
             onSend={send}
             onClose={closeChat}
             title={chatTitle}
+            done={lessonDone}
+            onContinue={() => setLessonDone(null)}
           />
         ) : (
           workspace()
@@ -573,6 +596,8 @@ export function MapView({
             onSend={send}
             onClose={closeChat}
             title={chatTitle}
+            done={lessonDone}
+            onContinue={() => setLessonDone(null)}
           />
         )}
         {selectedId && (
