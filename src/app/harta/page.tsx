@@ -6,6 +6,7 @@ import { getSessionUser } from "@/lib/auth";
 import { getWallet } from "@/lib/billing/entitlement";
 import { withUser } from "@/lib/db";
 import { loadGraph } from "@/lib/graph";
+import { loadLessonProgress } from "@/lib/lessons";
 
 export default async function HartaPage(props: PageProps<"/harta">) {
   const user = await getSessionUser();
@@ -19,6 +20,7 @@ export default async function HartaPage(props: PageProps<"/harta">) {
   const data = await withUser(user.id, async (client) => {
     const { nodes, edges } = await loadGraph(client);
     const wallet = await getWallet(client, user.id);
+    const lessons = await loadLessonProgress(client);
 
     const { rows: similarPairs } = await client.query(
       `select s.id, s.score,
@@ -33,7 +35,7 @@ export default async function HartaPage(props: PageProps<"/harta">) {
         limit 5`,
     );
 
-    return { nodes, edges, wallet, similarPairs };
+    return { nodes, edges, wallet, similarPairs, lessons };
   });
 
   return (
@@ -45,6 +47,7 @@ export default async function HartaPage(props: PageProps<"/harta">) {
       initialAccount={{
         sessionsLeft: data.wallet.sessionsLeft,
         transformationsLeft: data.wallet.transformationsLeft,
+        lessons: data.lessons,
       }}
     />
   );

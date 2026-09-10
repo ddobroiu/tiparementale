@@ -79,8 +79,8 @@ export default async function PachetePage() {
 
               <ul className="mt-5 flex-1 space-y-2 text-sm text-paper-dim">
                 <li>
-                  <span className="text-paper">{pack.sessions} ședințe</span> ghidate pe
-                  teme — copilăria, părinții, banii, relațiile, munca și rolul de părinte
+                  <span className="text-paper">{pack.sessions} ședințe</span>: oricare din
+                  cele 12 lecții ale programului sau conversații libere, în orice ordine
                 </li>
                 <li>
                   <span className="text-paper">{pack.transformations} transformări</span>:

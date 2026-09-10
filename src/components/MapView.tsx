@@ -3,8 +3,16 @@
 import Link from "next/link";
 import { useCallback, useState } from "react";
 
-import type { Edge, LifeDomain, MapDiff, MindNode, SafetyFlag } from "@/lib/types";
+import type {
+  Edge,
+  LifeDomain,
+  MapDiff,
+  MindNode,
+  SafetyFlag,
+} from "@/lib/types";
 import type { Guide } from "@/lib/guides";
+import { getGuide } from "@/lib/guides";
+import { lessonNumber, type LessonProgress } from "@/lib/program";
 import type { Topic } from "@/lib/topics";
 import { ChatPanel, type ChatMessage } from "./ChatPanel";
 import { MindMap } from "./MindMap";
@@ -14,11 +22,18 @@ import { MapLegend } from "./MapLegend";
 import { NO_FILTERS, applyFilters, type Filters } from "./MapFilters";
 import { MapToolbar } from "./MapToolbar";
 import type { SimilarPair } from "./SimilarityPrompt";
-import { TABS, Workspace, workspaceCounts, type WorkspaceTab } from "./Workspace";
+import {
+  TABS,
+  Workspace,
+  workspaceCounts,
+  type WorkspaceTab,
+} from "./Workspace";
 
 export interface AccountSummary {
   sessionsLeft: number;
   transformationsLeft: number;
+  /** Ultima ședință pe fiecare lecție: ce e făcut, ce e în curs. */
+  lessons: LessonProgress[];
 }
 
 interface Props {
@@ -63,10 +78,13 @@ export function MapView({
   const [pending, setPending] = useState(false);
   const [extracting, setExtracting] = useState(false);
   const [conversationId, setConversationId] = useState<string | null>(null);
+  const [chatTitle, setChatTitle] = useState<string | null>(null);
   const [diff, setDiff] = useState<MapDiff | null>(null);
   const [safety, setSafety] = useState<SafetyFlag>("none");
   const [highlighted, setHighlighted] = useState<Set<string>>(new Set());
-  const [limit, setLimit] = useState<{ reason: string; code: string } | null>(null);
+  const [limit, setLimit] = useState<{ reason: string; code: string } | null>(
+    null,
+  );
   const [filters, setFilters] = useState<Filters>(NO_FILTERS);
   const [focusDomain, setFocusDomain] = useState<LifeDomain | null>(null);
   const [query, setQuery] = useState("");
@@ -74,7 +92,13 @@ export function MapView({
 
   const loadAccount = useCallback(async () => {
     const res = await fetch("/api/account");
-    if (res.ok) setAccount(await res.json());
+    if (!res.ok) return;
+    const data = await res.json();
+    setAccount({
+      sessionsLeft: data.sessionsLeft,
+      transformationsLeft: data.transformationsLeft,
+      lessons: data.lessons ?? [],
+    });
   }, []);
 
   const reload = useCallback(async () => {
@@ -94,7 +118,9 @@ export function MapView({
     async (id: string) => {
       setExtracting(true);
       try {
-        const res = await fetch(`/api/conversations/${id}/extract`, { method: "POST" });
+        const res = await fetch(`/api/conversations/${id}/extract`, {
+          method: "POST",
+        });
         if (!res.ok) return;
 
         const data = await res.json();
@@ -135,7 +161,10 @@ export function MapView({
       if (!res.ok) {
         setMessages((m) => [
           ...m,
-          { role: "assistant", content: data.error ?? "Ceva n-a mers. Încearcă din nou." },
+          {
+            role: "assistant",
+            content: data.error ?? "Ceva n-a mers. Încearcă din nou.",
+          },
         ]);
         return;
       }
@@ -143,7 +172,11 @@ export function MapView({
       setConversationId(data.conversationId);
       setMessages((m) => [
         ...m,
-        { role: "assistant", content: data.reply, options: data.options ?? null },
+        {
+          role: "assistant",
+          content: data.reply,
+          options: data.options ?? null,
+        },
       ]);
       setSafety(data.safetyFlag ?? "none");
 
@@ -182,14 +215,56 @@ export function MapView({
       if (!res.ok) return;
 
       setConversationId(data.conversationId);
+      setChatTitle(titleFor(body.guideId as string | undefined));
       setMessages(
         data.opener
-          ? [{ role: "assistant", content: data.opener, options: data.options ?? null }]
+          ? [
+              {
+                role: "assistant",
+                content: data.opener,
+                options: data.options ?? null,
+              },
+            ]
           : [],
       );
       setSelectedId(null);
       setChatOpen(true);
       void loadAccount();
+    } finally {
+      setPending(false);
+    }
+  }
+
+  /** „Lecția 3 · Relația cu tata”, sau nimic pentru conversația liberă. */
+  function titleFor(guideId: string | null | undefined): string | null {
+    if (!guideId) return null;
+    const guide = getGuide(guideId);
+    if (!guide) return null;
+    const n = lessonNumber(guideId);
+    return n ? `Lecția ${n} · ${guide.title}` : guide.title;
+  }
+
+  /** Reia o lecție începută: mesajele vin din bază, ședința nu se plătește iar. */
+  async function resumeLesson(id: string) {
+    setPending(true);
+    setSheetOpen(false);
+    try {
+      const res = await fetch(`/api/conversations/${id}`);
+      if (!res.ok) return;
+      const data = await res.json();
+      if (data.closed) return;
+      setConversationId(data.conversationId);
+      setChatTitle(titleFor(data.guideId));
+      setMessages(
+        (data.messages as ChatMessage[]).map((m) => ({
+          role: m.role,
+          content: m.content,
+          options: m.options ?? null,
+        })),
+      );
+      setLimit(null);
+      setSelectedId(null);
+      setChatOpen(true);
     } finally {
       setPending(false);
     }
@@ -202,18 +277,27 @@ export function MapView({
   function startFree() {
     setSheetOpen(false);
     setSelectedId(null);
+    setChatTitle(null);
     setChatOpen(true);
   }
 
   /** Închiderea conversației te lasă în hartă, cu tot ce s-a spus prelucrat. */
   async function closeChat() {
+    const id = conversationId;
     setChatOpen(false);
     setLimit(null);
     setMessages([]);
     setConversationId(null);
+    setChatTitle(null);
     // După o ședință, următorul pas firesc e să confirmi ce a apărut.
     setTab("interpret");
-    if (conversationId) await runExtraction(conversationId);
+    if (id) {
+      // Închisă înseamnă bifată în program. Extracția rulează după.
+      await fetch(`/api/conversations/${id}/close`, { method: "POST" }).catch(
+        () => {},
+      );
+      await runExtraction(id);
+    }
     void loadAccount();
   }
 
@@ -248,6 +332,7 @@ export function MapView({
       onFilters={setFilters}
       onFree={startFree}
       onGuide={startGuide}
+      onResume={resumeLesson}
       onTopic={startTopic}
       onOpenNode={openNode}
       onChanged={reload}
@@ -282,7 +367,8 @@ export function MapView({
                 href="/pachete"
                 className="rounded-full border border-ink-line px-3 py-1.5 text-xs text-paper-dim transition-colors hover:border-paper-faint hover:text-paper"
               >
-                {account.sessionsLeft} {account.sessionsLeft === 1 ? "ședință" : "ședințe"}
+                {account.sessionsLeft}{" "}
+                {account.sessionsLeft === 1 ? "ședință" : "ședințe"}
               </Link>
             )}
           </div>
@@ -356,12 +442,14 @@ export function MapView({
               ))}
               {diff.connected.length > 0 && (
                 <li>
-                  <span className="text-paper">Conexiuni noi</span> · {diff.connected.length}
+                  <span className="text-paper">Conexiuni noi</span> ·{" "}
+                  {diff.connected.length}
                 </li>
               )}
             </ul>
             <p className="mt-3 text-xs text-paper-faint">
-              Pasul următor: Interpretare — deschide un element și spune dacă am nimerit.
+              Pasul următor: Interpretare — deschide un element și spune dacă am
+              nimerit.
             </p>
           </div>
         )}
@@ -369,7 +457,8 @@ export function MapView({
         {safety !== "none" && (
           <div className="absolute inset-x-0 bottom-24 flex justify-center px-6">
             <p className="rounded-full border border-ink-line bg-ink-soft/95 px-5 py-2 text-center text-xs text-paper-dim backdrop-blur-md">
-              Dacă îți este greu acum, poți suna la 0800 801 200 — gratuit, non-stop.
+              Dacă îți este greu acum, poți suna la 0800 801 200 — gratuit,
+              non-stop.
             </p>
           </div>
         )}
@@ -396,10 +485,14 @@ export function MapView({
                   key={t.id}
                   onClick={() => openTab(t.id)}
                   className={`rounded-xl border px-2 py-2 text-left ${
-                    primary ? "border-paper bg-paper text-ink" : "border-ink-line text-paper-dim"
+                    primary
+                      ? "border-paper bg-paper text-ink"
+                      : "border-ink-line text-paper-dim"
                   }`}
                 >
-                  <span className={`block text-[10px] ${primary ? "text-ink/60" : "text-paper-faint"}`}>
+                  <span
+                    className={`block text-[10px] ${primary ? "text-ink/60" : "text-paper-faint"}`}
+                  >
                     Pasul {t.step}
                   </span>
                   <span className="flex items-center gap-1.5 text-[13px] font-medium">
@@ -422,12 +515,18 @@ export function MapView({
 
         {!chatOpen && sheetOpen && (
           <div className="fixed inset-0 z-30 flex flex-col justify-end bg-ink/60 sm:hidden">
-            <button aria-label="Închide" onClick={() => setSheetOpen(false)} className="flex-1" />
+            <button
+              aria-label="Închide"
+              onClick={() => setSheetOpen(false)}
+              className="flex-1"
+            />
             <div className="flex max-h-[85dvh] flex-col rounded-t-2xl border-t border-ink-line bg-ink-soft pb-[env(safe-area-inset-bottom)]">
               <div className="flex justify-center py-2">
                 <span className="h-1 w-10 rounded-full bg-ink-line" />
               </div>
-              <div className="min-h-0 flex-1">{workspace(() => setSheetOpen(false))}</div>
+              <div className="min-h-0 flex-1">
+                {workspace(() => setSheetOpen(false))}
+              </div>
             </div>
           </div>
         )}
@@ -436,7 +535,12 @@ export function MapView({
       {/* Ecran mare: coloana din dreapta, cu un singur conținut la un moment dat. */}
       <aside className="hidden h-full w-[400px] shrink-0 flex-col border-l border-ink-line bg-ink-soft/70 sm:flex lg:w-[440px]">
         {selectedId ? (
-          <NodeDetail key={selectedId} nodeId={selectedId} onClose={() => openNode(null)} onChanged={reload} />
+          <NodeDetail
+            key={selectedId}
+            nodeId={selectedId}
+            onClose={() => openNode(null)}
+            onChanged={reload}
+          />
         ) : chatOpen ? (
           <ChatPanel
             messages={messages}
@@ -445,6 +549,7 @@ export function MapView({
             limit={limit}
             onSend={send}
             onClose={closeChat}
+            title={chatTitle}
           />
         ) : (
           workspace()
@@ -461,10 +566,16 @@ export function MapView({
             limit={limit}
             onSend={send}
             onClose={closeChat}
+            title={chatTitle}
           />
         )}
         {selectedId && (
-          <NodeDetail key={selectedId} nodeId={selectedId} onClose={() => openNode(null)} onChanged={reload} />
+          <NodeDetail
+            key={selectedId}
+            nodeId={selectedId}
+            onClose={() => openNode(null)}
+            onChanged={reload}
+          />
         )}
       </div>
     </div>

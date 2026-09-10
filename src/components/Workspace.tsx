@@ -3,6 +3,7 @@
 import Link from "next/link";
 
 import type { Guide } from "@/lib/guides";
+import { lessonNumber } from "@/lib/program";
 import type { Topic } from "@/lib/topics";
 import {
   DOMAIN_COLORS,
@@ -13,7 +14,7 @@ import {
   type MindNode,
 } from "@/lib/types";
 import { AddNodeForm } from "./AddNodeForm";
-import { GuidePicker } from "./GuidePicker";
+import { LessonCatalog } from "./LessonCatalog";
 import { MapFilters, type Filters } from "./MapFilters";
 import { MapReading } from "./MapReading";
 import { PredictionPanel } from "./PredictionPanel";
@@ -22,7 +23,12 @@ import type { AccountSummary } from "./MapView";
 
 export type WorkspaceTab = "identify" | "interpret" | "transform";
 
-export const TABS: Array<{ id: WorkspaceTab; step: number; label: string; lead: string }> = [
+export const TABS: Array<{
+  id: WorkspaceTab;
+  step: number;
+  label: string;
+  lead: string;
+}> = [
   {
     id: "identify",
     step: 1,
@@ -56,6 +62,7 @@ interface Props {
   onFilters: (filters: Filters) => void;
   onFree: () => void;
   onGuide: (guide: Guide) => void;
+  onResume: (conversationId: string) => void;
   onTopic: (topic: Topic, domain: LifeDomain) => void;
   onOpenNode: (id: string) => void;
   onChanged: () => void;
@@ -66,7 +73,9 @@ interface Props {
 /** Ce e de făcut pe fiecare pas, ca numere: apar pe file și în bara de jos. */
 export function workspaceCounts(nodes: MindNode[]) {
   const live = nodes.filter((n) => n.verdict !== "rejected");
-  const confirmed = live.filter((n) => n.verdict === "confirmed" || n.verdict === "edited");
+  const confirmed = live.filter(
+    (n) => n.verdict === "confirmed" || n.verdict === "edited",
+  );
   const unconfirmed = live.filter((n) => n.verdict === "unconfirmed");
   const workable = confirmed.filter(isWorkable);
   return {
@@ -95,6 +104,7 @@ export function Workspace({
   onFilters,
   onFree,
   onGuide,
+  onResume,
   onTopic,
   onOpenNode,
   onChanged,
@@ -107,9 +117,14 @@ export function Workspace({
     <div className="flex h-full flex-col">
       <div className="border-b border-ink-line px-4 pt-4 pb-3 sm:px-5">
         <div className="flex items-center justify-between gap-3">
-          <p className="text-[11px] tracking-[0.16em] text-paper-faint uppercase">Cum lucrezi</p>
+          <p className="text-[11px] tracking-[0.16em] text-paper-faint uppercase">
+            Cum lucrezi
+          </p>
           {onClose && (
-            <button onClick={onClose} className="text-xs text-paper-faint hover:text-paper">
+            <button
+              onClick={onClose}
+              className="text-xs text-paper-faint hover:text-paper"
+            >
               Închide
             </button>
           )}
@@ -134,7 +149,9 @@ export function Workspace({
                     : "border-ink-line text-paper-dim hover:border-paper-faint hover:text-paper"
                 }`}
               >
-                <span className={`block text-[10px] ${on ? "text-ink/60" : "text-paper-faint"}`}>
+                <span
+                  className={`block text-[10px] ${on ? "text-ink/60" : "text-paper-faint"}`}
+                >
                   Pasul {t.step}
                 </span>
                 <span className="mt-0.5 flex items-center gap-1.5 text-[13px] font-medium">
@@ -154,17 +171,19 @@ export function Workspace({
           })}
         </div>
 
-        <p className="mt-3 text-[13px] leading-relaxed text-paper-dim">{current.lead}</p>
+        <p className="mt-3 text-[13px] leading-relaxed text-paper-dim">
+          {current.lead}
+        </p>
       </div>
 
       <div className="flex-1 overflow-y-auto px-4 py-4 sm:px-5">
         {tab === "identify" && (
           <IdentifyTab
-            nodes={nodes}
             account={account}
             pending={pending}
             onFree={onFree}
             onGuide={onGuide}
+            onResume={onResume}
             onTopic={onTopic}
             onOpenNode={onOpenNode}
             onChanged={onChanged}
@@ -182,7 +201,12 @@ export function Workspace({
           />
         )}
         {tab === "transform" && (
-          <TransformTab nodes={nodes} counts={counts} account={account} onOpenNode={onOpenNode} />
+          <TransformTab
+            nodes={nodes}
+            counts={counts}
+            account={account}
+            onOpenNode={onOpenNode}
+          />
         )}
       </div>
     </div>
@@ -192,16 +216,27 @@ export function Workspace({
 // ---------------------------------------------------------------- pasul 1
 
 function IdentifyTab({
-  nodes,
   account,
   pending,
   onFree,
   onGuide,
+  onResume,
   onTopic,
   onOpenNode,
   onChanged,
-}: Pick<Props, "nodes" | "account" | "pending" | "onFree" | "onGuide" | "onTopic" | "onOpenNode" | "onChanged">) {
+}: Pick<
+  Props,
+  | "account"
+  | "pending"
+  | "onFree"
+  | "onGuide"
+  | "onResume"
+  | "onTopic"
+  | "onOpenNode"
+  | "onChanged"
+>) {
   const none = account.sessionsLeft === 0;
+  const inProgress = account.lessons.filter((l) => !l.closedAt && l.turns > 0);
 
   return (
     <>
@@ -216,28 +251,55 @@ function IdentifyTab({
               ? "Nu mai ai ședințe"
               : `${account.sessionsLeft} ${account.sessionsLeft === 1 ? "ședință rămasă" : "ședințe rămase"}`}
           </p>
-          <p className="text-xs text-paper-faint">O ședință: până la 25 de replici pe o temă.</p>
+          <p className="text-xs text-paper-faint">
+            O ședință = o lecție sau o conversație liberă, la alegere, în orice
+            ordine.
+          </p>
         </div>
         <Link
           href="/pachete"
           className={`shrink-0 rounded-full px-3.5 py-1.5 text-xs font-medium ${
-            none ? "bg-paper text-ink" : "border border-ink-line text-paper-dim hover:text-paper"
+            none
+              ? "bg-paper text-ink"
+              : "border border-ink-line text-paper-dim hover:text-paper"
           }`}
         >
           {none ? "Cumpără" : "Pachete"}
         </Link>
       </div>
 
-      <h3 className="mt-6 text-[11px] tracking-[0.16em] text-paper-faint uppercase">
-        Începe o ședință
-      </h3>
-      <div className="mt-2">
-        <GuidePicker
-          embedded
-          nodes={nodes}
+      {inProgress.length > 0 && (
+        <div className="mt-4 rounded-xl border border-[color:var(--value)]/40 px-4 py-3">
+          <p className="text-[10px] tracking-[0.14em] text-paper-faint uppercase">
+            Lecție în curs
+          </p>
+          {inProgress.map((l) => (
+            <button
+              key={l.conversationId}
+              onClick={() => onResume(l.conversationId)}
+              className="mt-1.5 flex w-full items-center justify-between gap-3 text-left text-sm text-paper hover:underline"
+            >
+              <span>
+                Lecția {lessonNumber(l.guideId) ?? "·"} · pasul{" "}
+                {l.stepIndex + 1}
+              </span>
+              <span className="text-xs text-[color:var(--value)]">reia →</span>
+            </button>
+          ))}
+          <p className="mt-1.5 text-[11px] text-paper-faint">
+            Reluarea nu costă o ședință nouă.
+          </p>
+        </div>
+      )}
+
+      <div className="mt-6">
+        <LessonCatalog
+          progress={account.lessons}
+          sessionsLeft={account.sessionsLeft}
           busy={pending}
           onFree={onFree}
-          onGuide={onGuide}
+          onStart={onGuide}
+          onResume={onResume}
           onTopic={onTopic}
         />
       </div>
@@ -246,7 +308,8 @@ function IdentifyTab({
         Fără ședință
       </h3>
       <p className="mt-2 text-xs leading-relaxed text-paper-faint">
-        Îți cunoști deja un tipar sau o frică? Pune-o direct pe hartă, confirmată.
+        Îți cunoști deja un tipar sau o frică? Pune-o direct pe hartă,
+        confirmată.
       </p>
       <div className="mt-3">
         <AddNodeForm
@@ -280,12 +343,19 @@ function NodeRow({
         <span
           className="h-2 w-2 shrink-0 rounded-full"
           style={{
-            background: node.work_status === "resolved" ? RESOLVED : DOMAIN_COLORS[node.domain],
+            background:
+              node.work_status === "resolved"
+                ? RESOLVED
+                : DOMAIN_COLORS[node.domain],
           }}
         />
         <span className="min-w-0 flex-1">
-          <span className="block truncate text-sm text-paper">{displayLabel(node)}</span>
-          <span className="block text-[11px] text-paper-faint">{NODE_TYPE_LABELS[node.type]}</span>
+          <span className="block truncate text-sm text-paper">
+            {displayLabel(node)}
+          </span>
+          <span className="block text-[11px] text-paper-faint">
+            {NODE_TYPE_LABELS[node.type]}
+          </span>
         </span>
         {trailing}
       </button>
@@ -301,16 +371,28 @@ function InterpretTab({
   onFilters,
   onOpenNode,
   onChanged,
-}: Pick<Props, "nodes" | "similarPairs" | "filters" | "onFilters" | "onOpenNode" | "onChanged"> & {
+}: Pick<
+  Props,
+  | "nodes"
+  | "similarPairs"
+  | "filters"
+  | "onFilters"
+  | "onOpenNode"
+  | "onChanged"
+> & {
   counts: ReturnType<typeof workspaceCounts>;
 }) {
   const unconfirmed = nodes.filter((n) => n.verdict === "unconfirmed");
-  const pct = counts.total === 0 ? 0 : Math.round((counts.confirmed / counts.total) * 100);
+  const pct =
+    counts.total === 0
+      ? 0
+      : Math.round((counts.confirmed / counts.total) * 100);
 
   if (counts.total === 0) {
     return (
       <p className="text-sm leading-relaxed text-paper-faint">
-        Harta e goală. După prima ședință, aici apar elementele de confirmat și citirea hărții.
+        Harta e goală. După prima ședință, aici apar elementele de confirmat și
+        citirea hărții.
       </p>
     );
   }
@@ -325,10 +407,14 @@ function InterpretTab({
           <span className="text-xs text-paper-faint">{pct}%</span>
         </div>
         <div className="mt-2 h-1.5 overflow-hidden rounded-full bg-ink-line">
-          <div className="h-full rounded-full bg-paper-dim" style={{ width: `${pct}%` }} />
+          <div
+            className="h-full rounded-full bg-paper-dim"
+            style={{ width: `${pct}%` }}
+          />
         </div>
         <p className="mt-2 text-xs leading-relaxed text-paper-faint">
-          Ce confirmi capătă contur plin pe hartă și poate fi lucrat. Ce respingi dispare.
+          Ce confirmi capătă contur plin pe hartă și poate fi lucrat. Ce
+          respingi dispare.
         </p>
       </div>
 
@@ -343,13 +429,18 @@ function InterpretTab({
                 key={node.id}
                 node={node}
                 onOpen={onOpenNode}
-                trailing={<span className="text-[11px] text-paper-faint">confirmă →</span>}
+                trailing={
+                  <span className="text-[11px] text-paper-faint">
+                    confirmă →
+                  </span>
+                }
               />
             ))}
           </ul>
           {unconfirmed.length > 6 && (
             <p className="mt-2 text-xs text-paper-faint">
-              …și încă {unconfirmed.length - 6}. Le găsești pe hartă, cu contur punctat.
+              …și încă {unconfirmed.length - 6}. Le găsești pe hartă, cu contur
+              punctat.
             </p>
           )}
         </>
@@ -393,7 +484,8 @@ function TransformTab({
   counts: ReturnType<typeof workspaceCounts>;
 }) {
   const workable = nodes.filter(
-    (n) => (n.verdict === "confirmed" || n.verdict === "edited") && isWorkable(n),
+    (n) =>
+      (n.verdict === "confirmed" || n.verdict === "edited") && isWorkable(n),
   );
   const todo = workable.filter((n) => !n.work_status);
   const working = workable.filter((n) => n.work_status === "working");
@@ -403,20 +495,25 @@ function TransformTab({
     return (
       <>
         <p className="text-sm leading-relaxed text-paper-faint">
-          Nimic de lucrat încă. Transformarea pornește de la o convingere, o frică sau un tipar
-          pe care le-ai confirmat la pasul 2.
+          Nimic de lucrat încă. Transformarea pornește de la o convingere, o
+          frică sau un tipar pe care le-ai confirmat la pasul 2.
         </p>
         {counts.unconfirmed > 0 && (
           <p className="mt-3 text-sm text-paper-dim">
-            Ai {counts.unconfirmed} {counts.unconfirmed === 1 ? "element" : "elemente"} de
-            confirmat.
+            Ai {counts.unconfirmed}{" "}
+            {counts.unconfirmed === 1 ? "element" : "elemente"} de confirmat.
           </p>
         )}
       </>
     );
   }
 
-  const groups: Array<{ title: string; hint: string; items: MindNode[]; color?: string }> = [
+  const groups: Array<{
+    title: string;
+    hint: string;
+    items: MindNode[];
+    color?: string;
+  }> = [
     {
       title: "De lucrat",
       hint: "Confirmate, fără convingere nouă încă. Deschide una și apasă „Lucrăm la asta”.",
@@ -444,9 +541,17 @@ function TransformTab({
           ["În lucru", working.length, RESOLVED],
           ["Rezolvate", resolved.length, RESOLVED],
         ].map(([label, n, color]) => (
-          <div key={String(label)} className="rounded-xl border border-ink-line px-3 py-2.5">
-            <p className="text-[10px] tracking-[0.12em] text-paper-faint uppercase">{label}</p>
-            <p className="mt-0.5 font-serif text-2xl" style={color ? { color: String(color) } : undefined}>
+          <div
+            key={String(label)}
+            className="rounded-xl border border-ink-line px-3 py-2.5"
+          >
+            <p className="text-[10px] tracking-[0.12em] text-paper-faint uppercase">
+              {label}
+            </p>
+            <p
+              className="mt-0.5 font-serif text-2xl"
+              style={color ? { color: String(color) } : undefined}
+            >
               {n}
             </p>
           </div>
@@ -456,9 +561,14 @@ function TransformTab({
       <div className="mt-3 flex items-center justify-between gap-3 text-xs text-paper-faint">
         <span>
           {account.transformationsLeft}{" "}
-          {account.transformationsLeft === 1 ? "transformare disponibilă" : "transformări disponibile"}
+          {account.transformationsLeft === 1
+            ? "transformare disponibilă"
+            : "transformări disponibile"}
         </span>
-        <Link href="/pachete" className="underline underline-offset-4 hover:text-paper-dim">
+        <Link
+          href="/pachete"
+          className="underline underline-offset-4 hover:text-paper-dim"
+        >
           Pachete
         </Link>
       </div>
@@ -469,7 +579,9 @@ function TransformTab({
             <h3 className="text-[11px] tracking-[0.16em] text-paper-faint uppercase">
               {group.title} · {group.items.length}
             </h3>
-            <p className="mt-1 text-xs leading-relaxed text-paper-faint">{group.hint}</p>
+            <p className="mt-1 text-xs leading-relaxed text-paper-faint">
+              {group.hint}
+            </p>
             <ul className="mt-2 space-y-1.5">
               {group.items.map((node) => (
                 <NodeRow
@@ -486,7 +598,9 @@ function TransformTab({
                         în lucru
                       </span>
                     ) : (
-                      <span className="text-[11px] text-paper-faint">lucrăm →</span>
+                      <span className="text-[11px] text-paper-faint">
+                        lucrăm →
+                      </span>
                     )
                   }
                 />

@@ -18,6 +18,8 @@ interface Props {
   limit: { reason: string; code: string } | null;
   onSend: (text: string) => void;
   onClose: () => void;
+  /** Lecția în curs, sau nimic pentru conversația liberă. */
+  title?: string | null;
 }
 
 /**
@@ -27,7 +29,15 @@ interface Props {
  * vedea. Pe ecran îngust nu există loc pentru două coloane, deci acolo devine
  * o foaie de jos, iar harta rămâne vizibilă deasupra.
  */
-export function ChatPanel({ messages, pending, extracting, limit, onSend, onClose }: Props) {
+export function ChatPanel({
+  messages,
+  pending,
+  extracting,
+  limit,
+  onSend,
+  onClose,
+  title = null,
+}: Props) {
   const [draft, setDraft] = useState("");
   const scrollRef = useRef<HTMLDivElement>(null);
 
@@ -46,8 +56,8 @@ export function ChatPanel({ messages, pending, extracting, limit, onSend, onClos
   return (
     <aside className="animate-fade-up fixed inset-x-0 bottom-0 z-20 flex h-[56dvh] flex-col border-t border-ink-line bg-ink-soft/95 backdrop-blur-md sm:static sm:h-full sm:w-full sm:border-t-0 sm:bg-transparent sm:backdrop-blur-none">
       <div className="flex items-center justify-between border-b border-ink-line px-5 py-3">
-        <span className="text-xs tracking-[0.16em] text-paper-faint uppercase">
-          Spune ce ai pe suflet
+        <span className="min-w-0 truncate text-xs tracking-[0.16em] text-paper-faint uppercase">
+          {title ?? "Conversație liberă"}
         </span>
         <button
           onClick={onClose}
