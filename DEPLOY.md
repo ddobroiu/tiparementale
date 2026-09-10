@@ -70,18 +70,17 @@ Pornirea noului container durează ~20 s; `restart: unless-stopped` îl ridică
 
 ## Domeniul și HTTPS
 
-Portul 3007 nu e pentru public. În fața lui, un proxy care termină HTTPS —
-Caddy e cel mai scurt drum (certificat automat):
+Portul 3007 nu e pentru public. Pe server rulează deja **Nginx Proxy Manager**
+(containerul `proxy-app`, interfața pe portul 81), care termină HTTPS pentru
+toate aplicațiile din `/opt/apps`.
 
-```
-# /etc/caddy/Caddyfile
-tiparementale.ro, www.tiparementale.ro {
-    reverse_proxy 127.0.0.1:3007
-}
-```
-
-Apoi `systemctl reload caddy`. DNS: `A` pentru `tiparementale.ro` și `www` →
-`178.104.20.127`.
+1. DNS: înregistrări `A` pentru `tiparementale.ro` și `www` → `178.104.20.127`.
+2. În Nginx Proxy Manager → Proxy Hosts → Add: cele două domenii, forward la
+   `178.104.20.127` port `3007`, cu *Websockets Support* și *Block Common
+   Exploits* bifate.
+3. Tab SSL: *Request a new certificate* (Let's Encrypt), *Force SSL*, *HTTP/2*.
+4. În `.env` pe server: `NEXT_PUBLIC_APP_URL=https://tiparementale.ro`, apoi
+   `docker compose up -d --build` (variabilele publice intră în build).
 
 ## Stripe, la lansare
 
