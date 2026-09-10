@@ -1,8 +1,9 @@
 import { NextResponse } from "next/server";
 
 import { creditPurchase } from "@/lib/billing/packs";
-import { stripe, stripeConfigured } from "@/lib/billing/stripe";
-import { withUser } from "@/lib/db";
+import { appUrl, stripe, stripeConfigured } from "@/lib/billing/stripe";
+import { query, withUser } from "@/lib/db";
+import { sendPurchaseEmail } from "@/lib/email";
 
 /**
  * Confirmarea plății, venită de la Stripe.
@@ -52,6 +53,22 @@ export async function POST(request: Request) {
   }
 
   const result = await withUser(userId, (client) => creditPurchase(client, session.id));
+
+  // Confirmarea pe e-mail pleacă o singură dată, la prima creditare. Dacă nu
+  // ajunge, portofelul e oricum creditat: e-mailul e informare, nu dovadă.
+  if (result.credited) {
+    const [user] = await query<{ email: string }>("select email from users where id = $1", [
+      userId,
+    ]);
+    const packCode = session.metadata?.pack;
+    const [pack] = packCode
+      ? await query<{ name: string; sessions: number; transformations: number }>(
+          "select name, sessions, transformations from packs where code = $1",
+          [packCode],
+        )
+      : [];
+    if (user) await sendPurchaseEmail(user.email, pack ?? null, `${appUrl()}/harta`);
+  }
 
   // `credited: false` înseamnă că plata fusese deja onorată. Stripe retrimite
   // același eveniment prin proiectare, deci este starea normală, nu o eroare.

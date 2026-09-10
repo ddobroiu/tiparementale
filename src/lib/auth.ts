@@ -42,7 +42,7 @@ export async function verifyPassword(password: string, stored: string): Promise<
 // ---------------------------------------------------------------- sesiuni
 
 /** În bază se păstrează doar hash-ul: o citire a tabelului nu dă acces nimănui. */
-function hashToken(token: string): string {
+export function hashToken(token: string): string {
   return createHash("sha256").update(token).digest("hex");
 }
 

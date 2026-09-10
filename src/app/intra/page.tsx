@@ -95,15 +95,25 @@ function AuthForm() {
 
       {error && <p className="mt-4 text-sm text-[color:var(--emotion)]">{error}</p>}
 
-      <button
-        onClick={() => {
-          setMode(isRegister ? "login" : "register");
-          setError("");
-        }}
-        className="mt-6 text-sm text-paper-faint underline underline-offset-4 transition-colors hover:text-paper-dim"
-      >
-        {isRegister ? "Am deja cont" : "Nu am cont încă"}
-      </button>
+      <div className="mt-6 flex flex-wrap gap-x-5 gap-y-2 text-sm text-paper-faint">
+        <button
+          onClick={() => {
+            setMode(isRegister ? "login" : "register");
+            setError("");
+          }}
+          className="underline underline-offset-4 transition-colors hover:text-paper-dim"
+        >
+          {isRegister ? "Am deja cont" : "Nu am cont încă"}
+        </button>
+        {!isRegister && (
+          <Link
+            href="/resetare"
+            className="underline underline-offset-4 transition-colors hover:text-paper-dim"
+          >
+            Ai uitat parola?
+          </Link>
+        )}
+      </div>
 
       <p className="mt-8 text-xs leading-relaxed text-paper-faint">
         Ce scrii aici rămâne al tău. Poți exporta sau șterge tot, oricând.
