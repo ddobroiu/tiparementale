@@ -24,6 +24,7 @@ await db.query("delete from tipare_mentale.users where email in ($1, $2)", [ADMI
 
 const browser = await chromium.launch();
 const page = await browser.newPage({ viewport: { width: 1280, height: 800 }, locale: "ro-RO" });
+await page.context().addCookies([{ name: "tm_consent", value: "denied", url: BASE }]);
 await page.addInitScript(() => {
   const style = document.createElement("style");
   style.textContent = "nextjs-portal{display:none!important}";

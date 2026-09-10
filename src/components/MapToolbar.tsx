@@ -1,6 +1,11 @@
 "use client";
 
-import { DOMAIN_COLORS, DOMAIN_LABELS, type LifeDomain, type MindNode } from "@/lib/types";
+import {
+  DOMAIN_COLORS,
+  DOMAIN_LABELS,
+  type LifeDomain,
+  type MindNode,
+} from "@/lib/types";
 
 /**
  * Controlul direct al hărții: căutare și ramuri, mereu la vedere.
@@ -18,7 +23,13 @@ interface Props {
   onQuery: (query: string) => void;
 }
 
-export function MapToolbar({ nodes, focusDomain, onFocus, query, onQuery }: Props) {
+export function MapToolbar({
+  nodes,
+  focusDomain,
+  onFocus,
+  query,
+  onQuery,
+}: Props) {
   if (nodes.length === 0) return null;
 
   const counts = new Map<LifeDomain, number>();
@@ -38,7 +49,7 @@ export function MapToolbar({ nodes, focusDomain, onFocus, query, onQuery }: Prop
             value={query}
             onChange={(e) => onQuery(e.target.value)}
             placeholder="Caută în hartă…"
-            className="w-36 rounded-full border border-ink-line bg-ink-soft/80 px-3.5 py-1.5 text-xs text-paper backdrop-blur-md outline-none transition-all placeholder:text-paper-faint focus:w-48 focus:border-paper-faint"
+            className="w-36 rounded-full border border-ink-line bg-ink-soft/80 px-3.5 py-2 text-sm text-paper backdrop-blur-md outline-none transition-all placeholder:text-paper-faint focus:w-48 focus:border-paper-faint sm:py-1.5 sm:text-xs"
           />
           {query.length > 0 && (
             <button
@@ -57,7 +68,7 @@ export function MapToolbar({ nodes, focusDomain, onFocus, query, onQuery }: Prop
             <button
               key={domain}
               onClick={() => onFocus(on ? null : domain)}
-              className={`flex shrink-0 items-center gap-1.5 rounded-full border px-3 py-1.5 text-xs whitespace-nowrap backdrop-blur-md transition-colors ${
+              className={`flex shrink-0 items-center gap-1.5 rounded-full border px-3.5 py-2 text-sm whitespace-nowrap backdrop-blur-md transition-colors sm:px-3 sm:py-1.5 sm:text-xs ${
                 on
                   ? "border-paper-faint bg-ink-soft text-paper"
                   : "border-ink-line bg-ink-soft/80 text-paper-faint hover:text-paper-dim"

@@ -1,6 +1,7 @@
 "use client";
 
 import Link from "next/link";
+import { usePathname } from "next/navigation";
 import { useSyncExternalStore } from "react";
 
 import { GA_ID } from "@/lib/ga";
@@ -23,10 +24,19 @@ const getServerSnapshot = () => "unknown" as const;
  * răspuns deja. Cele două butoane au aceeași greutate vizuală: refuzul nu e
  * ascuns într-un link mic, cum cere legea și bunul-simț.
  */
+/** Ecranele aplicației: acolo omul lucrează, iar bannerul ar acoperi bara de jos. */
+const PRIVATE = ["/harta", "/admin", "/setari", "/intra", "/resetare"];
+
 export function CookieBanner() {
-  const consent = useSyncExternalStore(subscribe, getSnapshot, getServerSnapshot);
+  const consent = useSyncExternalStore(
+    subscribe,
+    getSnapshot,
+    getServerSnapshot,
+  );
+  const pathname = usePathname();
 
   if ((!PIXEL_ID && !GA_ID) || consent !== null) return null;
+  if (PRIVATE.some((p) => pathname.startsWith(p))) return null;
 
   function answer(value: "granted" | "denied") {
     // Scrierea cookie-ului anunță abonații, deci bannerul dispare singur.
@@ -39,7 +49,7 @@ export function CookieBanner() {
       aria-label="Cookie-uri"
       className="fixed inset-x-0 bottom-0 z-50 px-4 pb-[max(1rem,env(safe-area-inset-bottom))]"
     >
-      <div className="mx-auto flex max-w-3xl flex-col gap-4 rounded-2xl border border-ink-line bg-ink-soft/95 p-5 shadow-2xl backdrop-blur sm:flex-row sm:items-center">
+      <div className="mx-auto flex max-w-3xl flex-col gap-3 rounded-2xl border border-ink-line bg-ink-soft/95 p-4 shadow-2xl backdrop-blur sm:flex-row sm:items-center sm:gap-4 sm:p-5">
         <p className="flex-1 text-sm leading-relaxed text-paper-dim">
           Folosim cookie-uri de la Meta și Google ca să înțelegem de unde vin
           vizitatorii și dacă reclamele noastre ajută. Nimic din ce scrii în

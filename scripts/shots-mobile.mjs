@@ -19,6 +19,7 @@ mkdirSync(OUT, { recursive: true });
 
 const browser = await chromium.launch();
 const context = await browser.newContext({ ...devices["iPhone 14"], locale: "ro-RO" });
+await context.addCookies([{ name: "tm_consent", value: "denied", url: BASE }]);
 const page = await context.newPage();
 
 // Ecusonul de dezvoltare al Next stă în colțul de jos și interceptează atingerile

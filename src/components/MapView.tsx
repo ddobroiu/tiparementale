@@ -385,14 +385,14 @@ export function MapView({
             {account.sessionsLeft === 0 ? (
               <Link
                 href="/pachete"
-                className="rounded-full bg-paper px-4 py-1.5 text-xs font-semibold text-ink shadow-lg transition-opacity hover:opacity-90"
+                className="rounded-full bg-paper px-4 py-2 text-sm font-semibold text-ink shadow-lg transition-opacity hover:opacity-90 sm:py-1.5 sm:text-xs"
               >
                 Cumpără ședințe
               </Link>
             ) : (
               <Link
                 href="/pachete"
-                className="rounded-full border border-ink-line px-3 py-1.5 text-xs text-paper-dim transition-colors hover:border-paper-faint hover:text-paper"
+                className="rounded-full border border-ink-line px-3.5 py-2 text-sm text-paper-dim transition-colors hover:border-paper-faint hover:text-paper sm:py-1.5 sm:text-xs"
               >
                 {account.sessionsLeft}{" "}
                 {account.sessionsLeft === 1 ? "ședință" : "ședințe"}
@@ -511,7 +511,7 @@ export function MapView({
                 <button
                   key={t.id}
                   onClick={() => openTab(t.id)}
-                  className={`rounded-xl border px-2 py-2 text-left ${
+                  className={`relative rounded-xl border px-2.5 py-2.5 pr-7 text-left ${
                     primary
                       ? "border-paper bg-paper text-ink"
                       : "border-ink-line text-paper-dim"
@@ -526,7 +526,7 @@ export function MapView({
                     {t.label}
                     {badge > 0 && (
                       <span
-                        className={`rounded-full px-1.5 text-[10px] ${
+                        className={`absolute top-1.5 right-1.5 rounded-full px-1.5 text-[10px] ${
                           primary ? "bg-ink/10" : "bg-ink-line"
                         }`}
                       >

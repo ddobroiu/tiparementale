@@ -50,33 +50,40 @@ export function SiteHeader() {
 
         <button
           onClick={() => setOpen(!open)}
-          className="text-paper-dim md:hidden"
+          className="-mr-2 flex h-11 items-center gap-2 rounded-xl px-3 text-paper-dim md:hidden"
           aria-label={open ? "Închide meniul" : "Deschide meniul"}
           aria-expanded={open}
         >
-          {open ? "✕" : "☰"}
+          <span className="text-sm">{open ? "Închide" : "Meniu"}</span>
+          <span className="text-xl leading-none">{open ? "✕" : "☰"}</span>
         </button>
       </div>
 
       {open && (
-        <nav className="border-t border-ink-line px-6 py-4 md:hidden">
-          <ul className="space-y-3">
-            {NAV.map((item) => (
-              <li key={item.href}>
-                <Link
-                  href={item.href}
-                  onClick={() => setOpen(false)}
-                  className="block text-sm text-paper-dim"
-                >
-                  {item.label}
-                </Link>
-              </li>
-            ))}
+        <nav className="border-t border-ink-line px-6 py-3 md:hidden">
+          <ul className="divide-y divide-ink-line">
+            {NAV.map((item) => {
+              const active = pathname.startsWith(item.href);
+              return (
+                <li key={item.href}>
+                  <Link
+                    href={item.href}
+                    onClick={() => setOpen(false)}
+                    className={`flex items-center justify-between py-3.5 text-base ${
+                      active ? "text-paper" : "text-paper-dim"
+                    }`}
+                  >
+                    {item.label}
+                    <span className="text-paper-faint">→</span>
+                  </Link>
+                </li>
+              );
+            })}
           </ul>
           <Link
             href="/harta"
             onClick={() => setOpen(false)}
-            className="mt-4 block rounded-xl bg-paper px-4 py-2.5 text-center text-sm font-medium text-ink"
+            className="mt-4 block rounded-xl bg-paper px-4 py-3.5 text-center text-base font-medium text-ink"
           >
             Harta mea
           </Link>

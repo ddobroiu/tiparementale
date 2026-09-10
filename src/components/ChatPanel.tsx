@@ -79,13 +79,13 @@ export function ChatPanel({
       style={sheetStyle}
       className="animate-fade-up fixed inset-x-0 bottom-0 z-20 flex h-[56dvh] flex-col border-t border-ink-line bg-ink-soft/95 backdrop-blur-md sm:static sm:h-full sm:w-full sm:border-t-0 sm:bg-transparent sm:backdrop-blur-none"
     >
-      <div className="flex items-center justify-between border-b border-ink-line px-5 py-3">
+      <div className="flex items-center justify-between gap-4 border-b border-ink-line px-5 py-3">
         <span className="min-w-0 truncate text-xs tracking-[0.16em] text-paper-faint uppercase">
           {title ?? "Conversație liberă"}
         </span>
         <button
           onClick={onClose}
-          className="text-xs text-paper-faint transition-colors hover:text-paper"
+          className="shrink-0 text-sm text-paper-faint transition-colors hover:text-paper sm:text-xs"
         >
           Închide
         </button>

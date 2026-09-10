@@ -43,9 +43,28 @@ html {
   animation: work-dash 3s linear infinite;
 }
 
-/* iOS face zoom pe pagină la orice câmp cu text sub 16px. Pe telefon, toate
-   câmpurile au 16px, indiferent de clasa lor; layout-ul nu mai sare. */
+/* Pe telefon, scrisul e cu o treaptă mai mare: mărimile în rem cresc odată
+   cu rădăcina, iar etichetele fixate în pixeli primesc un prag de jos. Sub
+   12 px nu se citește pe un ecran ținut în mână. */
 @media (max-width: 639px) {
+  html {
+    font-size: 17px;
+  }
+  [class*="text-[9px]"] {
+    font-size: 11px;
+  }
+  [class*="text-[10px]"],
+  [class*="text-[11px]"] {
+    font-size: 12.5px;
+  }
+  [class*="text-[13px]"] {
+    font-size: 15px;
+  }
+  [class*="text-[15px]"] {
+    font-size: 17px;
+  }
+
+  /* iOS face zoom pe pagină la orice câmp cu text sub 16px. */
   input,
   textarea,
   select {

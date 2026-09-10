@@ -21,6 +21,7 @@ await db.connect();
 
 const browser = await chromium.launch();
 const page = await browser.newPage({ viewport: { width: 1366, height: 820 }, locale: "ro-RO" });
+await page.context().addCookies([{ name: "tm_consent", value: "denied", url: BASE }]);
 await page.addInitScript(() => {
   const style = document.createElement("style");
   style.textContent = "nextjs-portal{display:none!important}";
