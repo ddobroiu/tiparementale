@@ -74,7 +74,7 @@ export function AddNodeForm({ onAdded }: { onAdded: (nodeId: string) => void }) 
   return (
     <form
       onSubmit={submit}
-      className="animate-fade-up fixed inset-x-0 bottom-0 z-40 max-h-[85vh] overflow-y-auto rounded-t-2xl border-t border-ink-line bg-ink-soft p-5 sm:static sm:z-auto sm:w-[min(92vw,26rem)] sm:rounded-2xl sm:border sm:bg-ink-soft/95 sm:backdrop-blur-md"
+      className="animate-fade-up fixed inset-x-0 bottom-0 z-40 max-h-[85dvh] overflow-y-auto rounded-t-2xl border-t border-ink-line bg-ink-soft p-5 pb-[calc(1.25rem+env(safe-area-inset-bottom))] sm:static sm:pb-5 sm:z-auto sm:w-[min(92vw,26rem)] sm:rounded-2xl sm:border sm:bg-ink-soft/95 sm:backdrop-blur-md"
     >
       <div className="flex items-start justify-between gap-4">
         <span className="text-[10px] tracking-[0.16em] text-paper-faint uppercase">

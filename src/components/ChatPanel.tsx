@@ -44,7 +44,7 @@ export function ChatPanel({ messages, pending, extracting, limit, onSend, onClos
   }
 
   return (
-    <aside className="animate-fade-up fixed inset-x-0 bottom-0 z-20 flex h-[52vh] flex-col border-t border-ink-line bg-ink-soft/95 backdrop-blur-md sm:static sm:h-auto sm:w-[380px] sm:shrink-0 sm:border-t-0 sm:border-l lg:w-[420px]">
+    <aside className="animate-fade-up fixed inset-x-0 bottom-0 z-20 flex h-[56dvh] flex-col border-t border-ink-line bg-ink-soft/95 backdrop-blur-md sm:static sm:h-auto sm:w-[380px] sm:shrink-0 sm:border-t-0 sm:border-l lg:w-[420px]">
       <div className="flex items-center justify-between border-b border-ink-line px-5 py-3">
         <span className="text-xs tracking-[0.16em] text-paper-faint uppercase">
           Spune ce ai pe suflet
@@ -147,7 +147,10 @@ export function ChatPanel({ messages, pending, extracting, limit, onSend, onClos
           )}
         </div>
       ) : (
-      <form onSubmit={submit} className="flex gap-2 border-t border-ink-line p-3">
+      <form
+        onSubmit={submit}
+        className="flex gap-2 border-t border-ink-line p-3 pb-[calc(0.75rem+env(safe-area-inset-bottom))] sm:pb-3"
+      >
         <input
           value={draft}
           onChange={(e) => setDraft(e.target.value)}

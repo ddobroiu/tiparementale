@@ -246,8 +246,8 @@ export function MapView({
   );
 
   return (
-    <div className="flex h-screen flex-col overflow-hidden sm:flex-row">
-      <div className="relative min-w-0 flex-1">
+    <div className="flex h-dvh flex-col overflow-hidden sm:flex-row">
+      <div className="relative min-h-0 min-w-0 flex-1">
         <header className="absolute inset-x-0 top-0 z-10 flex items-center justify-between px-4 py-4 sm:px-6 sm:py-5">
           <Link href="/">
             <Logo />
@@ -418,7 +418,7 @@ export function MapView({
         {/* Telefon: o bară jos, iar selectorul și panourile se ridică ca foi.
             Harta rămâne vizibilă — altfel omul nu vede niciodată ce construiește. */}
         {!chatOpen && !pickerOpen && (
-          <div className="absolute inset-x-0 bottom-0 z-20 flex items-center gap-2 border-t border-ink-line bg-ink/90 px-3 py-3 backdrop-blur-md sm:hidden">
+          <div className="absolute inset-x-0 bottom-0 z-20 flex items-center gap-2 border-t border-ink-line bg-ink/90 px-3 pt-3 pb-[calc(0.75rem+env(safe-area-inset-bottom))] backdrop-blur-md sm:hidden">
             <button
               onClick={() => setPickerOpen(true)}
               className="shrink-0 rounded-xl bg-paper px-4 py-2.5 text-sm font-medium whitespace-nowrap text-ink"
@@ -426,7 +426,7 @@ export function MapView({
               Începe o ședință
             </button>
             {/* Restul acțiunilor se derulează lateral; butonul principal nu se strânge. */}
-            <div className="flex min-w-0 flex-1 gap-1.5 overflow-x-auto [scrollbar-width:none] [&::-webkit-scrollbar]:hidden [&>*]:shrink-0 [&>*]:whitespace-nowrap">
+            <div className="flex min-w-0 flex-1 gap-1.5 overflow-x-auto pr-6 [mask-image:linear-gradient(to_right,black_calc(100%-2rem),transparent)] [scrollbar-width:none] [&::-webkit-scrollbar]:hidden [&>*]:shrink-0 [&>*]:whitespace-nowrap">
               <AddNodeForm
                 onAdded={async (id) => {
                   await reload();
@@ -446,7 +446,7 @@ export function MapView({
               onClick={() => setPickerOpen(false)}
               className="flex-1"
             />
-            <div className="rounded-t-2xl border-t border-ink-line bg-ink-soft">
+            <div className="rounded-t-2xl border-t border-ink-line bg-ink-soft pb-[env(safe-area-inset-bottom)]">
               <div className="flex justify-center py-2">
                 <span className="h-1 w-10 rounded-full bg-ink-line" />
               </div>

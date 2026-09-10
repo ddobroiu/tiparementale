@@ -1,4 +1,4 @@
-import type { Metadata } from "next";
+import type { Metadata, Viewport } from "next";
 import { Fraunces, Inter } from "next/font/google";
 
 import { SITE } from "@/lib/site";
@@ -22,6 +22,17 @@ const fraunces = Fraunces({
  * absolute. Fără el, etichetele de partajare indică spre nicăieri, iar
  * adresele canonice sunt ignorate.
  */
+/**
+ * `viewportFit: cover` lasă pagina să ajungă până sub marginile rotunjite
+ * ale telefonului; zonele sigure le tratăm noi, cu `env(safe-area-inset-*)`.
+ */
+export const viewport: Viewport = {
+  width: "device-width",
+  initialScale: 1,
+  viewportFit: "cover",
+  themeColor: "#0a0a0f",
+};
+
 export const metadata: Metadata = {
   metadataBase: new URL(SITE.url),
   title: {

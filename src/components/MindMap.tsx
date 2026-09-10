@@ -10,15 +10,38 @@ import {
   type SimulationLinkDatum,
   type SimulationNodeDatum,
 } from "d3-force";
-import { useMemo, useRef, useState } from "react";
+import { useMemo, useRef, useState, useSyncExternalStore } from "react";
 
 import type { Edge, LifeDomain, MindNode } from "@/lib/types";
 import { BrainBackdrop } from "./BrainBackdrop";
 import { NodeGlyph } from "./NodeGlyph";
 import { DOMAIN_COLORS, DOMAIN_LABELS, changeDegree, displayLabel } from "@/lib/types";
 
+/** Desenul de bază, pe ecran lat. Creierul e trasat în aceste coordonate. */
 const WIDTH = 1000;
 const HEIGHT = 700;
+
+/** Pe telefon, ecranul e înalt și îngust: harta primește un cadru pe măsură. */
+const PORTRAIT_WIDTH = 520;
+const PORTRAIT_HEIGHT = 1000;
+
+const PORTRAIT_QUERY = "(max-width: 639px)";
+
+/**
+ * Răspunde la întrebarea „e ecran de telefon?” fără efecte și fără stare
+ * scrisă din efect: browserul e sursa, React doar se abonează la ea.
+ */
+function usePortrait(): boolean {
+  return useSyncExternalStore(
+    (notify) => {
+      const media = window.matchMedia(PORTRAIT_QUERY);
+      media.addEventListener("change", notify);
+      return () => media.removeEventListener("change", notify);
+    },
+    () => window.matchMedia(PORTRAIT_QUERY).matches,
+    () => false,
+  );
+}
 
 interface SimNode extends SimulationNodeDatum {
   id: string;
@@ -31,16 +54,24 @@ interface SimNode extends SimulationNodeDatum {
  * Așa harta capătă ramuri vizibile — banii într-o parte, relațiile în alta —
  * în loc de un ghem în care totul se amestecă.
  */
-function domainAnchors(domains: LifeDomain[]): Map<LifeDomain, { x: number; y: number }> {
-  const radius = Math.min(WIDTH, HEIGHT) * 0.34;
+function domainAnchors(
+  domains: LifeDomain[],
+  width: number,
+  height: number,
+): Map<LifeDomain, { x: number; y: number }> {
+  // Pe ecran lat, un cerc. Pe ecran înalt, o elipsă care urmează forma
+  // ecranului — altfel ramurile ar ieși pe laterale și ar rămâne loc gol sus și jos.
+  const portrait = height > width;
+  const rx = portrait ? width * 0.36 : Math.min(width, height) * 0.34;
+  const ry = portrait ? height * 0.3 : rx;
   return new Map(
     domains.map((domain, i) => {
       const angle = (i / domains.length) * Math.PI * 2 - Math.PI / 2;
       return [
         domain,
         {
-          x: WIDTH / 2 + Math.cos(angle) * radius,
-          y: HEIGHT / 2 + Math.sin(angle) * radius,
+          x: width / 2 + Math.cos(angle) * rx,
+          y: height / 2 + Math.sin(angle) * ry,
         },
       ];
     }),
@@ -102,9 +133,13 @@ export function MindMap({
   const dragState = useRef<{ x: number; y: number; vx: number; vy: number } | null>(null);
   const moved = useRef(false);
 
+  const portrait = usePortrait();
+  const W = portrait ? PORTRAIT_WIDTH : WIDTH;
+  const H = portrait ? PORTRAIT_HEIGHT : HEIGHT;
+
   const anchors = useMemo(
-    () => domainAnchors([...new Set(nodes.map((n) => n.domain))]),
-    [nodes],
+    () => domainAnchors([...new Set(nodes.map((n) => n.domain))], W, H),
+    [nodes, W, H],
   );
 
   // Layout-ul este stare derivată din graf, nu un efect secundar: simularea
@@ -144,9 +179,9 @@ export function MindMap({
       .tick(320);
 
     return new Map(
-      simNodes.map((n) => [n.id, { x: n.x ?? WIDTH / 2, y: n.y ?? HEIGHT / 2 }]),
+      simNodes.map((n) => [n.id, { x: n.x ?? W / 2, y: n.y ?? H / 2 }]),
     );
-  }, [nodes, edges, anchors]);
+  }, [nodes, edges, anchors, W, H]);
 
   /**
    * Vecinii nodului atins acum. Trecerea cu mâna peste un nod stinge restul
@@ -251,13 +286,11 @@ export function MindMap({
 
   return (
     <div className="relative h-full w-full">
-      {/* Pe ecran înalt și îngust, desenul de 1000×700 ar rămâne o fâșie mică la
-          mijloc. Îl lăsăm mai lat decât ecranul — scala o dictează atunci
-          înălțimea, iar nodurile devin de aproape două ori mai mari. Marginile
-          tăiate se ajung prin tragere. */}
+      {/* Cadrul urmează ecranul: lat pe calculator, înalt pe telefon. Așa nimic
+          nu rămâne tăiat pe laterale și nodurile au dimensiune de atins. */}
       <svg
-        viewBox={`0 0 ${WIDTH} ${HEIGHT}`}
-        className="h-full w-full cursor-grab touch-none active:cursor-grabbing max-sm:-ml-[35%] max-sm:w-[170%]"
+        viewBox={`0 0 ${W} ${H}`}
+        className="h-full w-full cursor-grab touch-none active:cursor-grabbing"
         onWheel={onWheel}
         onPointerDown={onPointerDown}
         onPointerMove={onPointerMove}
@@ -284,9 +317,19 @@ export function MindMap({
         </defs>
 
         <g
-          transform={`translate(${WIDTH / 2} ${HEIGHT / 2}) scale(${view.k}) translate(${-WIDTH / 2 + view.x} ${-HEIGHT / 2 + view.y})`}
+          transform={`translate(${W / 2} ${H / 2}) scale(${view.k}) translate(${-W / 2 + view.x} ${-H / 2 + view.y})`}
         >
-          <BrainBackdrop />
+          {/* Creierul e desenat pentru cadrul lat; în portret îl aducem la lățimea
+              cadrului (puțin peste, ca să umple fundalul) și îl așezăm la mijloc. */}
+          <g
+            transform={
+              portrait
+                ? `translate(${W / 2} ${H / 2}) scale(${(W / WIDTH) * 1.35}) translate(${-WIDTH / 2} ${-HEIGHT / 2})`
+                : undefined
+            }
+          >
+            <BrainBackdrop />
+          </g>
 
           {/* Numele ramurilor, discret, ca reper de orientare. */}
           {[...anchors].map(([domain, point]) => (
