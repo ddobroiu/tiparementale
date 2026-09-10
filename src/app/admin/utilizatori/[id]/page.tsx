@@ -3,6 +3,7 @@ import { notFound } from "next/navigation";
 
 import { CreditForm } from "@/components/admin/CreditForm";
 import { DeleteUserButton } from "@/components/admin/DeleteUserButton";
+import { ResetMapButton } from "@/components/admin/ResetMapButton";
 import { ago, dateTime, lei, usd } from "@/lib/admin";
 import { withAdmin } from "@/lib/db";
 
@@ -228,7 +229,8 @@ export default async function AdminUserPage({
             </ul>
           </section>
 
-          <section className="border-t border-ink-line pt-6">
+          <section className="space-y-4 border-t border-ink-line pt-6">
+            <ResetMapButton userId={user.id} email={user.email} />
             <DeleteUserButton userId={user.id} email={user.email} />
           </section>
         </aside>

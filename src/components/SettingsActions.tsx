@@ -3,6 +3,8 @@
 import { useRouter } from "next/navigation";
 import { useState } from "react";
 
+import { ResetMap } from "./ResetMap";
+
 /**
  * Cele trei lucruri pe care omul trebuie să le poată face singur cu contul
  * lui: să ia tot ce e al lui, să plece, și să șteargă tot. Fără e-mail către
@@ -83,6 +85,8 @@ export function SettingsActions({ email }: { email: string }) {
           Ieși
         </button>
       </section>
+
+      <ResetMap />
 
       <section className="rounded-2xl border border-[color:var(--emotion)]/30 p-6">
         <h2 className="font-serif text-xl">Șterge contul</h2>

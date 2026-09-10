@@ -99,6 +99,26 @@ try {
   check("registrul apare pe pagina contului", again.html.includes("nu sub zero"));
   check("butonul de ștergere apare pe pagina contului", again.html.includes("Șterge acest cont"));
 
+  // Resetarea hărții: nodurile pleacă, portofelul rămâne.
+  for (const label of ["Dacă nu iese perfect, nu o fac", "Banii se termină oricând"]) {
+    await api("/api/nodes", { label, type: "belief", domain: "self" }, userCookie);
+  }
+  const before = await admin.query("select count(*)::int as n from tipare_mentale.nodes where user_id = $1", [userId]);
+  check("două noduri plantate pe harta contului", before.rows[0].n === 2);
+  const badWord = await api("/api/account/reset", { confirm: "da" }, userCookie);
+  check("resetare din cont fără cuvântul corect → 400", badWord.status === 400);
+  const selfReset = await api("/api/account/reset", { confirm: "resetez" }, userCookie);
+  check("resetare din cont → 200, 2 noduri șterse", selfReset.status === 200 && selfReset.data.nodes === 2, JSON.stringify(selfReset.data));
+  await api("/api/nodes", { label: "Nu cer ajutor", type: "pattern", domain: "work" }, userCookie);
+  const adminReset = await fetch(`${BASE}/api/admin/users/${userId}/reset`, { method: "POST", headers: { cookie: adminCookie } });
+  const adminResetData = await adminReset.json();
+  check("resetare din admin → 200, 1 nod șters", adminReset.status === 200 && adminResetData.nodes === 1, JSON.stringify(adminResetData));
+  const after = await admin.query(
+    "select (select count(*)::int from tipare_mentale.nodes where user_id = $1) as nodes, (select transformations_balance from tipare_mentale.wallets where user_id = $1) as tr",
+    [userId],
+  );
+  check("harta goală, portofelul neatins (2 transformări)", after.rows[0].nodes === 0 && after.rows[0].tr === 2);
+
   const del = async (id, cookie) => {
     const res = await fetch(`${BASE}/api/admin/users/${id}`, { method: "DELETE", headers: { cookie } });
     return { status: res.status, data: await res.json().catch(() => ({})) };
