@@ -25,7 +25,8 @@ export async function GET(_request: Request, context: RouteContext<"/api/nodes/[
     const { rows: nodes } = await client.query<MindNode>("select * from nodes where id = $1", [id]);
     if (nodes.length === 0) return null;
 
-    const [observations, history, recommendations, transformations] = await Promise.all([
+    const [observations, history, recommendations, transformations, exerciseLogs] =
+      await Promise.all([
       client.query<Observation>(
         "select * from observations where node_id = $1 order by observed_at desc",
         [id],
@@ -42,6 +43,15 @@ export async function GET(_request: Request, context: RouteContext<"/api/nodes/[
         "select * from transformations where node_id = $1 order by created_at desc",
         [id],
       ),
+      // Urmărirea exercițiilor: fără ea, progresul rămâne declarat, nu măsurat.
+      client.query(
+        `select l.id, l.recommendation_id, l.did_it, l.note, l.fear_confirmed, l.logged_at
+           from exercise_logs l
+           join recommendations r on r.id = l.recommendation_id
+          where r.node_id = $1
+          order by l.logged_at`,
+        [id],
+      ),
     ]);
 
     return {
@@ -50,6 +60,7 @@ export async function GET(_request: Request, context: RouteContext<"/api/nodes/[
       history: history.rows,
       recommendations: recommendations.rows,
       transformations: transformations.rows,
+      exerciseLogs: exerciseLogs.rows,
     };
   });
 

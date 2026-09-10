@@ -134,6 +134,23 @@ export interface Transformation {
   adopted_at: string | null;
 }
 
+export type ExerciseMethod =
+  | "behavioural_experiment"
+  | "graded_exposure"
+  | "thought_record"
+  | "opposite_action"
+  | "boundary_practice"
+  | "self_compassion";
+
+export const EXERCISE_METHOD_LABELS: Record<ExerciseMethod, string> = {
+  behavioural_experiment: "Experiment",
+  graded_exposure: "Pas mic",
+  thought_record: "Gând prins",
+  opposite_action: "Contrariul",
+  boundary_practice: "Graniță",
+  self_compassion: "Vocea",
+};
+
 export interface Recommendation {
   id: string;
   user_id: string;
@@ -147,6 +164,22 @@ export interface Recommendation {
   status: RecommendationStatus;
   created_at: string;
   completed_at: string | null;
+  /** Doar la exerciții: structura care le face executabile, nu doar sugerate. */
+  method: ExerciseMethod | null;
+  trigger_cue: string | null;
+  action: string | null;
+  record_prompt: string | null;
+  review_after_days: number | null;
+}
+
+/** O dată când omul a făcut exercițiul și a notat ce s-a întâmplat. */
+export interface ExerciseLog {
+  id: string;
+  recommendation_id: string;
+  did_it: boolean;
+  note: string | null;
+  fear_confirmed: number | null;
+  logged_at: string;
 }
 
 /**

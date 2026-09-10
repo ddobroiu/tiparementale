@@ -650,6 +650,73 @@ export const GUIDES: Guide[] = [
       },
     ],
   },
+  {
+    id: "tiparul-care-tine-firma-pe-loc",
+    title: "Tiparul care îți ține firma pe loc",
+    summary:
+      "Dezordinea fondatorului se vede în firmă. Nu strategia, nu piața — " +
+      "regula personală care decide ce nu delegi, ce nu ceri și ce nu livrezi.",
+    domain: "work",
+    goal: "money_work",
+    sources: [
+      "Young — Standarde nerealiste, Dependență, Autocontrol, Îndreptățire, Subjugare",
+      "Petre Nicolae — PRP: evaluarea tiparelor fondatorului înaintea structurii",
+      "Gerber — The E-Myth (tehnicianul care deschide o firmă)",
+    ],
+    steps: [
+      {
+        id: "blocajul",
+        question: "Unde simți că firma sau munca ta bate pasul pe loc? Nu cifra — locul.",
+        options: [
+          "Nu pot delega, fac eu tot",
+          "Nu îmi cresc prețurile",
+          "Amân deciziile mari",
+          "Nu vând, aștept să vină clienții",
+          "Încep multe, termin puține",
+        ],
+        lookingFor:
+          "Fiecare variantă e un tipar personal deghizat în problemă de business: control, subjugare, evitare, aprobare, autocontrol.",
+        schemas: ["unrelenting_standards", "subjugation", "vulnerability", "approval_seeking", "insufficient_self_control"],
+      },
+      {
+        id: "delegarea",
+        question: "Ultima dată când ai dat cuiva o sarcină importantă — ce ai făcut după? Sincer.",
+        options: ["Am verificat de trei ori", "Am refăcut-o eu", "Am lăsat-o și a mers", "N-am dat-o, am făcut-o eu"],
+        lookingFor:
+          "Controlul ca protecție. Refacerea în locul feedback-ului e standard nerealist; nedelegarea e neîncredere sau dependență inversată.",
+        schemas: ["unrelenting_standards", "mistrust", "dependence"],
+      },
+      {
+        id: "pretul",
+        question: "Când ai spus ultima dată un preț și ai simțit că e prea mare — deși știai că nu e? Ce ai făcut?",
+        options: ["L-am scăzut înainte să răspundă", "L-am spus și am justificat mult", "L-am spus și am tăcut", "Nu-mi amintesc să fi simțit asta"],
+        lookingFor:
+          "Banii ca valoare personală. Scăderea preventivă e subjugare; justificarea excesivă e căutare de aprobare.",
+        schemas: ["subjugation", "approval_seeking", "defectiveness"],
+      },
+      {
+        id: "decizia",
+        question: "Care e decizia pe care o amâni de cel mai mult timp în firmă? Ce s-ar întâmpla dacă ai lua-o mâine?",
+        lookingFor:
+          "Amânarea ca evitare a expunerii. Răspunsul la „ce s-ar întâmpla” arată frica reală, nu cea declarată.",
+        schemas: ["vulnerability", "failure", "negativity"],
+      },
+      {
+        id: "acasa",
+        question: "Cine, din casa în care ai crescut, avea aceeași problemă — cu banii, cu controlul, cu „fac eu tot”?",
+        lookingFor:
+          "Originea. Tiparul de business e aproape întotdeauna un tipar de familie cu costum.",
+        schemas: [],
+      },
+      {
+        id: "costul",
+        question: "Ce te-a costat tiparul ăsta în ultimul an — în bani, în ore, în oameni? Pune o cifră, chiar aproximativă.",
+        lookingFor:
+          "Cuantificarea. Nicolae: se reconstruiește cu structură, nu cu motivație — iar structura începe cu costul măsurat, nu simțit.",
+        schemas: [],
+      },
+    ],
+  },
 ];
 
 export const GUIDE_BY_ID = new Map(GUIDES.map((g) => [g.id, g]));

@@ -1118,6 +1118,81 @@ export const ARTICLES: Article[] = [
       },
     ],
   },
+  {
+    slug: "tiparul-care-tine-firma-pe-loc",
+    title: "Tiparul care îți ține firma pe loc nu e în firmă",
+    metaTitle: "De ce firma ta bate pasul pe loc: tiparul ascuns al fondatorului",
+    description:
+      "Nu piața, nu echipa, nu strategia. Cel mai des, ce ține o firmă mică pe " +
+      "loc e o regulă personală a fondatorului — despre control, preț sau " +
+      "vizibilitate — învățată cu mult înainte de a avea o firmă.",
+    keywords: [
+      "firma nu creste",
+      "antreprenor blocat",
+      "nu pot delega",
+      "mindset antreprenor",
+      "convingeri limitative afaceri",
+      "de ce nu imi cresc preturile",
+    ],
+    published: "2026-09-10",
+    updated: "2026-09-10",
+    readingMinutes: 7,
+    lede:
+      "Consultanții care lucrează cu fondatori spun același lucru, din direcții " +
+      "diferite: dezordinea din firmă e dezordinea fondatorului, pusă pe " +
+      "organigramă. Nu e o metaforă. E ce se vede când te uiți la cine ce nu " +
+      "face, și de ce.",
+    body: [
+      {
+        type: "p",
+        text: "Există un moment în viața unei firme mici în care creșterea se oprește fără motiv vizibil. Produsul e bun, clienții revin, echipa e decentă. Și totuși cifra stă. Fondatorul caută explicația în piață, în concurență, în strategie — și rar acolo unde e de fapt: în regulile după care el însuși funcționează.",
+      },
+      { type: "h2", text: "Cinci blocaje care nu sunt de business" },
+      {
+        type: "ul",
+        items: [
+          "„Nu pot delega, fac eu tot.” Sună a lipsă de oameni buni. De obicei e regula „dacă nu e făcut de mine, nu e făcut bine” — standarde nerealiste, învățate într-o casă în care greșeala se plătea.",
+          "„Nu-mi cresc prețurile.” Sună a piață sensibilă. De obicei e „dacă cer mai mult, o să plece” — o frică de respingere pusă pe factură.",
+          "„Amân decizia mare de un an.” Sună a prudență. De obicei e evitarea expunerii: cât timp nu decizi, nu poți greși vizibil.",
+          "„Nu vând, aștept să vină clienții.” Sună a modestie. De obicei e „a cere înseamnă a deranja” — aceeași regulă care te oprește să ceri ajutor acasă.",
+          "„Încep multe, termin puține.” Sună a creativitate. De obicei e intoleranță la plictiseala execuției, sau frica de momentul în care lucrul devine judecabil.",
+        ],
+      },
+      { type: "h2", text: "De ce nu se vede din interior" },
+      {
+        type: "p",
+        text: "Pentru că fiecare regulă vine cu o explicație de business gata făcută. „Nu deleg pentru că nu am pe cine” e o propoziție rezonabilă, verificabilă, pe care o poți spune la o cafea fără să pari fragil. „Nu deleg pentru că nu suport să văd lucrul făcut altfel” nu e. Deci prima rămâne, iar a doua lucrează în tăcere.",
+      },
+      {
+        type: "quote",
+        text: "Firma nu se repară cu motivație. Se reconstruiește cu structură — și structura începe cu a vedea regula care produce dezordinea.",
+      },
+      { type: "h2", text: "Testul care le desparte" },
+      {
+        type: "p",
+        text: "Ia problema de business pe care o ai de cel mai mult timp. Întreabă-te: dacă aș avea mâine oamenii perfecți, banii necesari și piața ideală, aș rezolva-o în o săptămână? Dacă răspunsul sincer e „probabil nu, tot aș găsi un motiv”, problema nu e de business. E o regulă personală care a împrumutat vocabularul firmei.",
+      },
+      { type: "h2", text: "De unde vine" },
+      {
+        type: "p",
+        text: "Aproape întotdeauna de acasă. Fondatorul care nu deleagă a avut, de regulă, un părinte pentru care nimic nu era destul de bine. Cel care nu cere prețul corect a crescut într-o casă în care a cere însemna a deranja. Cel care amână deciziile a văzut ce se întâmplă când greșești în public. Regula a fost inteligentă la vremea ei. Problema e că a rămas pornită și acum conduce o firmă.",
+      },
+      { type: "h2", text: "Ce funcționează" },
+      {
+        type: "ul",
+        items: [
+          "Pune o cifră pe cost. Nu „mă ține pe loc”, ci „m-a costat X ore și Y lei anul acesta”. O regulă cu preț e mai greu de apărat decât una vagă.",
+          "Găsește regula, nu problema. Scrie propoziția la persoana întâi: „dacă nu fac eu, iese prost”. Apoi întreabă cine a spus-o prima dată.",
+          "Testeaz-o în miză mică, nu în firmă. Deleagă o sarcină de care nu depinde nimic. Spune un preț cu 10% mai mare unui client nou. Notează ce s-a întâmplat de fapt — nu ce ai simțit.",
+          "Repetă până ai dovezi. Regula nu se schimbă cu un argument; se schimbă cu cinci experimente notate în care lumea nu s-a prăbușit.",
+        ],
+      },
+      {
+        type: "p",
+        text: "Și un lucru de care să te ferești: cursurile de motivație. Ele tratează exact lucrul greșit. Nu ai o problemă de energie — ai o regulă veche, care funcționează perfect, doar că pentru altă viață decât cea pe care o ai acum.",
+      },
+    ],
+  },
 ];
 
 export function getArticle(slug: string): Article | null {

@@ -114,13 +114,31 @@ export async function POST(_request: Request, context: RouteContext<"/api/nodes/
 
     const transformation = rows[0];
 
-    const entries = [
+    interface Entry {
+      kind: "exercise" | "example" | "book" | "film";
+      title: string;
+      creator: string | null;
+      year: number | null;
+      rationale: string;
+      method?: string | null;
+      trigger_cue?: string | null;
+      action?: string | null;
+      record_prompt?: string | null;
+      review_after_days?: number | null;
+    }
+
+    const entries: Entry[] = [
       ...plan.exercises.map((e) => ({
         kind: "exercise" as const,
         title: e.title,
         creator: null as string | null,
         year: null as number | null,
         rationale: e.rationale,
+        method: e.method as string | null,
+        trigger_cue: e.trigger_cue as string | null,
+        action: e.action as string | null,
+        record_prompt: e.record_prompt as string | null,
+        review_after_days: Math.max(1, Math.round(e.review_after_days)) as number | null,
       })),
       ...plan.examples.map((e) => ({
         kind: "example" as const,
@@ -148,8 +166,9 @@ export async function POST(_request: Request, context: RouteContext<"/api/nodes/
     for (const entry of entries) {
       await client.query(
         `insert into recommendations
-           (user_id, node_id, transformation_id, kind, title, creator, year, rationale)
-         values ($1, $2, $3, $4, $5, $6, $7, $8)`,
+           (user_id, node_id, transformation_id, kind, title, creator, year, rationale,
+            method, trigger_cue, action, record_prompt, review_after_days)
+         values ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13)`,
         [
           user.id,
           id,
@@ -159,6 +178,11 @@ export async function POST(_request: Request, context: RouteContext<"/api/nodes/
           entry.creator,
           entry.year,
           entry.rationale,
+          entry.method ?? null,
+          entry.trigger_cue ?? null,
+          entry.action ?? null,
+          entry.record_prompt ?? null,
+          entry.review_after_days ?? null,
         ],
       );
     }

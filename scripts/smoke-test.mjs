@@ -152,9 +152,22 @@ const detail = await call(`/api/nodes/${belief.id}`);
 for (const rec of detail.body.recommendations ?? []) {
   const who = rec.creator ? `, ${rec.creator}` : "";
   const year = rec.year ? ` (${rec.year})` : "";
-  console.log(`  [${rec.kind}] ${rec.title}${who}${year}`);
-  console.log(`      ${rec.rationale}`);
+  console.log(`  [${rec.kind}${rec.method ? `/${rec.method}` : ""}] ${rec.title}${who}${year}`);
+  if (rec.kind === "exercise") {
+    console.log(`      când:   ${rec.trigger_cue ?? "—"}`);
+    console.log(`      faci:   ${rec.action ?? "—"}`);
+    console.log(`      notezi: ${rec.record_prompt ?? "—"}`);
+    console.log(`      revii:  ${rec.review_after_days ?? "—"} zile`);
+  } else {
+    console.log(`      ${rec.rationale}`);
+  }
 }
+
+const structured = (detail.body.recommendations ?? []).filter(
+  (r) => r.kind === "exercise" && r.trigger_cue && r.action && r.record_prompt,
+).length;
+const exercisesTotal = (detail.body.recommendations ?? []).filter((r) => r.kind === "exercise").length;
+console.log(`\n  Exerciții structurate complet: ${structured} din ${exercisesTotal}`);
 
 const observations = detail.body.observations ?? [];
 console.log(`\n  Citate-sursă păstrate: ${observations.length}`);

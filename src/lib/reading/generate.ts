@@ -4,6 +4,7 @@ import * as z from "zod/v4";
 
 import { readUsage, type TokenUsage } from "@/lib/billing/pricing";
 import { EFFORT, MODELS, reasoningFor } from "@/lib/models";
+import { SCHEMA_DOMAIN_LABELS, schemaOf } from "@/lib/schemas";
 import {
   DOMAIN_LABELS,
   EXPLORABLE_DOMAINS,
@@ -82,6 +83,11 @@ trei locuri sub trei forme, ce se contrazice.
   tot restul. La fel, fără diagnostic și fără verdicte despre caracter.
 - **Leagă zone diferite.** Cea mai valoroasă observație e de forma „aceeași
   regulă care te face să nu ceri mărire te face și să nu ceri ajutor acasă”.
+- **Folosește familiile de tipare.** Unele elemente poartă o „familie” —
+  clasarea lor după terapia schemelor (Young). Când mai multe elemente din zone
+  diferite au aceeași familie, aceea e o temă: numește-o în cuvintele lui, nu
+  cu eticheta de manual, și spune ce nevoie stă în spate. Nu numi niciodată
+  schema în textul către el; folosește-o doar ca să vezi structura.
 - **Rămâi la ce e pe hartă.** Nu inventa istorie personală și nu deduce traume.
   Dacă ceva nu apare în date, nu apare nici în citire.
 - **Numește contradicția, dacă există.** Nu ca problemă de rezolvat, ci ca
@@ -120,9 +126,12 @@ export async function generateReading(input: ReadingInput): Promise<ReadingOutco
         n.verdict === "confirmed" || n.verdict === "edited"
           ? "confirmat de el"
           : "neconfirmat";
+      const schema = schemaOf(n.schema_code);
       return (
         `[${n.id}] ${NODE_TYPE_LABELS[n.type]} · ${DOMAIN_LABELS[n.domain]} · ` +
-        `încredere ${n.confidence.toFixed(2)} · ${verdict}\n  „${displayLabel(n)}”` +
+        `încredere ${n.confidence.toFixed(2)} · ${verdict}` +
+        (schema ? ` · familia: ${schema.name} (${SCHEMA_DOMAIN_LABELS[schema.domain]})` : "") +
+        `\n  „${displayLabel(n)}”` +
         (n.summary ? `\n  ${n.summary}` : "")
       );
     })

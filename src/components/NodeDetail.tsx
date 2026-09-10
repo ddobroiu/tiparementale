@@ -3,6 +3,7 @@
 import { useEffect, useState } from "react";
 
 import type {
+  ExerciseLog,
   MindNode,
   Observation,
   Recommendation,
@@ -16,6 +17,7 @@ import {
   changeDegree,
   displayLabel,
 } from "@/lib/types";
+import { ExerciseCard } from "./ExerciseCard";
 import { SCHEMA_DOMAIN_LABELS, SCHEMA_DOMAIN_NEED, schemaOf } from "@/lib/schemas";
 
 interface HistoryEntry {
@@ -32,6 +34,7 @@ interface Payload {
   history: HistoryEntry[];
   recommendations: Recommendation[];
   transformations: Transformation[];
+  exerciseLogs: ExerciseLog[];
 }
 
 const KIND_LABELS: Record<RecommendationKind, string> = {
@@ -149,7 +152,7 @@ export function NodeDetail({
     );
   }
 
-  const { node, observations, history, recommendations, transformations } = data;
+  const { node, observations, history, recommendations, transformations, exerciseLogs } = data;
   const confirmed = node.verdict === "confirmed" || node.verdict === "edited";
   const change = changeDegree(node);
   const schema = schemaOf(node.schema_code);
@@ -307,7 +310,7 @@ export function NodeDetail({
             </button>
             {working && (
               <p className="mt-2 text-center text-xs text-paper-faint">
-                Durează până la un minut. Merită așteptarea.
+                Durează un minut, două. Merită așteptarea.
               </p>
             )}
             {error && <p className="mt-3 text-xs text-[color:var(--emotion)]">{error}</p>}
@@ -373,22 +376,31 @@ export function NodeDetail({
                     {KIND_LABELS[kind]}
                   </h4>
                   <ul className="mt-2 space-y-2">
-                    {items.map((item) => (
-                      <li key={item.id} className="rounded-lg border border-ink-line p-3">
-                        <p className="text-sm text-paper">
-                          {item.title}
-                          {item.creator && (
-                            <span className="text-paper-dim">, {item.creator}</span>
-                          )}
-                          {item.year && (
-                            <span className="text-paper-faint"> ({item.year})</span>
-                          )}
-                        </p>
-                        <p className="mt-1.5 text-xs leading-relaxed text-paper-dim">
-                          {item.rationale}
-                        </p>
-                      </li>
-                    ))}
+                    {items.map((item) =>
+                      item.kind === "exercise" && item.action ? (
+                        <ExerciseCard
+                          key={item.id}
+                          exercise={item}
+                          logs={exerciseLogs.filter((l) => l.recommendation_id === item.id)}
+                          onLogged={reload}
+                        />
+                      ) : (
+                        <li key={item.id} className="rounded-lg border border-ink-line p-3">
+                          <p className="text-sm text-paper">
+                            {item.title}
+                            {item.creator && (
+                              <span className="text-paper-dim">, {item.creator}</span>
+                            )}
+                            {item.year && (
+                              <span className="text-paper-faint"> ({item.year})</span>
+                            )}
+                          </p>
+                          <p className="mt-1.5 text-xs leading-relaxed text-paper-dim">
+                            {item.rationale}
+                          </p>
+                        </li>
+                      ),
+                    )}
                   </ul>
                 </div>
               );

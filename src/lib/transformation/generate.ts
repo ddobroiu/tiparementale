@@ -24,6 +24,55 @@ const SuggestionSchema = z.object({
     .describe("De ce anume aceasta, pentru convingerea aceasta. Două propoziții."),
 });
 
+/**
+ * Exercițiul ca procedură, nu ca idee. Cele patru câmpuri urmează forma
+ * experimentului comportamental: când, ce, ce notezi, când revii. Fără ele,
+ * „predă ceva la 90%” rămâne o vorbă bună de care nu se apucă nimeni.
+ */
+const ExerciseSchema = z.object({
+  title: z.string().describe("Titlul, ca o instrucțiune scurtă la persoana a doua."),
+  method: z
+    .enum([
+      "behavioural_experiment",
+      "graded_exposure",
+      "thought_record",
+      "opposite_action",
+      "boundary_practice",
+      "self_compassion",
+    ])
+    .describe(
+      "Metoda: behavioural_experiment (testezi predicția convingerii într-o situație " +
+        "reală), graded_exposure (pas mic spre ce eviți), thought_record (prinzi gândul " +
+        "și îl separi de fapt), opposite_action (faci deliberat contrariul reflexului), " +
+        "boundary_practice (spui nu / ceri, în miză mică), self_compassion (numești și " +
+        "înlocuiești vocea critică).",
+    ),
+  trigger_cue: z
+    .string()
+    .describe(
+      "Declanșatorul: momentul concret în care exercițiul se pornește. „Când observi " +
+        "că recitești un e-mail a treia oară.” Nu „când te simți anxios”.",
+    ),
+  action: z
+    .string()
+    .describe(
+      "Ce faci, exact, în sub zece minute. O singură acțiune, observabilă, pe care " +
+        "o poți face azi. Nu „lucrează la…”, ci „trimite versiunea a doua”.",
+    ),
+  record_prompt: z
+    .string()
+    .describe(
+      "Ce notezi imediat după, în două-trei rânduri. Fapte, nu sentimente: cine ce " +
+        "a spus, ce consecință reală a avut, cât a durat disconfortul.",
+    ),
+  review_after_days: z
+    .number()
+    .describe("După câte zile revii să te uiți la ce ai notat. De regulă 3–7."),
+  rationale: z
+    .string()
+    .describe("Ce testează exercițiul din convingerea veche, într-o propoziție."),
+});
+
 const WorkSchema = z.object({
   title: z.string(),
   creator: z.string().describe("Autorul, respectiv regizorul."),
@@ -48,8 +97,11 @@ export const TransformationSchema = z.object({
     .string()
     .describe("De ce convingerea nouă este pasul realist de aici, nu un salt."),
   exercises: z
-    .array(SuggestionSchema)
-    .describe("Două-trei exerciții mici, de făcut în aceeași zi. Nimic abstract."),
+    .array(ExerciseSchema)
+    .describe(
+      "Două-trei exerciții, fiecare cu declanșator, acțiune sub zece minute, ce " +
+        "notezi și când revii. Metode diferite între ele.",
+    ),
   examples: z
     .array(SuggestionSchema)
     .describe(
@@ -77,8 +129,21 @@ Reguli:
 - **Spune de ce s-a instalat cea veche și ce a protejat.** Convingerile
   restrictive au fost, aproape întotdeauna, soluții bune la un moment dat.
   Omul trebuie să vadă asta, altfel se apără de tine.
-- **Exercițiile sunt mici și de făcut azi.** „Predă o sarcină la 90% și notează
-  ce s-a întâmplat de fapt" — nu „lucrează la acceptarea de sine".
+- **Exercițiile sunt proceduri, nu idei.** Un tipar nu se repară cu motivație,
+  se reconstruiește cu structură. Fiecare exercițiu are patru părți: *când* se
+  pornește (un declanșator concret, observabil — nu o stare), *ce* faci în sub
+  zece minute (o singură acțiune), *ce notezi* imediat după (fapte: cine ce a
+  spus, ce consecință reală a avut, cât a durat disconfortul) și *după câte
+  zile* revii la ce ai notat. Notarea nu e opțională: fără ea, mintea rescrie
+  ce s-a întâmplat ca să se potrivească cu regula veche.
+- **Metode diferite între exerciții.** Un experiment comportamental testează
+  predicția convingerii; un pas mic expune gradual la ce e evitat; contrariul
+  reflexului rupe automatismul; graniță înseamnă a spune nu sau a cere, în
+  miză mică; vocea înseamnă a numi sursa criticului interior. Alege metoda
+  după convingere, nu la întâmplare, și nu repeta aceeași metodă de trei ori.
+- **Declanșatorul e cheia.** „Când te simți anxios" nu se poate observa; „când
+  recitești un e-mail a treia oară" da. Exercițiul care nu are un moment clar
+  de pornire nu se face niciodată.
 - **Exemplele sunt situații, nu principii.** Descrie momentul concret în care
   convingerea nouă se aplică, ca omul să-l recunoască atunci când apare.
 - **Cartea și filmul trebuie să existe cu adevărat** și să fie cunoscute. Dă
