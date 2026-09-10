@@ -70,6 +70,8 @@ try {
   await shot("01-tablou");
   await page.goto(`${BASE}/admin/utilizatori`);
   await shot("02-utilizatori");
+  await page.getByRole("button", { name: "+ Credite" }).first().click();
+  await shot("02b-utilizatori-credite");
 
   const { rows } = await db.query("select id from tipare_mentale.users where email = $1", [USER]);
   await page.goto(`${BASE}/admin/utilizatori/${rows[0].id}`);

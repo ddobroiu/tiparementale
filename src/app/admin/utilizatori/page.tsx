@@ -1,5 +1,4 @@
-import Link from "next/link";
-
+import { UsersTable } from "@/components/admin/UsersTable";
 import { ago, dateShort, lei, usd } from "@/lib/admin";
 import { withAdmin } from "@/lib/db";
 
@@ -26,7 +25,7 @@ export default async function AdminUsers({
   const { q = "" } = await searchParams;
   const needle = q.trim();
 
-  const users = await withAdmin(async (client) => {
+  const rows = await withAdmin(async (client) => {
     const { rows } = await client.query<UserRow>(
       `select u.id, u.email, u.created_at,
               coalesce(w.sessions_balance, 0) as sessions,
@@ -45,6 +44,21 @@ export default async function AdminUsers({
     );
     return rows;
   });
+
+  // Formatarea se face aici, pe server: componenta de listă primește text gata
+  // de afișat și nu are nevoie de nimic din bibliotecile de server.
+  const users = rows.map((u) => ({
+    id: u.id,
+    email: u.email,
+    created: dateShort(u.created_at),
+    active: ago(u.last_at),
+    sessions: u.sessions,
+    transformations: u.transformations,
+    nodes: u.nodes,
+    conversations: u.conversations,
+    paid: Number(u.paid_ron) > 0 ? lei(u.paid_ron) : "—",
+    cost: usd(u.cost_used_micro),
+  }));
 
   return (
     <>
@@ -65,53 +79,11 @@ export default async function AdminUsers({
 
       <p className="mt-2 text-xs text-paper-faint">
         {users.length === LIMIT ? `Primii ${LIMIT}. ` : `${users.length} conturi. `}
-        Apasă pe un e-mail pentru detalii și credite.
+        „+ Credite” adaugă direct din listă; e-mailul deschide pagina contului.
       </p>
 
-      <div className="mt-6 overflow-x-auto rounded-2xl border border-ink-line">
-        <table className="w-full min-w-[720px] text-sm">
-          <thead className="text-left text-[11px] tracking-[0.12em] text-paper-faint uppercase">
-            <tr className="border-b border-ink-line">
-              <th className="px-4 py-3 font-normal">E-mail</th>
-              <th className="px-4 py-3 font-normal">Creat</th>
-              <th className="px-4 py-3 font-normal">Activ</th>
-              <th className="px-4 py-3 text-right font-normal">Șed.</th>
-              <th className="px-4 py-3 text-right font-normal">Transf.</th>
-              <th className="px-4 py-3 text-right font-normal">Noduri</th>
-              <th className="px-4 py-3 text-right font-normal">Conv.</th>
-              <th className="px-4 py-3 text-right font-normal">Plătit</th>
-              <th className="px-4 py-3 text-right font-normal">Cost</th>
-            </tr>
-          </thead>
-          <tbody className="divide-y divide-ink-line">
-            {users.map((u) => (
-              <tr key={u.id} className="hover:bg-ink-soft/60">
-                <td className="px-4 py-3">
-                  <Link href={`/admin/utilizatori/${u.id}`} className="text-paper hover:underline">
-                    {u.email}
-                  </Link>
-                </td>
-                <td className="px-4 py-3 text-paper-faint">{dateShort(u.created_at)}</td>
-                <td className="px-4 py-3 text-paper-faint">{ago(u.last_at)}</td>
-                <td className="px-4 py-3 text-right">{u.sessions}</td>
-                <td className="px-4 py-3 text-right">{u.transformations}</td>
-                <td className="px-4 py-3 text-right text-paper-dim">{u.nodes}</td>
-                <td className="px-4 py-3 text-right text-paper-dim">{u.conversations}</td>
-                <td className="px-4 py-3 text-right text-paper-dim">
-                  {Number(u.paid_ron) > 0 ? lei(u.paid_ron) : "—"}
-                </td>
-                <td className="px-4 py-3 text-right text-paper-faint">{usd(u.cost_used_micro)}</td>
-              </tr>
-            ))}
-            {users.length === 0 && (
-              <tr>
-                <td colSpan={9} className="px-4 py-6 text-center text-paper-faint">
-                  Nimic pentru „{needle}”.
-                </td>
-              </tr>
-            )}
-          </tbody>
-        </table>
+      <div className="mt-6">
+        <UsersTable users={users} needle={needle} />
       </div>
     </>
   );

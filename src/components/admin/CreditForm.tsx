@@ -10,7 +10,7 @@ const INPUT =
  * Adaugă sau scade credite. Valorile negative sunt permise — o plată
  * rambursată sau o greșeală se corectează din același loc.
  */
-export function CreditForm({ userId }: { userId: string }) {
+export function CreditForm({ userId, email }: { userId: string; email?: string }) {
   const router = useRouter();
   const [sessions, setSessions] = useState("0");
   const [transformations, setTransformations] = useState("0");
@@ -53,7 +53,9 @@ export function CreditForm({ userId }: { userId: string }) {
 
   return (
     <form onSubmit={submit} className="rounded-2xl border border-paper-faint/40 p-5">
-      <h2 className="text-[11px] tracking-[0.16em] text-paper-faint uppercase">Adaugă credite</h2>
+      <h2 className="text-[11px] tracking-[0.16em] text-paper-faint uppercase">
+        Adaugă credite{email ? <span className="normal-case tracking-normal text-paper-dim"> · {email}</span> : null}
+      </h2>
 
       <div className="mt-4 grid grid-cols-2 gap-3">
         <label className="text-xs text-paper-faint">
