@@ -80,7 +80,7 @@ export default async function PachetePage() {
               <ul className="mt-5 flex-1 space-y-2 text-sm text-paper-dim">
                 <li>
                   <span className="text-paper">{pack.sessions} ședințe</span> ghidate pe
-                  teme — copilăria, părinții, banii, relațiile, munca
+                  teme — copilăria, părinții, banii, relațiile, munca și rolul de părinte
                 </li>
                 <li>
                   <span className="text-paper">{pack.transformations} transformări</span>:
