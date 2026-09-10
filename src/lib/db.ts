@@ -51,6 +51,29 @@ export async function withUser<T>(
 }
 
 /**
+ * Rulează interogări peste toți utilizatorii, pentru zona de administrare.
+ * Politicile `*_admin` lasă rândurile să se vadă când tranzacția declară
+ * `app.admin = 'on'`. Apelantul e răspunzător să fi verificat deja că omul
+ * e administrator (`getAdminUser` / `requireAdmin`); aici nu se mai verifică
+ * nimic, la fel cum `withUser` nu verifică cine i-a dat id-ul.
+ */
+export async function withAdmin<T>(fn: (client: PoolClient) => Promise<T>): Promise<T> {
+  const client = await pool().connect();
+  try {
+    await client.query("begin");
+    await client.query("select set_config('app.admin', 'on', true)");
+    const result = await fn(client);
+    await client.query("commit");
+    return result;
+  } catch (error) {
+    await client.query("rollback").catch(() => {});
+    throw error;
+  } finally {
+    client.release();
+  }
+}
+
+/**
  * Pentru autentificare, care trebuie să caute după email sau după token
  * *înainte* de a ști cine este utilizatorul. Tabelele `users` și
  * `auth_sessions` sunt singurele fără RLS, tocmai din acest motiv.

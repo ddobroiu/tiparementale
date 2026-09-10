@@ -26,6 +26,7 @@ nano .env
 | `DATABASE_URL` | rolul `tipare_mentale_app` — ia-l din `.env.local` de pe calculatorul tău |
 | `DATABASE_URL_ADMIN` | doar pentru migrări; poate lipsi din containerul de rulare |
 | `ANTHROPIC_API_KEY` | cheie **separată** de cea de dezvoltare, cu limită de cheltuială în Console |
+| `ADMIN_EMAILS` | adresele conturilor care intră în `/admin`, separate prin virgulă |
 | `RESEND_API_KEY` | cheia de la resend.com, cu drept doar de trimitere |
 | `EMAIL_FROM` | `Tipare Mentale <contact@tiparementale.ro>` — domeniul trebuie verificat în Resend |
 | `STRIPE_SECRET_KEY` | `sk_live_…` când treci pe plăți reale |

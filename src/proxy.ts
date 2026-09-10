@@ -11,7 +11,8 @@ import { SESSION_COOKIE } from "@/lib/auth";
  */
 export function proxy(request: NextRequest) {
   const path = request.nextUrl.pathname;
-  const isPrivate = path.startsWith("/harta") || path.startsWith("/setari");
+  const isPrivate =
+    path.startsWith("/harta") || path.startsWith("/setari") || path.startsWith("/admin");
 
   if (isPrivate && !request.cookies.has(SESSION_COOKIE)) {
     const url = request.nextUrl.clone();
@@ -24,5 +25,5 @@ export function proxy(request: NextRequest) {
 }
 
 export const config = {
-  matcher: ["/harta/:path*", "/setari/:path*"],
+  matcher: ["/harta/:path*", "/setari/:path*", "/admin/:path*"],
 };

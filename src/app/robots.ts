@@ -11,7 +11,7 @@ export default function robots(): MetadataRoute.Robots {
     rules: {
       userAgent: "*",
       allow: "/",
-      disallow: ["/harta", "/setari", "/intra", "/resetare", "/api/"],
+      disallow: ["/harta", "/setari", "/intra", "/resetare", "/admin", "/api/"],
     },
     sitemap: new URL("/sitemap.xml", SITE.url).toString(),
     host: SITE.url,

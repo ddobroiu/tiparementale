@@ -4,6 +4,7 @@ import { redirect } from "next/navigation";
 
 import { Logo } from "@/components/Logo";
 import { SettingsActions } from "@/components/SettingsActions";
+import { isAdmin } from "@/lib/admin";
 import { getSessionUser } from "@/lib/auth";
 import { getWallet } from "@/lib/billing/entitlement";
 import { withUser } from "@/lib/db";
@@ -70,6 +71,14 @@ export default async function SetariPage() {
       <div className="mx-auto max-w-3xl px-6 pb-24">
         <h1 className="font-serif text-3xl sm:text-4xl">Contul meu</h1>
         <p className="mt-2 text-sm text-paper-faint">{user.email}</p>
+        {isAdmin(user.email) && (
+          <Link
+            href="/admin"
+            className="mt-3 inline-block rounded-full border border-[color:var(--emotion)]/40 px-3 py-1 text-xs text-[color:var(--emotion)] transition-colors hover:border-[color:var(--emotion)]"
+          >
+            Zona de administrare →
+          </Link>
+        )}
 
         <section className="mt-10 grid gap-4 sm:grid-cols-2">
           <div className="rounded-2xl border border-ink-line p-6">
