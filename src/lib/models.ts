@@ -5,20 +5,24 @@
  * modificare de cod: pui altă valoare, repornești, și compari costul real în
  * `usage_events`.
  *
- * Alegerea implicită vine dintr-o măsurătoare: conversația nu este costul — o
- * extracție costă cât șaptesprezece replici. Deci replicile merg pe cel mai
- * ieftin model care le face bine, extracția pe unul mijlociu dar mai rar, iar
- * transformarea rămâne pe cel mai bun, fiindcă se întâmplă o singură dată per
- * convingere și este momentul care convinge omul.
+ * Alegerea implicită vine dintr-o măsurătoare (vezi docs/COSTURI.md): o
+ * lecție întreagă costă sub 1,5 lei chiar cu cel mai bun model la replici,
+ * la un preț de 29–37 lei pe ședință. Conversația e fața produsului — primul
+ * lucru pe care îl atinge omul și motivul pentru care rămâne sau pleacă —
+ * deci merge pe cel mai bun model, cu gândire scurtă. Extracția rămâne pe
+ * modelul mijlociu: e ghidată de schemă, iar diferența de calitate nu se
+ * vede; transformarea pe cel mai bun, cu gândire lungă, fiindcă se întâmplă
+ * o dată per convingere și e momentul care convinge omul.
  */
 
 export type Effort = "low" | "medium" | "high" | "xhigh" | "max";
 
 export const MODELS = {
-  // Haiku era mai ieftin cu ~8 cenți pe ședință, dar strica româna: „mă rog că
-  // înțeleg ce spui”, „îmi zici, plăceți”, replici tăiate la final. Conversația
-  // e primul lucru pe care îl atinge omul; nu e locul unde se economisește.
-  reply: process.env.MODEL_REPLY ?? "claude-sonnet-5",
+  // Haiku strica româna; Sonnet o vorbea corect, dar formulaic — fiecare replică
+  // începea cu „Deci…” și trăgea concluzii mai mari decât ce spusese omul. Opus
+  // costă de două ori și jumătate mai mult pe replică (≈1,2 cenți față de 0,5),
+  // adică ~10 cenți în plus pe lecție. La 29–37 lei pe ședință, nu e o decizie.
+  reply: process.env.MODEL_REPLY ?? "claude-opus-5",
   extraction: process.env.MODEL_EXTRACTION ?? "claude-sonnet-5",
   transformation: process.env.MODEL_TRANSFORMATION ?? "claude-opus-5",
   prediction: process.env.MODEL_PREDICTION ?? "claude-sonnet-5",

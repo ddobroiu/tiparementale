@@ -70,7 +70,7 @@ try {
       break;
     }
     const reply = String(res.body.reply ?? "").trim();
-    check(`replica ${turns} nu e goală`, reply.length > 0, `„${reply.slice(0, 70)}…”`);
+    check(`replica ${turns} nu e goală`, reply.length > 0, `„${reply.slice(0, 220)}”`);
     if (res.body.extractionDue) {
       extractions += 1;
       await call(`/api/conversations/${id}/extract`, {});
@@ -97,6 +97,18 @@ try {
     [EMAIL],
   );
   check("au apărut elemente pe hartă", nodes[0].n > 0, `${nodes[0].n} noduri`);
+
+  const { rows: cost } = await admin.query(
+    `select kind, model, count(*)::int as n, round(sum(cost_micro)/10000.0, 2) as cents
+       from tipare_mentale.usage_events
+      where user_id = (select id from tipare_mentale.users where email = $1)
+      group by 1, 2 order by 1`,
+    [EMAIL],
+  );
+  const total = cost.reduce((s, r) => s + Number(r.cents), 0);
+  console.log("\nCostul lecției, măsurat:");
+  for (const r of cost) console.log(`  ${r.kind.padEnd(12)} ${r.model.padEnd(16)} ${String(r.n).padStart(2)} apeluri  ${r.cents} ¢`);
+  console.log(`  total ${total.toFixed(2)} ¢ ≈ ${(total * 0.046).toFixed(2)} lei`);
 } finally {
   await admin.query("delete from tipare_mentale.users where email = $1", [EMAIL]);
   await admin.end();
