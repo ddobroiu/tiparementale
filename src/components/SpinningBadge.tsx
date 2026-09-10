@@ -3,13 +3,9 @@
 import Image from "next/image";
 import { useEffect, useRef, useState } from "react";
 
-import { BrandMark } from "./BrandMark";
-
 /**
  * Ecusonul, ca o monedă: se rotește încet în jurul axei verticale și poate fi
- * învârtit cu degetul sau cu mouse-ul. Fața e ecusonul pictat; reversul,
- * simbolul simplu pe un disc auriu — cele două semne ale mărcii, pe același
- * obiect.
+ * învârtit cu degetul sau cu mouse-ul. Pe ambele fețe e același ecuson.
  *
  * Rotația trăiește într-un ref și se scrie direct pe element: șaizeci de
  * randări React pe secundă pentru un unghi ar fi risipă.
@@ -87,17 +83,17 @@ export function SpinningBadge({ size = 440 }: { size?: number }) {
           className={face}
         />
 
-        {/* Reversul: discul cu simbolul. */}
-        <div
-          className={`${face} flex items-center justify-center border-[3px] border-[#d9b36a]/70 bg-[#0a0a0f]`}
+        {/* Reversul: aceeași poză, rotită la 180°. Când moneda ajunge la 180°,
+            cele două rotații se anulează și poza apare exact ca în față. */}
+        <Image
+          src="/logo-512.png"
+          alt=""
+          width={size}
+          height={size}
+          draggable={false}
+          className={face}
           style={{ transform: "rotateY(180deg)" }}
-        >
-          <div className="absolute inset-[7%] rounded-full border border-[#d9b36a]/30" />
-          <BrandMark size={size * 0.52} />
-          <span className="absolute bottom-[13%] text-[11px] tracking-[0.3em] text-[#d9b36a]/80 uppercase">
-            Reprogramează-ți viața
-          </span>
-        </div>
+        />
       </div>
     </div>
   );

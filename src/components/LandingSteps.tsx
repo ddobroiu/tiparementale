@@ -9,28 +9,32 @@ const STEPS = [
     n: "01",
     title: "Identificare",
     body:
-      "O conversație adevărată, nu un formular. Pui întrebări, urmezi firul, " +
-      "ceri exemple — despre bani, relații, sănătate, muncă, familie. Din " +
-      "cuvintele tale ies la suprafață convingerile care îți conduc reacțiile.",
+      "O ședință pe o temă ghidată: casa în care ai crescut, părinții, banii, " +
+      "relațiile, munca, rolul de părinte. Răspunzi liber sau alegi dintre " +
+      "variante. Din ce povestești, harta se umple cu convingeri, frici, valori " +
+      "și tipare.",
     aside: "Fiecare element păstrează citatul exact din care a fost dedus.",
   },
   {
     n: "02",
     title: "Interpretare",
     body:
-      "Se construiește harta, pe ramuri: fiecare domeniu de viață își are " +
-      "zona lui, iar elementele se leagă între ele și arată ce alimentează ce. " +
-      "Tu confirmi, reformulezi sau respingi fiecare interpretare.",
-    aside: "Aici devine precisă. Ce respingi nu se mai propune.",
+      "Harta se citește. Confirmi ce e adevărat, reformulezi, respingi ce nu e. " +
+      "Ceri o citire de ansamblu — ce leagă între ele punctele — și predicții " +
+      "de comportament la care răspunzi cu „mă regăsesc” sau „nu”.",
+    aside:
+      "Ce confirmi capătă contur plin. Ce respingi dispare și nu se mai propune.",
   },
   {
     n: "03",
     title: "Transformare",
     body:
-      "Pentru convingerile pe care le-ai confirmat, primești o convingere nouă " +
-      "care să le ia locul — plus exerciții mici, exemple concrete, o carte și " +
-      "un film alese pentru convingerea aceea anume.",
-    aside: "Progresul se măsoară din ce spui, nu din ce declari că simți.",
+      "Pe fiecare convingere confirmată se lucrează: o convingere nouă care să-i " +
+      "ia locul, exerciții concrete pe care le bifezi când le faci, o carte și " +
+      "un film. Când o simți ca a ta, o marchezi rezolvată — și devine verde " +
+      "pe hartă.",
+    aside:
+      "Patru bife pe fiecare convingere: confirmată, convingere nouă, exersată, rezolvată.",
   },
 ];
 
@@ -76,14 +80,19 @@ export function LandingSteps() {
               }}
               className="border-l border-ink-line py-10 pl-6 transition-colors duration-500 first:pt-0 sm:py-16"
               style={{
-                borderLeftColor: stage === i ? "var(--paper-faint)" : "var(--ink-line)",
+                borderLeftColor:
+                  stage === i ? "var(--paper-faint)" : "var(--ink-line)",
               }}
             >
-              <span className="text-xs tracking-[0.2em] text-paper-faint">{step.n}</span>
+              <span className="text-xs tracking-[0.2em] text-paper-faint">
+                {step.n}
+              </span>
               <h2 className="mt-3 font-serif text-3xl text-paper sm:text-4xl">
                 {step.title}
               </h2>
-              <p className="mt-4 max-w-md leading-relaxed text-paper-dim">{step.body}</p>
+              <p className="mt-4 max-w-md leading-relaxed text-paper-dim">
+                {step.body}
+              </p>
               <p className="mt-4 max-w-md text-sm leading-relaxed text-paper-faint italic">
                 {step.aside}
               </p>

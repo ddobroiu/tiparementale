@@ -97,6 +97,23 @@ try {
 
   const again = await page(`/admin/utilizatori/${userId}`, adminCookie);
   check("registrul apare pe pagina contului", again.html.includes("nu sub zero"));
+  check("butonul de ștergere apare pe pagina contului", again.html.includes("Șterge acest cont"));
+
+  const del = async (id, cookie) => {
+    const res = await fetch(`${BASE}/api/admin/users/${id}`, { method: "DELETE", headers: { cookie } });
+    return { status: res.status, data: await res.json().catch(() => ({})) };
+  };
+  const { rows: me } = await admin.query("select id from tipare_mentale.users where email = $1", [ADMIN_TEST]);
+  const selfDel = await del(me[0].id, adminCookie);
+  check("administratorul nu se poate șterge pe sine → 400", selfDel.status === 400, selfDel.data.error);
+  const userDel = await del(userId, userCookie);
+  check("contul obișnuit nu poate șterge → 403", userDel.status === 403);
+  const gone = await del(userId, adminCookie);
+  check("administratorul șterge contul → 200", gone.status === 200 && gone.data.email === USER, JSON.stringify(gone.data));
+  const { rows: left } = await admin.query("select count(*)::int as n from tipare_mentale.users where id = $1", [userId]);
+  check("contul nu mai există în bază", left[0].n === 0);
+  const twice = await del(userId, adminCookie);
+  check("a doua ștergere → 404", twice.status === 404);
 } finally {
   await admin.query("delete from tipare_mentale.users where email in ($1, $2)", [ADMIN_TEST, USER]);
   await admin.end();

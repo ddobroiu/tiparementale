@@ -2,6 +2,7 @@ import Link from "next/link";
 import { notFound } from "next/navigation";
 
 import { CreditForm } from "@/components/admin/CreditForm";
+import { DeleteUserButton } from "@/components/admin/DeleteUserButton";
 import { ago, dateTime, lei, usd } from "@/lib/admin";
 import { withAdmin } from "@/lib/db";
 
@@ -225,6 +226,10 @@ export default async function AdminUserPage({
                 <li className="text-paper-faint">Nimic adăugat de mână.</li>
               )}
             </ul>
+          </section>
+
+          <section className="border-t border-ink-line pt-6">
+            <DeleteUserButton userId={user.id} email={user.email} />
           </section>
         </aside>
       </div>

@@ -1,64 +1,92 @@
 /**
- * Simbolul mărcii: un creier la care se lucrează — o daltă intră în el, sar
- * așchii. Spune într-un semn ce face produsul: nu contemplă mintea, o
- * cioplește. Desenat în 32×32, ca să rămână clar la 20 de pixeli, unde
- * ecusonul pictat nu mai arată nimic.
+ * Simbolul mărcii: un creier din profil, auriu, cu trei puncte legate în
+ * interior — o hartă în minte. Desenat în 32×32, ca să rămână clar la 20 de
+ * pixeli, unde ecusonul pictat nu mai arată nimic.
  *
  * Căile stau aici, nu în componentă, ca aceleași linii să facă și iconițele
  * (scripts/brand-assets.mjs) și antetul (components/BrandMark.tsx).
  */
 
 export const BRAND_GOLD = "#d9b36a";
+export const BRAND_GOLD_LIGHT = "#f1d59a";
 export const BRAND_INK = "#0a0a0f";
 
-export interface MarkPath {
+export interface MarkShape {
   d: string;
-  /** Linie (contur) sau formă plină. */
   kind: "stroke" | "fill";
   width?: number;
   opacity?: number;
-  /** `paper` pentru daltă, `gold` pentru creier și așchii. */
-  tone: "gold" | "paper";
+  /** `light` pentru accente (punctele), `gold` pentru rest. */
+  tone?: "gold" | "light";
 }
 
-export const BRAND_MARK: MarkPath[] = [
-  // Creierul, din profil: fruntea în stânga, ceafa în dreapta. Conturul se
-  // oprește jos-dreapta, exact unde intră dalta.
+export const BRAND_MARK: MarkShape[] = [
+  // Conturul, din profil: fruntea în stânga, două circumvoluții sus, ceafa în
+  // dreapta, cerebelul jos-dreapta, lobul temporal jos-stânga.
   {
-    d: "M 6.5 17.5 C 4 15.5 4.5 10.5 8 9 C 9 5 14 3.5 17 5.5 C 20.5 3.5 26 5.5 26.5 9.5 C 29 11 28.5 15.5 26 17 C 26.5 19 24.5 21 22 20.5",
+    d:
+      "M 16 26 C 12 27 8.5 24.5 8 21.5 " +
+      "C 4.5 20.5 3.5 15.5 5.5 12.5 " +
+      "C 4 8.5 7.5 5.5 11 6 " +
+      "C 12.5 3 17 2.5 19 4.8 " +
+      "C 21.5 2.8 26.5 4.2 27 8 " +
+      "C 30 10 29.5 15 27 16.5 " +
+      "C 28.8 19.5 26.5 22 23.5 21.8 " +
+      "C 23.5 24.5 20 26.5 16 26 Z",
     kind: "stroke",
     width: 1.8,
-    tone: "gold",
   },
-  // Lobul temporal, dedesubt.
+  // Trunchiul, scurt, ușor înclinat.
+  { d: "M 17 25.8 L 18.6 29.2", kind: "stroke", width: 2 },
+  // Șanțurile: central, fisura laterală, pliul dinspre ceafă.
   {
-    d: "M 6.5 17.5 C 7.5 20 10.5 21.5 13 20.5 C 14.5 21.5 16 21 17 19.8",
+    d: "M 19 4.8 C 17 8 19 11 17 14",
     kind: "stroke",
-    width: 1.8,
-    tone: "gold",
+    width: 1.2,
+    opacity: 0.75,
   },
-  // Fisura dintre emisfere.
-  { d: "M 17 5.5 C 15.5 9 17.5 12.5 16 16", kind: "stroke", width: 1.2, opacity: 0.65, tone: "gold" },
-  // Două circumvoluții, una pe fiecare emisferă.
-  { d: "M 9 13 C 10.5 11 13 11.5 13.5 14", kind: "stroke", width: 1.1, opacity: 0.5, tone: "gold" },
-  { d: "M 19.5 10.5 C 21.5 8.5 24 9.5 24.5 12", kind: "stroke", width: 1.1, opacity: 0.5, tone: "gold" },
-  // Dalta, la 45°: lama (pană), tija, mânerul. Forme pline, ca să fie citită
-  // ca unealtă și la 16 pixeli.
-  { d: "M 17.67 19.93 L 19.93 17.67 L 22.41 20.85 L 20.85 22.41 Z", kind: "fill", tone: "paper" },
-  { d: "M 20.99 22.26 L 22.26 20.99 L 26.51 25.23 L 25.23 26.51 Z", kind: "fill", tone: "paper" },
-  { d: "M 24.67 27.07 L 27.07 24.67 L 30.96 28.56 L 28.56 30.96 Z", kind: "fill", tone: "paper" },
-  // Așchiile care sar de la vârful daltei.
-  { d: "M 17.2 16.6 L 15.6 15.2", kind: "stroke", width: 1.4, tone: "gold" },
-  { d: "M 16.4 19.6 L 14.4 20.2", kind: "stroke", width: 1.4, tone: "gold" },
-  { d: "M 20.4 16.2 L 21.2 14.1", kind: "stroke", width: 1.4, tone: "gold" },
+  {
+    d: "M 8 21.5 C 11 20 12.5 17.5 11.5 15",
+    kind: "stroke",
+    width: 1.2,
+    opacity: 0.75,
+  },
+  {
+    d: "M 27 16.5 C 25 16.5 23.5 17 22.5 17.5",
+    kind: "stroke",
+    width: 1.2,
+    opacity: 0.75,
+  },
+  // Harta din interior: trei puncte legate — capetele șanțurilor.
+  {
+    d: "M 17 14 L 11.5 15 M 17 14 L 22.5 17.5",
+    kind: "stroke",
+    width: 0.9,
+    opacity: 0.55,
+  },
+  {
+    d: "M 17 14 m -1.6 0 a 1.6 1.6 0 1 0 3.2 0 a 1.6 1.6 0 1 0 -3.2 0",
+    kind: "fill",
+    tone: "light",
+  },
+  {
+    d: "M 11.5 15 m -1.1 0 a 1.1 1.1 0 1 0 2.2 0 a 1.1 1.1 0 1 0 -2.2 0",
+    kind: "fill",
+    tone: "light",
+  },
+  {
+    d: "M 22.5 17.5 m -1.1 0 a 1.1 1.1 0 1 0 2.2 0 a 1.1 1.1 0 1 0 -2.2 0",
+    kind: "fill",
+    tone: "light",
+  },
 ];
 
 /** Același semn ca text SVG, pentru scripturile care fac iconițe. */
-export function brandMarkSvg(size: number, gold = BRAND_GOLD, paper = "#f4f3f0"): string {
+export function brandMarkSvg(size: number): string {
   const paths = BRAND_MARK.map((p) => {
-    const color = p.tone === "gold" ? gold : paper;
+    const color = p.tone === "light" ? BRAND_GOLD_LIGHT : BRAND_GOLD;
     return p.kind === "fill"
-      ? `<path d="${p.d}" fill="${color}" stroke="${color}" stroke-width="0.6" stroke-linejoin="round"/>`
+      ? `<path d="${p.d}" fill="${color}"/>`
       : `<path d="${p.d}" stroke="${color}" stroke-width="${p.width}" stroke-opacity="${p.opacity ?? 1}" stroke-linecap="round" stroke-linejoin="round" fill="none"/>`;
   }).join("");
   return `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 32 32" width="${size}" height="${size}">${paths}</svg>`;

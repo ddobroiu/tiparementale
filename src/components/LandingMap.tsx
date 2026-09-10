@@ -19,11 +19,46 @@ interface DemoNode {
 }
 
 const NODES: DemoNode[] = [
-  { id: "perfect", domain: "self", label: "Trebuie să fac totul impecabil", x: 200, y: 150, r: 30 },
-  { id: "enough", domain: "self", label: "Teama că nu sunt suficient", x: 88, y: 76, r: 21 },
-  { id: "burnout", domain: "work", label: "Epuizare spre finalul săptămânii", x: 308, y: 232, r: 20 },
-  { id: "scarce", domain: "money", label: "Banii se pot termina oricând", x: 324, y: 72, r: 21 },
-  { id: "nohelp", domain: "relationships", label: "Nu cer ajutor niciodată", x: 104, y: 244, r: 20 },
+  {
+    id: "perfect",
+    domain: "self",
+    label: "Trebuie să fac totul impecabil",
+    x: 200,
+    y: 150,
+    r: 30,
+  },
+  {
+    id: "enough",
+    domain: "self",
+    label: "Teama că nu sunt suficient",
+    x: 88,
+    y: 76,
+    r: 21,
+  },
+  {
+    id: "burnout",
+    domain: "work",
+    label: "Epuizare spre finalul săptămânii",
+    x: 308,
+    y: 232,
+    r: 20,
+  },
+  {
+    id: "scarce",
+    domain: "money",
+    label: "Banii se pot termina oricând",
+    x: 324,
+    y: 72,
+    r: 21,
+  },
+  {
+    id: "nohelp",
+    domain: "relationships",
+    label: "Nu cer ajutor niciodată",
+    x: 104,
+    y: 244,
+    r: 20,
+  },
 ];
 
 const EDGES = [
@@ -71,7 +106,10 @@ export function LandingMap({ stage }: { stage: 0 | 1 | 2 }) {
         ))}
 
         {/* Etapa 2: conexiunile. Până atunci elementele plutesc neconectate. */}
-        <g className="transition-opacity duration-1000" style={{ opacity: stage >= 1 ? 1 : 0 }}>
+        <g
+          className="transition-opacity duration-1000"
+          style={{ opacity: stage >= 1 ? 1 : 0 }}
+        >
           {EDGES.map((edge) => {
             const from = byId.get(edge.from)!;
             const to = byId.get(edge.to)!;
@@ -92,7 +130,8 @@ export function LandingMap({ stage }: { stage: 0 | 1 | 2 }) {
 
         {NODES.map((node, i) => {
           const isFocus = node.id === "perfect";
-          const color = DOMAIN_COLORS[node.domain];
+          const resolved = isFocus && stage >= 2;
+          const color = resolved ? "var(--value)" : DOMAIN_COLORS[node.domain];
           return (
             <g
               key={node.id}
@@ -106,27 +145,41 @@ export function LandingMap({ stage }: { stage: 0 | 1 | 2 }) {
                 cy={node.y}
                 r={node.r}
                 fill={color}
-                fillOpacity={isFocus && stage >= 1 ? 0.24 : 0.13}
+                fillOpacity={
+                  resolved ? 0.9 : isFocus && stage >= 1 ? 0.24 : 0.13
+                }
                 stroke={color}
                 strokeOpacity={isFocus && stage >= 1 ? 0.85 : 0.4}
                 strokeWidth={isFocus && stage >= 1 ? 1.5 : 1}
                 strokeDasharray={isFocus && stage >= 1 ? undefined : "3 3"}
                 className="transition-all duration-700"
               />
+              {resolved && (
+                <text
+                  x={node.x}
+                  y={node.y + 6}
+                  textAnchor="middle"
+                  className="fill-ink text-[18px] font-bold"
+                >
+                  ✓
+                </text>
+              )}
               <text
                 x={node.x}
                 y={node.y + node.r + 14}
                 textAnchor="middle"
                 className="fill-paper-dim text-[9px]"
               >
-                {node.label.length > 26 ? `${node.label.slice(0, 25)}…` : node.label}
+                {node.label.length > 26
+                  ? `${node.label.slice(0, 25)}…`
+                  : node.label}
               </text>
             </g>
           );
         })}
 
         {/* Etapa 2: verdictul utilizatorului peste nodul central. */}
-        {stage >= 1 && (
+        {stage === 1 && (
           <g className="animate-fade-up">
             <rect
               x={152}
@@ -138,34 +191,45 @@ export function LandingMap({ stage }: { stage: 0 | 1 | 2 }) {
               stroke="var(--value)"
               strokeOpacity={0.5}
             />
-            <text x={200} y={110} textAnchor="middle" className="fill-paper text-[8px] tracking-wide">
+            <text
+              x={200}
+              y={110}
+              textAnchor="middle"
+              className="fill-paper text-[8px] tracking-wide"
+            >
               ✓ confirmat de tine
             </text>
           </g>
         )}
       </svg>
 
-      {/* Etapa 3: convingerea nouă și sprijinul concret. */}
+      {/* Etapa 3: convingerea nouă, bifele și sprijinul concret. */}
       {stage >= 2 && (
-        <div className="animate-fade-up absolute right-0 bottom-0 w-[80%] rounded-xl border border-ink-line bg-ink-soft/95 p-3 backdrop-blur-sm sm:w-[68%]">
-          <p className="text-[10px] tracking-[0.16em] text-paper-faint uppercase">
-            Convingerea nouă
-          </p>
+        <div className="animate-fade-up absolute right-0 bottom-0 w-[82%] rounded-xl border border-[color:var(--value)]/40 bg-ink-soft/95 p-3 backdrop-blur-sm sm:w-[70%]">
+          <div className="flex items-center justify-between gap-2">
+            <p className="text-[10px] tracking-[0.16em] text-paper-faint uppercase">
+              Convingerea nouă
+            </p>
+            <span className="rounded-full bg-[color:var(--value)] px-2 py-0.5 text-[9px] font-medium text-ink">
+              ✓ Rezolvată
+            </span>
+          </div>
           <p className="mt-1 font-serif text-[13px] leading-snug text-[color:var(--value)]">
             Pot preda ceva bun fără să fie impecabil, și tot rămân în picioare.
           </p>
           <ul className="mt-2.5 space-y-1.5 text-[11px] leading-snug text-paper-dim">
             <li>
-              <span className="text-paper">Exercițiu</span> · Predă o singură sarcină la
-              90% și notează ce s-a întâmplat de fapt
+              <span className="text-[color:var(--value)]">☑</span>{" "}
+              <span className="text-paper">Exercițiu</span> · Predă o singură
+              sarcină la 90% și notează ce s-a întâmplat · făcut de 3 ori
             </li>
             <li>
-              <span className="text-paper">Carte</span> · Darurile imperfecțiunii, Brené
-              Brown
+              <span className="text-paper">Carte</span> · Darurile
+              imperfecțiunii, Brené Brown
             </li>
             <li>
-              <span className="text-paper">Film</span> · Whiplash (2014) — aceeași
-              convingere, dusă până la capăt
+              <span className="text-paper">Film</span> · Whiplash (2014) —
+              aceeași convingere, dusă până la capăt
             </li>
           </ul>
         </div>

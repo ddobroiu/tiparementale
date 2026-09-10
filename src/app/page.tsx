@@ -55,7 +55,20 @@ export default function Home() {
                 Cum funcționează
               </Link>
             </div>
-            <p className="mt-5 text-sm text-paper-faint">
+            <p className="mt-6 flex flex-wrap items-center gap-x-2 gap-y-1 text-sm text-paper-dim">
+              {["Identificare", "Interpretare", "Transformare"].map(
+                (step, i) => (
+                  <span key={step} className="flex items-center gap-2">
+                    <span className="flex h-5 w-5 items-center justify-center rounded-full border border-ink-line text-[11px] text-paper-faint">
+                      {i + 1}
+                    </span>
+                    {step}
+                    {i < 2 && <span className="text-paper-faint">→</span>}
+                  </span>
+                ),
+              )}
+            </p>
+            <p className="mt-4 text-sm text-paper-faint">
               Nu este terapie. Este un instrument de auto-observație.
             </p>
           </div>
@@ -77,10 +90,11 @@ export default function Home() {
               care se schimbă sunt lucrul de valoare.
             </h2>
             <p className="mt-5 max-w-xl leading-relaxed text-paper-dim">
-              Fiecare conversație se termină în hartă: vezi ce s-a adăugat, ce
-              s-a întărit și ce s-a slăbit față de săptămâna trecută. Fiecare
-              element păstrează citatul din care a fost dedus, deci poți
-              verifica oricând de unde vine.
+              Fiecare ședință se termină în hartă: vezi ce s-a adăugat, ce s-a
+              întărit și ce s-a slăbit. Fiecare element păstrează citatul din
+              care a fost dedus, deci poți verifica oricând de unde vine. Iar ce
+              lucrezi se vede: convingerile în lucru au inel, cele rezolvate
+              sunt verzi.
             </p>
             <Link
               href="/intra"
