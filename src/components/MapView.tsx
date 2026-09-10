@@ -54,6 +54,9 @@ export function MapView({
   // „pe ce vrei să lucrezi", nu un cursor gol. Un chat deschis peste selectorul
   // de teme îl ascundea exact utilizatorilor pentru care a fost făcut.
   const [chatOpen, setChatOpen] = useState(false);
+  // Pe telefon selectorul de teme e o foaie care se ridică la cerere: deschis
+  // permanent ar acoperi harta pe care ar trebui s-o servească.
+  const [pickerOpen, setPickerOpen] = useState(false);
   const [messages, setMessages] = useState<ChatMessage[]>([]);
   const [pending, setPending] = useState(false);
   const [extracting, setExtracting] = useState(false);
@@ -369,7 +372,7 @@ export function MapView({
 
         {/* Predicțiile stau lângă filtre: amândouă sunt lucruri pe care le
             ceri hărții, nu lucruri pe care ți le spune ea singură. */}
-        <div className="absolute top-16 right-4 z-20 flex flex-col items-end gap-2 sm:top-20 sm:right-6">
+        <div className="absolute top-20 right-6 z-20 hidden flex-col items-end gap-2 sm:flex">
           <div className="flex flex-wrap justify-end gap-2">
             {/* „Știu deja ceva" e disponibil și pe harta goală: cine își cunoaște
                 un tipar nu trebuie să treacă printr-o conversație ca să-l pună. */}
@@ -399,8 +402,9 @@ export function MapView({
           </div>
         )}
 
+        {/* Ecran mare: selectorul stă jos, peste hartă, mereu la vedere. */}
         {!chatOpen && (
-          <div className="pointer-events-none absolute inset-x-0 bottom-0 flex justify-center p-4 sm:p-6">
+          <div className="pointer-events-none absolute inset-x-0 bottom-0 hidden justify-center p-6 sm:flex">
             <GuidePicker
               nodes={nodes}
               busy={pending}
@@ -408,6 +412,61 @@ export function MapView({
               onGuide={startGuide}
               onTopic={startTopic}
             />
+          </div>
+        )}
+
+        {/* Telefon: o bară jos, iar selectorul și panourile se ridică ca foi.
+            Harta rămâne vizibilă — altfel omul nu vede niciodată ce construiește. */}
+        {!chatOpen && !pickerOpen && (
+          <div className="absolute inset-x-0 bottom-0 z-20 flex items-center gap-2 border-t border-ink-line bg-ink/90 px-3 py-3 backdrop-blur-md sm:hidden">
+            <button
+              onClick={() => setPickerOpen(true)}
+              className="shrink-0 rounded-xl bg-paper px-4 py-2.5 text-sm font-medium whitespace-nowrap text-ink"
+            >
+              Începe o ședință
+            </button>
+            {/* Restul acțiunilor se derulează lateral; butonul principal nu se strânge. */}
+            <div className="flex min-w-0 flex-1 gap-1.5 overflow-x-auto [scrollbar-width:none] [&::-webkit-scrollbar]:hidden [&>*]:shrink-0 [&>*]:whitespace-nowrap">
+              <AddNodeForm
+                onAdded={async (id) => {
+                  await reload();
+                  setSelectedId(id);
+                }}
+              />
+              {nodes.length > 0 && <PredictionPanel onAnswered={reload} />}
+              {nodes.length > 0 && <MapReading onOpenNode={setSelectedId} />}
+            </div>
+          </div>
+        )}
+
+        {!chatOpen && pickerOpen && (
+          <div className="fixed inset-0 z-30 flex flex-col justify-end bg-ink/60 sm:hidden">
+            <button
+              aria-label="Închide"
+              onClick={() => setPickerOpen(false)}
+              className="flex-1"
+            />
+            <div className="rounded-t-2xl border-t border-ink-line bg-ink-soft">
+              <div className="flex justify-center py-2">
+                <span className="h-1 w-10 rounded-full bg-ink-line" />
+              </div>
+              <GuidePicker
+                nodes={nodes}
+                busy={pending}
+                onFree={() => {
+                  setPickerOpen(false);
+                  setChatOpen(true);
+                }}
+                onGuide={(guide) => {
+                  setPickerOpen(false);
+                  void startGuide(guide);
+                }}
+                onTopic={(topic, domain) => {
+                  setPickerOpen(false);
+                  void startTopic(topic, domain);
+                }}
+              />
+            </div>
           </div>
         )}
       </div>

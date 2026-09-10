@@ -41,7 +41,7 @@ export function GuidePicker({ nodes, busy, onFree, onGuide, onTopic }: Props) {
   }
 
   return (
-    <div className="pointer-events-auto w-[min(94vw,46rem)] rounded-2xl border border-ink-line bg-ink-soft/95 p-4 backdrop-blur-md sm:p-5">
+    <div className="pointer-events-auto max-h-[75vh] w-full overflow-y-auto p-4 sm:w-[min(94vw,46rem)] sm:rounded-2xl sm:border sm:border-ink-line sm:bg-ink-soft/95 sm:p-5 sm:backdrop-blur-md">
       {view.kind === "goals" && (
         <>
           <p className="text-xs tracking-[0.16em] text-paper-faint uppercase">

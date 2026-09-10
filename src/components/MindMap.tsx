@@ -178,13 +178,45 @@ export function MindMap({
     setView((v) => ({ ...v, k: Math.min(3, Math.max(0.35, v.k * factor)) }));
   }
 
+  /** Degetele de pe ecran, ca să deosebim trasul de ciupit. */
+  const pointers = useRef(new Map<number, { x: number; y: number }>());
+  const pinch = useRef<{ distance: number; k: number } | null>(null);
+
+  function pinchDistance(): number {
+    const [a, b] = [...pointers.current.values()];
+    return Math.hypot(b.x - a.x, b.y - a.y);
+  }
+
   function onPointerDown(event: React.PointerEvent) {
+    // Captura rămâne pe elementul atins, nu pe svg: altfel click-ul ajunge la
+    // svg, care deselectează, iar nodul nu se deschide niciodată.
     (event.target as Element).setPointerCapture?.(event.pointerId);
+    pointers.current.set(event.pointerId, { x: event.clientX, y: event.clientY });
+
+    if (pointers.current.size === 2) {
+      // Al doilea deget: trasul devine ciupire. Pe telefon nu există rotiță.
+      pinch.current = { distance: pinchDistance(), k: view.k };
+      dragState.current = null;
+      moved.current = true;
+      return;
+    }
+
     dragState.current = { x: event.clientX, y: event.clientY, vx: view.x, vy: view.y };
     moved.current = false;
   }
 
   function onPointerMove(event: React.PointerEvent) {
+    if (pointers.current.has(event.pointerId)) {
+      pointers.current.set(event.pointerId, { x: event.clientX, y: event.clientY });
+    }
+
+    if (pinch.current && pointers.current.size === 2) {
+      const ratio = pinchDistance() / pinch.current.distance;
+      const k = Math.min(3, Math.max(0.35, pinch.current.k * ratio));
+      setView((v) => ({ ...v, k }));
+      return;
+    }
+
     const drag = dragState.current;
     if (!drag) return;
 
@@ -195,8 +227,10 @@ export function MindMap({
     setView((v) => ({ ...v, x: drag.vx + dx / v.k, y: drag.vy + dy / v.k }));
   }
 
-  function endDrag() {
-    dragState.current = null;
+  function endDrag(event?: React.PointerEvent) {
+    if (event) pointers.current.delete(event.pointerId);
+    if (pointers.current.size < 2) pinch.current = null;
+    if (pointers.current.size === 0) dragState.current = null;
   }
 
   const zoom = (factor: number) =>
@@ -217,13 +251,18 @@ export function MindMap({
 
   return (
     <div className="relative h-full w-full">
+      {/* Pe ecran înalt și îngust, desenul de 1000×700 ar rămâne o fâșie mică la
+          mijloc. Îl lăsăm mai lat decât ecranul — scala o dictează atunci
+          înălțimea, iar nodurile devin de aproape două ori mai mari. Marginile
+          tăiate se ajung prin tragere. */}
       <svg
         viewBox={`0 0 ${WIDTH} ${HEIGHT}`}
-        className="h-full w-full cursor-grab touch-none active:cursor-grabbing"
+        className="h-full w-full cursor-grab touch-none active:cursor-grabbing max-sm:-ml-[35%] max-sm:w-[170%]"
         onWheel={onWheel}
         onPointerDown={onPointerDown}
         onPointerMove={onPointerMove}
         onPointerUp={endDrag}
+        onPointerCancel={endDrag}
         onPointerLeave={endDrag}
         onClick={() => {
           // O tragere de hartă nu trebuie să închidă nodul deschis.
@@ -440,7 +479,8 @@ export function MindMap({
       </svg>
 
       {/* Comenzi de vizualizare: rotița mouse-ului nu există pe telefon. */}
-      <div className="absolute right-4 bottom-28 z-10 flex flex-col gap-1 sm:right-6 sm:bottom-6">
+      {/* Pe telefon zoom-ul se face din două degete; butoanele ar sta peste foaia de jos. */}
+      <div className="absolute right-6 bottom-6 z-10 hidden flex-col gap-1 sm:flex">
         <button
           onClick={() => zoom(1.25)}
           className="h-9 w-9 rounded-lg border border-ink-line bg-ink-soft/80 text-paper-dim backdrop-blur-md transition-colors hover:border-paper-faint hover:text-paper"

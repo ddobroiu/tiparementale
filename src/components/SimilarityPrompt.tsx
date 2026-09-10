@@ -53,7 +53,7 @@ export function SimilarityPrompt({
   }
 
   return (
-    <div className="animate-fade-up w-[min(92vw,26rem)] rounded-2xl border border-[color:var(--pattern)]/35 bg-ink-soft/95 p-5 backdrop-blur-md">
+    <div className="animate-fade-up fixed inset-x-0 bottom-0 z-40 rounded-t-2xl border-t border-[color:var(--pattern)]/35 bg-ink-soft p-5 sm:static sm:z-auto sm:w-[min(92vw,26rem)] sm:rounded-2xl sm:border sm:bg-ink-soft/95 sm:backdrop-blur-md">
       <div className="flex items-start justify-between gap-4">
         <span className="text-[10px] tracking-[0.16em] text-paper-faint uppercase">
           Par același lucru

@@ -30,8 +30,10 @@ export function MapToolbar({ nodes, focusDomain, onFocus, query, onQuery }: Prop
 
   return (
     <div className="pointer-events-none absolute inset-x-0 top-14 z-10 px-4 sm:top-16 sm:px-6">
-      <div className="pointer-events-auto flex flex-wrap items-center gap-2">
-        <div className="relative">
+      {/* Pe telefon, un singur rând care se derulează lateral: două-trei rânduri
+          de chip-uri ar acoperi harta pe care le pui să o filtreze. */}
+      <div className="pointer-events-auto flex items-center gap-2 overflow-x-auto pb-1 [-ms-overflow-style:none] [scrollbar-width:none] sm:flex-wrap sm:overflow-visible [&::-webkit-scrollbar]:hidden">
+        <div className="relative shrink-0">
           <input
             value={query}
             onChange={(e) => onQuery(e.target.value)}
@@ -55,7 +57,7 @@ export function MapToolbar({ nodes, focusDomain, onFocus, query, onQuery }: Prop
             <button
               key={domain}
               onClick={() => onFocus(on ? null : domain)}
-              className={`flex items-center gap-1.5 rounded-full border px-3 py-1.5 text-xs backdrop-blur-md transition-colors ${
+              className={`flex shrink-0 items-center gap-1.5 rounded-full border px-3 py-1.5 text-xs whitespace-nowrap backdrop-blur-md transition-colors ${
                 on
                   ? "border-paper-faint bg-ink-soft text-paper"
                   : "border-ink-line bg-ink-soft/80 text-paper-faint hover:text-paper-dim"
