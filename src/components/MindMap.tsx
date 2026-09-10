@@ -15,7 +15,13 @@ import { useMemo, useRef, useState, useSyncExternalStore } from "react";
 import type { Edge, LifeDomain, MindNode } from "@/lib/types";
 import { BrainBackdrop } from "./BrainBackdrop";
 import { NodeGlyph } from "./NodeGlyph";
-import { DOMAIN_COLORS, DOMAIN_LABELS, changeDegree, displayLabel } from "@/lib/types";
+import {
+  DOMAIN_COLORS,
+  DOMAIN_LABELS,
+  NODE_TYPE_LABELS,
+  changeDegree,
+  displayLabel,
+} from "@/lib/types";
 
 /** Desenul de bază, pe ecran lat. Creierul e trasat în aceste coordonate. */
 const WIDTH = 1000;
@@ -26,6 +32,9 @@ const PORTRAIT_WIDTH = 520;
 const PORTRAIT_HEIGHT = 1000;
 
 const PORTRAIT_QUERY = "(max-width: 639px)";
+
+/** Culoarea lucrului încheiat: aceeași pe hartă, în panou și în legendă. */
+const RESOLVED = "#a0e7c4";
 
 /**
  * Răspunde la întrebarea „e ecran de telefon?” fără efecte și fără stare
@@ -99,6 +108,27 @@ function shortLabel(node: MindNode): string {
 /** Lățimea plăcuței din spatele etichetei, estimată din numărul de caractere. */
 function labelWidth(node: MindNode): number {
   return shortLabel(node).length * 5.6 + 16;
+}
+
+const WRAP_CHARS = 30;
+
+/**
+ * Numele întreg, rupt pe rânduri la spații. Nodul selectat merită tot numele:
+ * o convingere tăiată la jumătate nu se poate recunoaște.
+ */
+function wrapLabel(text: string): string[] {
+  const lines: string[] = [];
+  let line = "";
+  for (const word of text.split(/\s+/)) {
+    if (line && (line + " " + word).length > WRAP_CHARS) {
+      lines.push(line);
+      line = word;
+    } else {
+      line = line ? line + " " + word : word;
+    }
+  }
+  if (line) lines.push(line);
+  return lines.slice(0, 4);
 }
 
 /** Fără diacritice și fără majuscule: căutarea nu trebuie să ceară precizie. */
@@ -277,7 +307,8 @@ export function MindMap({
         <div className="max-w-xs">
           <p className="font-serif text-2xl text-paper">Harta ta este goală.</p>
           <p className="mt-3 text-sm leading-relaxed text-paper-dim">
-            Alege o zonă de mai jos, sau spune-mi pur și simplu ce te preocupă.
+            Pasul 1, Identificare: începe o ședință. Din ce povestești, aici apar
+            convingerile, valorile și fricile tale.
           </p>
         </div>
       </div>
@@ -482,18 +513,42 @@ export function MindMap({
                   className="transition-all duration-300"
                 />
 
+                {/* Lucrul pe convingere se vede pe hartă: inel punctat cât se
+                    exersează, verde plin cu bifă când e rezolvată. */}
+                {node.work_status === "working" && (
+                  <circle
+                    r={r + 5}
+                    fill="none"
+                    stroke={RESOLVED}
+                    strokeOpacity={0.9}
+                    strokeWidth={1.3}
+                    strokeDasharray="3 3"
+                    className="work-ring"
+                  />
+                )}
+
                 {/* Forma spune ce fel de lucru este; culoarea, din ce zonă vine. */}
                 <NodeGlyph
                   type={node.type}
                   r={r}
-                  color={DOMAIN_COLORS[node.domain]}
-                  fillOpacity={isActive ? 0.75 : 0.42}
+                  color={node.work_status === "resolved" ? RESOLVED : DOMAIN_COLORS[node.domain]}
+                  fillOpacity={node.work_status === "resolved" ? 0.9 : isActive ? 0.75 : 0.42}
                   strokeOpacity={isConfirmed ? 1 : 0.5}
                   strokeWidth={isConfirmed ? 1.6 : 1}
                   dashed={!isConfirmed}
                 />
 
-                {showLabel && (
+                {node.work_status === "resolved" && (
+                  <text
+                    y={4}
+                    textAnchor="middle"
+                    className="pointer-events-none fill-ink text-[11px] font-bold"
+                  >
+                    ✓
+                  </text>
+                )}
+
+                {showLabel && !isSelected && (
                   <g className="animate-fade-up pointer-events-none">
                     {/* Fundal sub text: altfel eticheta se pierde peste linii
                         și peste conturul creierului. */}
@@ -515,6 +570,43 @@ export function MindMap({
                     </text>
                   </g>
                 )}
+
+                {/* Selectat: numele întreg, pe rânduri, cu tipul lui deasupra. */}
+                {isSelected &&
+                  (() => {
+                    const lines = wrapLabel(displayLabel(node));
+                    const width = Math.max(...lines.map((l) => l.length), 10) * 6 + 20;
+                    const height = lines.length * 14 + 24;
+                    return (
+                      <g className="animate-fade-up pointer-events-none">
+                        <rect
+                          x={-width / 2}
+                          y={r + 7}
+                          width={width}
+                          height={height}
+                          rx={10}
+                          fill="#0a0a0f"
+                          fillOpacity={0.92}
+                          stroke={DOMAIN_COLORS[node.domain]}
+                          strokeOpacity={0.5}
+                        />
+                        <text
+                          y={r + 20}
+                          textAnchor="middle"
+                          className="fill-paper-faint text-[9px] tracking-[0.14em] uppercase"
+                        >
+                          {NODE_TYPE_LABELS[node.type]} · {DOMAIN_LABELS[node.domain]}
+                        </text>
+                        <text textAnchor="middle" className="fill-paper text-[11px]">
+                          {lines.map((line, i) => (
+                            <tspan key={i} x={0} y={r + 34 + i * 14}>
+                              {line}
+                            </tspan>
+                          ))}
+                        </text>
+                      </g>
+                    );
+                  })()}
               </g>
             );
           })}

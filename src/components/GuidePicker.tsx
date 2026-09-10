@@ -24,6 +24,8 @@ import {
 interface Props {
   nodes: MindNode[];
   busy: boolean;
+  /** În panoul de lucru: fără cadru propriu, fără înălțime maximă. */
+  embedded?: boolean;
   onFree: () => void;
   onGuide: (guide: Guide) => void;
   onTopic: (topic: Topic, domain: LifeDomain) => void;
@@ -31,7 +33,7 @@ interface Props {
 
 type View = { kind: "goals" } | { kind: "goal"; goal: GuideGoal } | { kind: "topics"; domain: LifeDomain | null };
 
-export function GuidePicker({ nodes, busy, onFree, onGuide, onTopic }: Props) {
+export function GuidePicker({ nodes, busy, embedded = false, onFree, onGuide, onTopic }: Props) {
   const [view, setView] = useState<View>({ kind: "goals" });
 
   const counts = new Map<LifeDomain, number>();
@@ -41,14 +43,22 @@ export function GuidePicker({ nodes, busy, onFree, onGuide, onTopic }: Props) {
   }
 
   return (
-    <div className="pointer-events-auto max-h-[75dvh] w-full overflow-y-auto p-4 sm:w-[min(94vw,46rem)] sm:rounded-2xl sm:border sm:border-ink-line sm:bg-ink-soft/95 sm:p-5 sm:backdrop-blur-md">
+    <div
+      className={
+        embedded
+          ? "w-full"
+          : "pointer-events-auto max-h-[75dvh] w-full overflow-y-auto p-4 sm:w-[min(94vw,46rem)] sm:rounded-2xl sm:border sm:border-ink-line sm:bg-ink-soft/95 sm:p-5 sm:backdrop-blur-md"
+      }
+    >
       {view.kind === "goals" && (
         <>
-          <p className="text-xs tracking-[0.16em] text-paper-faint uppercase">
-            Pe ce vrei să lucrezi
-          </p>
+          {!embedded && (
+            <p className="text-xs tracking-[0.16em] text-paper-faint uppercase">
+              Pe ce vrei să lucrezi
+            </p>
+          )}
 
-          <div className="mt-3 grid gap-2 sm:grid-cols-2">
+          <div className={`grid gap-2 ${embedded ? "" : "mt-3 sm:grid-cols-2"}`}>
             {GOAL_ORDER.map((goal) => {
               const count = GUIDES.filter((g) => g.goal === goal).length;
               return (
@@ -100,7 +110,7 @@ export function GuidePicker({ nodes, busy, onFree, onGuide, onTopic }: Props) {
             </button>
           </div>
 
-          <ul className="mt-3 grid gap-2 sm:grid-cols-2">
+          <ul className={`mt-3 grid gap-2 ${embedded ? "" : "sm:grid-cols-2"}`}>
             {GUIDES.filter((g) => g.goal === view.goal).map((guide) => (
               <li key={guide.id}>
                 <button
@@ -182,7 +192,7 @@ export function GuidePicker({ nodes, busy, onFree, onGuide, onTopic }: Props) {
             </button>
           </div>
 
-          <ul className="mt-3 grid gap-2 sm:grid-cols-2">
+          <ul className={`mt-3 grid gap-2 ${embedded ? "" : "sm:grid-cols-2"}`}>
             {TOPICS[view.domain].map((topic) => (
               <li key={topic.id}>
                 <button

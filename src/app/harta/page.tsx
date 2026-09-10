@@ -5,7 +5,7 @@ import type { SimilarPair } from "@/components/SimilarityPrompt";
 import { getSessionUser } from "@/lib/auth";
 import { getWallet } from "@/lib/billing/entitlement";
 import { withUser } from "@/lib/db";
-import type { Edge, MindNode } from "@/lib/types";
+import { loadGraph } from "@/lib/graph";
 
 export default async function HartaPage(props: PageProps<"/harta">) {
   const user = await getSessionUser();
@@ -17,10 +17,7 @@ export default async function HartaPage(props: PageProps<"/harta">) {
   const justPaid = search.plata === "reusita";
 
   const data = await withUser(user.id, async (client) => {
-    const { rows: nodes } = await client.query<MindNode>(
-      "select * from nodes where archived_at is null order by created_at",
-    );
-    const { rows: edges } = await client.query<Edge>("select * from edges");
+    const { nodes, edges } = await loadGraph(client);
     const wallet = await getWallet(client, user.id);
 
     const { rows: similarPairs } = await client.query(

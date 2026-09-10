@@ -93,11 +93,10 @@ export function MapFilters({ nodes, filters, onChange }: Props) {
 
   if (nodes.length === 0) return null;
 
-  // Pe telefon, filtrele fine ar concura cu bara de ramuri pe același spațiu.
   return (
-    <div className="absolute top-32 right-6 z-10 hidden sm:block">
+    <div>
       {open ? (
-        <div className="animate-fade-up w-[min(84vw,18rem)] rounded-xl border border-ink-line bg-ink-soft/95 p-3 backdrop-blur-md">
+        <div className="animate-fade-up rounded-xl border border-ink-line bg-ink-soft/95 p-3">
           <div className="flex items-center justify-between">
             <span className="text-[10px] tracking-[0.16em] text-paper-faint uppercase">
               Arată doar

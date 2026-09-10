@@ -83,10 +83,16 @@ for (const s of seeds) {
 await page.goto(`${BASE}/harta`);
 await shot("06-harta-cu-noduri", { wait: 1200 });
 
-// Pe telefon, selectorul e o foaie care se ridică din bara de jos.
-await page.getByRole("button", { name: "Începe o ședință" }).click();
+// Pe telefon, cele trei etape stau într-o bară jos; fiecare ridică o foaie.
+await page.getByRole("button", { name: /Interpretare/ }).click();
 await page.waitForTimeout(500);
-await shot("06b-foaie-teme");
+await shot("06a-interpretare");
+await page.getByRole("button", { name: /Transformare/ }).click();
+await page.waitForTimeout(400);
+await shot("06b-transformare");
+await page.getByRole("button", { name: /Identificare/ }).click();
+await page.waitForTimeout(400);
+await shot("06c-identificare");
 // Selectorul există de două ori în DOM (varianta de ecran mare e doar ascunsă):
 // atingem-o pe cea vizibilă.
 const visible = (text) => page.getByText(text).filter({ visible: true }).first();
@@ -99,11 +105,11 @@ await page.waitForTimeout(1500);
 await shot("08-chat-deschis");
 
 // Închide chatul, deschide un nod.
-await page.getByText("Închide").first().click();
+await page.getByText("Închide").filter({ visible: true }).first().click();
 await page.waitForTimeout(800);
 await page.locator("svg g.cursor-pointer").first().click();
 // Panoul aduce nodul, citatele și exercițiile din API: lăsăm timp să sosească.
-await page.getByText("Din ce am dedus").waitFor({ timeout: 8000 }).catch(() => {});
+await page.getByText("De unde vine").waitFor({ timeout: 8000 }).catch(() => {});
 await shot("09-nod-deschis", { wait: 400 });
 
 await page.goto(`${BASE}/setari`);

@@ -16,8 +16,10 @@ import {
   NODE_TYPE_LABELS,
   changeDegree,
   displayLabel,
+  isWorkable,
 } from "@/lib/types";
 import { ExerciseCard } from "./ExerciseCard";
+import { WorkSteps } from "./WorkSteps";
 import { SCHEMA_DOMAIN_LABELS, SCHEMA_DOMAIN_NEED, schemaOf } from "@/lib/schemas";
 
 interface HistoryEntry {
@@ -65,6 +67,7 @@ export function NodeDetail({
   const [busy, setBusy] = useState(false);
   const [working, setWorking] = useState(false);
   const [whyOld, setWhyOld] = useState<string | null>(null);
+  const [showAllQuotes, setShowAllQuotes] = useState(false);
   const [error, setError] = useState("");
 
   // Montat cu `key={nodeId}`, deci starea pornește curată la fiecare nod.
@@ -146,7 +149,7 @@ export function NodeDetail({
 
   if (!data) {
     return (
-      <aside className="fixed inset-0 z-30 border-l border-ink-line bg-ink-soft/95 p-6 backdrop-blur-md sm:static sm:z-auto sm:w-[400px] sm:shrink-0 sm:bg-ink-soft/60">
+      <aside className="fixed inset-0 z-30 bg-ink-soft/95 p-6 backdrop-blur-md sm:static sm:z-auto sm:h-full sm:w-full sm:bg-transparent sm:backdrop-blur-none">
         <p className="text-sm text-paper-faint">Se încarcă…</p>
       </aside>
     );
@@ -162,7 +165,7 @@ export function NodeDetail({
     : [];
 
   return (
-    <aside className="animate-fade-up fixed inset-0 z-30 overflow-y-auto border-l border-ink-line bg-ink-soft/95 backdrop-blur-md sm:static sm:z-auto sm:w-[400px] sm:shrink-0 sm:bg-ink-soft/70">
+    <aside className="animate-fade-up fixed inset-0 z-30 overflow-y-auto bg-ink-soft/95 backdrop-blur-md sm:static sm:z-auto sm:h-full sm:w-full sm:bg-transparent sm:backdrop-blur-none">
       <div className="p-6">
         <div className="flex items-start justify-between gap-4">
           <div className="flex items-center gap-2">
@@ -218,20 +221,41 @@ export function NodeDetail({
           <p className="mt-3 text-sm leading-relaxed text-paper-dim">{node.summary}</p>
         )}
 
-        {/* Familia din care face parte tiparul: leagă între ele lucruri care
-            păreau fără legătură, cu un nume pe care un terapeut l-ar recunoaște. */}
-        {schema && !editing && (
-          <div className="mt-4 rounded-xl border border-ink-line p-3">
-            <p className="text-[10px] tracking-[0.16em] text-paper-faint uppercase">
-              Familia tiparului · {SCHEMA_DOMAIN_LABELS[schema.domain]}
-            </p>
-            <p className="mt-1 text-sm text-paper">{schema.name}</p>
-            <p className="mt-1 text-xs leading-relaxed text-paper-dim">{schema.essence}</p>
-            <p className="mt-2 text-[11px] leading-relaxed text-paper-faint">
-              Nevoia din spate: {SCHEMA_DOMAIN_NEED[schema.domain]}.
-            </p>
-          </div>
+        {/* Drumul unei convingeri, în patru bife. Omul vede unde e și ce urmează. */}
+        {isWorkable(node) && node.verdict !== "rejected" && !editing && (
+          <WorkSteps confirmed={confirmed} transformation={active ?? null} />
         )}
+
+        {/* Răspunsul la „de unde știi asta despre mine?” — imediat sub nume,
+            pentru că e prima întrebare pe care și-o pune omul. */}
+        {observations.length > 0 && !editing && (
+        <section className="mt-5">
+          <h3 className="text-[11px] tracking-[0.16em] text-paper-faint uppercase">
+            De unde vine
+          </h3>
+          <ul className="mt-3 space-y-3">
+            {observations.slice(0, showAllQuotes ? undefined : 2).map((obs) => (
+              <li key={obs.id} className="border-l border-ink-line pl-3">
+                <p className="font-serif text-sm leading-relaxed text-paper-dim">
+                  „{obs.quote}”
+                </p>
+                <p className="mt-1 text-[11px] text-paper-faint">
+                  {formatDate(obs.observed_at)}
+                </p>
+              </li>
+            ))}
+          </ul>
+          {observations.length > 2 && (
+            <button
+              onClick={() => setShowAllQuotes((v) => !v)}
+              className="mt-2 text-xs text-paper-faint underline underline-offset-4 hover:text-paper-dim"
+            >
+              {showAllQuotes ? "mai puțin" : `toate cele ${observations.length} mențiuni`}
+            </button>
+          )}
+        </section>
+        )}
+
 
         <div className="mt-4 flex flex-wrap items-center gap-2 text-xs text-paper-faint">
           <span>Încredere {Math.round(node.confidence * 100)}%</span>
@@ -347,15 +371,20 @@ export function NodeDetail({
                 <button
                   disabled={busy}
                   onClick={() => setTransformationStatus(active.id, "adopted")}
-                  className="rounded-full bg-paper px-4 py-1.5 text-xs font-medium text-ink disabled:opacity-50"
+                  className="rounded-full bg-[color:var(--value)] px-4 py-1.5 text-xs font-medium text-ink disabled:opacity-50"
                 >
-                  Am adoptat-o
+                  ✓ Marchez rezolvată
                 </button>
               )}
               {active.status === "adopted" && (
-                <span className="rounded-full border border-ink-line px-4 py-1.5 text-xs text-[color:var(--value)]">
-                  ✓ Adoptată
-                </span>
+                <button
+                  disabled={busy}
+                  onClick={() => setTransformationStatus(active.id, "practicing")}
+                  className="rounded-full border border-[color:var(--value)]/50 px-4 py-1.5 text-xs text-[color:var(--value)] disabled:opacity-50"
+                  title="Înapoi la exersare"
+                >
+                  ✓ Rezolvată · pe hartă e verde
+                </button>
               )}
               <button
                 disabled={busy}
@@ -408,24 +437,20 @@ export function NodeDetail({
           </section>
         )}
 
-        {/* Răspunsul la „de unde știi asta despre mine?” */}
-        <section className="mt-6">
-          <h3 className="text-[11px] tracking-[0.16em] text-paper-faint uppercase">
-            Din ce am dedus
-          </h3>
-          <ul className="mt-3 space-y-3">
-            {observations.map((obs) => (
-              <li key={obs.id} className="border-l border-ink-line pl-3">
-                <p className="font-serif text-sm leading-relaxed text-paper-dim">
-                  „{obs.quote}”
-                </p>
-                <p className="mt-1 text-[11px] text-paper-faint">
-                  {formatDate(obs.observed_at)}
-                </p>
-              </li>
-            ))}
-          </ul>
-        </section>
+        {/* Familia din care face parte tiparul: leagă între ele lucruri care
+            păreau fără legătură, cu un nume pe care un terapeut l-ar recunoaște. */}
+        {schema && !editing && (
+          <div className="mt-6 rounded-xl border border-ink-line p-3">
+            <p className="text-[10px] tracking-[0.16em] text-paper-faint uppercase">
+              Familia tiparului · {SCHEMA_DOMAIN_LABELS[schema.domain]}
+            </p>
+            <p className="mt-1 text-sm text-paper">{schema.name}</p>
+            <p className="mt-1 text-xs leading-relaxed text-paper-dim">{schema.essence}</p>
+            <p className="mt-2 text-[11px] leading-relaxed text-paper-faint">
+              Nevoia din spate: {SCHEMA_DOMAIN_NEED[schema.domain]}.
+            </p>
+          </div>
+        )}
 
         {history.length > 0 && (
           <section className="mt-6">

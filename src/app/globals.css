@@ -33,6 +33,16 @@ html {
   color-scheme: dark;
 }
 
+/* Inelul punctat al unei convingeri în lucru: se rotește lent, ca un proces. */
+@keyframes work-dash {
+  to {
+    stroke-dashoffset: -24;
+  }
+}
+.work-ring {
+  animation: work-dash 3s linear infinite;
+}
+
 body {
   background: var(--ink);
   color: var(--paper);

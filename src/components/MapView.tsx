@@ -4,20 +4,17 @@ import Link from "next/link";
 import { useCallback, useState } from "react";
 
 import type { Edge, LifeDomain, MapDiff, MindNode, SafetyFlag } from "@/lib/types";
+import type { Guide } from "@/lib/guides";
+import type { Topic } from "@/lib/topics";
 import { ChatPanel, type ChatMessage } from "./ChatPanel";
 import { MindMap } from "./MindMap";
 import { NodeDetail } from "./NodeDetail";
 import { Logo } from "./Logo";
-import { GuidePicker } from "./GuidePicker";
-import type { Guide } from "@/lib/guides";
 import { MapLegend } from "./MapLegend";
-import { MapFilters, NO_FILTERS, applyFilters, type Filters } from "./MapFilters";
+import { NO_FILTERS, applyFilters, type Filters } from "./MapFilters";
 import { MapToolbar } from "./MapToolbar";
-import { PredictionPanel } from "./PredictionPanel";
-import { SimilarityPrompt, type SimilarPair } from "./SimilarityPrompt";
-import { MapReading } from "./MapReading";
-import { AddNodeForm } from "./AddNodeForm";
-import type { Topic } from "@/lib/topics";
+import type { SimilarPair } from "./SimilarityPrompt";
+import { TABS, Workspace, workspaceCounts, type WorkspaceTab } from "./Workspace";
 
 export interface AccountSummary {
   sessionsLeft: number;
@@ -39,6 +36,14 @@ function diffSize(diff: MapDiff): number {
   return diff.created.length + diff.strengthened.length + diff.connected.length;
 }
 
+/**
+ * Ecranul hărții: harta în stânga, panoul de lucru în dreapta.
+ *
+ * Panoul arată un singur lucru la un moment dat, în ordinea importanței:
+ * nodul deschis, dacă e unul; conversația, dacă e una; altfel cele trei
+ * etape — Identificare, Interpretare, Transformare. Pe telefon aceleași trei
+ * stau într-o bară jos și se ridică ca foi.
+ */
 export function MapView({
   initialNodes,
   initialEdges,
@@ -50,13 +55,10 @@ export function MapView({
   const [nodes, setNodes] = useState(initialNodes);
   const [edges, setEdges] = useState(initialEdges);
   const [selectedId, setSelectedId] = useState<string | null>(null);
-  // Închis la început, chiar și pe harta goală: omul nou trebuie să vadă întâi
-  // „pe ce vrei să lucrezi", nu un cursor gol. Un chat deschis peste selectorul
-  // de teme îl ascundea exact utilizatorilor pentru care a fost făcut.
   const [chatOpen, setChatOpen] = useState(false);
-  // Pe telefon selectorul de teme e o foaie care se ridică la cerere: deschis
-  // permanent ar acoperi harta pe care ar trebui s-o servească.
-  const [pickerOpen, setPickerOpen] = useState(false);
+  const [tab, setTab] = useState<WorkspaceTab>("identify");
+  // Pe telefon panoul e o foaie care se ridică din bara de jos.
+  const [sheetOpen, setSheetOpen] = useState(false);
   const [messages, setMessages] = useState<ChatMessage[]>([]);
   const [pending, setPending] = useState(false);
   const [extracting, setExtracting] = useState(false);
@@ -68,8 +70,6 @@ export function MapView({
   const [filters, setFilters] = useState<Filters>(NO_FILTERS);
   const [focusDomain, setFocusDomain] = useState<LifeDomain | null>(null);
   const [query, setQuery] = useState("");
-  // Contul vine de pe server, cu prima randare: fără efect la montare și fără
-  // licărire în care numărul de ședințe lipsește.
   const [account, setAccount] = useState<AccountSummary>(initialAccount);
 
   const loadAccount = useCallback(async () => {
@@ -162,14 +162,15 @@ export function MapView({
     }
   }
 
-  /** Deschide o ședință pe un subiect ales, cu întrebarea gata formulată. */
-  async function startTopic(topic: Topic, domain: LifeDomain) {
+  /** Deschide o ședință — pe un ghid cu parcurs, sau pe un subiect scurt. */
+  async function startConversation(body: Record<string, unknown>) {
     setPending(true);
+    setSheetOpen(false);
     try {
       const res = await fetch("/api/conversations", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ topicId: topic.id, domain }),
+        body: JSON.stringify(body),
       });
       const data = await res.json();
 
@@ -186,6 +187,7 @@ export function MapView({
           ? [{ role: "assistant", content: data.opener, options: data.options ?? null }]
           : [],
       );
+      setSelectedId(null);
       setChatOpen(true);
       void loadAccount();
     } finally {
@@ -193,38 +195,14 @@ export function MapView({
     }
   }
 
-  /**
-   * Deschide o ședință pe un ghid: o temă cu parcurs, gândită după literatura
-   * de specialitate. Prima întrebare vine gata scrisă, cu variantele ei.
-   */
-  async function startGuide(guide: Guide) {
-    setPending(true);
-    try {
-      const res = await fetch("/api/conversations", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ guideId: guide.id }),
-      });
-      const data = await res.json();
+  const startGuide = (guide: Guide) => startConversation({ guideId: guide.id });
+  const startTopic = (topic: Topic, domain: LifeDomain) =>
+    startConversation({ topicId: topic.id, domain });
 
-      if (res.status === 402) {
-        setLimit({ reason: data.error, code: data.code });
-        setChatOpen(true);
-        return;
-      }
-      if (!res.ok) return;
-
-      setConversationId(data.conversationId);
-      setMessages(
-        data.opener
-          ? [{ role: "assistant", content: data.opener, options: data.options ?? null }]
-          : [],
-      );
-      setChatOpen(true);
-      void loadAccount();
-    } finally {
-      setPending(false);
-    }
+  function startFree() {
+    setSheetOpen(false);
+    setSelectedId(null);
+    setChatOpen(true);
   }
 
   /** Închiderea conversației te lasă în hartă, cu tot ce s-a spus prelucrat. */
@@ -233,8 +211,20 @@ export function MapView({
     setLimit(null);
     setMessages([]);
     setConversationId(null);
+    // După o ședință, următorul pas firesc e să confirmi ce a apărut.
+    setTab("interpret");
     if (conversationId) await runExtraction(conversationId);
     void loadAccount();
+  }
+
+  function openNode(id: string | null) {
+    setSelectedId(id);
+    if (id) setSheetOpen(false);
+  }
+
+  function openTab(next: WorkspaceTab) {
+    setTab(next);
+    setSheetOpen(true);
   }
 
   // Filtrele taie și muchiile: o legătură către un nod ascuns ar rămâne
@@ -243,6 +233,26 @@ export function MapView({
   const visibleIds = new Set(visibleNodes.map((n) => n.id));
   const visibleEdges = edges.filter(
     (e) => visibleIds.has(e.from_node) && visibleIds.has(e.to_node),
+  );
+  const counts = workspaceCounts(nodes);
+
+  const workspace = (onClose?: () => void) => (
+    <Workspace
+      tab={tab}
+      onTab={setTab}
+      nodes={nodes}
+      account={account}
+      pending={pending}
+      similarPairs={initialSimilarPairs}
+      filters={filters}
+      onFilters={setFilters}
+      onFree={startFree}
+      onGuide={startGuide}
+      onTopic={startTopic}
+      onOpenNode={openNode}
+      onChanged={reload}
+      onClose={onClose}
+    />
   );
 
   return (
@@ -275,11 +285,6 @@ export function MapView({
                 {account.sessionsLeft} {account.sessionsLeft === 1 ? "ședință" : "ședințe"}
               </Link>
             )}
-            <span className="hidden text-xs text-paper-faint sm:inline">
-              {visibleNodes.length}
-              {visibleNodes.length !== nodes.length && ` din ${nodes.length}`}{" "}
-              {nodes.length === 1 ? "element" : "elemente"}
-            </span>
           </div>
         </header>
 
@@ -287,7 +292,7 @@ export function MapView({
           nodes={visibleNodes}
           edges={visibleEdges}
           selectedId={selectedId}
-          onSelect={setSelectedId}
+          onSelect={openNode}
           highlighted={highlighted}
           focusDomain={focusDomain}
           query={query}
@@ -321,7 +326,7 @@ export function MapView({
 
         {/* Momentul în care harta arată ce s-a schimbat. */}
         {diff && (
-          <div className="animate-fade-up absolute top-20 left-1/2 w-[min(92vw,26rem)] -translate-x-1/2 rounded-xl border border-ink-line bg-ink-soft/95 p-4 backdrop-blur-md">
+          <div className="animate-fade-up absolute top-20 left-1/2 z-20 w-[min(92vw,26rem)] -translate-x-1/2 rounded-xl border border-ink-line bg-ink-soft/95 p-4 backdrop-blur-md">
             <div className="flex items-start justify-between gap-4">
               <p className="text-xs tracking-[0.16em] text-paper-faint uppercase">
                 Harta s-a schimbat
@@ -356,8 +361,7 @@ export function MapView({
               )}
             </ul>
             <p className="mt-3 text-xs text-paper-faint">
-              Deschide un element ca să vezi din ce a fost dedus — și spune-mi dacă
-              am nimerit.
+              Pasul următor: Interpretare — deschide un element și spune dacă am nimerit.
             </p>
           </div>
         )}
@@ -370,126 +374,99 @@ export function MapView({
           </div>
         )}
 
-        {/* Predicțiile stau lângă filtre: amândouă sunt lucruri pe care le
-            ceri hărții, nu lucruri pe care ți le spune ea singură. */}
-        <div className="absolute top-20 right-6 z-20 hidden flex-col items-end gap-2 sm:flex">
-          <div className="flex flex-wrap justify-end gap-2">
-            {/* „Știu deja ceva" e disponibil și pe harta goală: cine își cunoaște
-                un tipar nu trebuie să treacă printr-o conversație ca să-l pună. */}
-            <AddNodeForm
-              onAdded={async (id) => {
-                await reload();
-                setSelectedId(id);
-              }}
-            />
-            {nodes.length > 0 && (
-              <>
-                <MapReading onOpenNode={setSelectedId} />
-                <PredictionPanel onAnswered={reload} />
-              </>
-            )}
-          </div>
-          {initialSimilarPairs.length > 0 && (
-            <SimilarityPrompt pairs={initialSimilarPairs} onResolved={reload} />
-          )}
-        </div>
-
-        <MapFilters nodes={nodes} filters={filters} onChange={setFilters} />
-
         {nodes.length > 0 && (
           <div className="hidden sm:block">
             <MapLegend nodes={visibleNodes} />
           </div>
         )}
 
-        {/* Ecran mare: selectorul stă jos, peste hartă, mereu la vedere. */}
-        {!chatOpen && (
-          <div className="pointer-events-none absolute inset-x-0 bottom-0 hidden justify-center p-6 sm:flex">
-            <GuidePicker
-              nodes={nodes}
-              busy={pending}
-              onFree={() => setChatOpen(true)}
-              onGuide={startGuide}
-              onTopic={startTopic}
-            />
-          </div>
+        {/* Telefon: cele trei etape, ca bară jos. Fiecare deschide foaia pe fila ei. */}
+        {!chatOpen && !sheetOpen && (
+          <nav className="absolute inset-x-0 bottom-0 z-20 grid grid-cols-3 gap-1.5 border-t border-ink-line bg-ink/90 px-3 pt-2.5 pb-[calc(0.625rem+env(safe-area-inset-bottom))] backdrop-blur-md sm:hidden">
+            {TABS.map((t) => {
+              const badge =
+                t.id === "identify"
+                  ? account.sessionsLeft
+                  : t.id === "interpret"
+                    ? counts.unconfirmed
+                    : counts.todo + counts.working;
+              const primary = t.id === "identify" && nodes.length === 0;
+              return (
+                <button
+                  key={t.id}
+                  onClick={() => openTab(t.id)}
+                  className={`rounded-xl border px-2 py-2 text-left ${
+                    primary ? "border-paper bg-paper text-ink" : "border-ink-line text-paper-dim"
+                  }`}
+                >
+                  <span className={`block text-[10px] ${primary ? "text-ink/60" : "text-paper-faint"}`}>
+                    Pasul {t.step}
+                  </span>
+                  <span className="flex items-center gap-1.5 text-[13px] font-medium">
+                    {t.label}
+                    {badge > 0 && (
+                      <span
+                        className={`rounded-full px-1.5 text-[10px] ${
+                          primary ? "bg-ink/10" : "bg-ink-line"
+                        }`}
+                      >
+                        {badge}
+                      </span>
+                    )}
+                  </span>
+                </button>
+              );
+            })}
+          </nav>
         )}
 
-        {/* Telefon: o bară jos, iar selectorul și panourile se ridică ca foi.
-            Harta rămâne vizibilă — altfel omul nu vede niciodată ce construiește. */}
-        {!chatOpen && !pickerOpen && (
-          <div className="absolute inset-x-0 bottom-0 z-20 flex items-center gap-2 border-t border-ink-line bg-ink/90 px-3 pt-3 pb-[calc(0.75rem+env(safe-area-inset-bottom))] backdrop-blur-md sm:hidden">
-            <button
-              onClick={() => setPickerOpen(true)}
-              className="shrink-0 rounded-xl bg-paper px-4 py-2.5 text-sm font-medium whitespace-nowrap text-ink"
-            >
-              Începe o ședință
-            </button>
-            {/* Restul acțiunilor se derulează lateral; butonul principal nu se strânge. */}
-            <div className="flex min-w-0 flex-1 gap-1.5 overflow-x-auto pr-6 [mask-image:linear-gradient(to_right,black_calc(100%-2rem),transparent)] [scrollbar-width:none] [&::-webkit-scrollbar]:hidden [&>*]:shrink-0 [&>*]:whitespace-nowrap">
-              <AddNodeForm
-                onAdded={async (id) => {
-                  await reload();
-                  setSelectedId(id);
-                }}
-              />
-              {nodes.length > 0 && <PredictionPanel onAnswered={reload} />}
-              {nodes.length > 0 && <MapReading onOpenNode={setSelectedId} />}
-            </div>
-          </div>
-        )}
-
-        {!chatOpen && pickerOpen && (
+        {!chatOpen && sheetOpen && (
           <div className="fixed inset-0 z-30 flex flex-col justify-end bg-ink/60 sm:hidden">
-            <button
-              aria-label="Închide"
-              onClick={() => setPickerOpen(false)}
-              className="flex-1"
-            />
-            <div className="rounded-t-2xl border-t border-ink-line bg-ink-soft pb-[env(safe-area-inset-bottom)]">
+            <button aria-label="Închide" onClick={() => setSheetOpen(false)} className="flex-1" />
+            <div className="flex max-h-[85dvh] flex-col rounded-t-2xl border-t border-ink-line bg-ink-soft pb-[env(safe-area-inset-bottom)]">
               <div className="flex justify-center py-2">
                 <span className="h-1 w-10 rounded-full bg-ink-line" />
               </div>
-              <GuidePicker
-                nodes={nodes}
-                busy={pending}
-                onFree={() => {
-                  setPickerOpen(false);
-                  setChatOpen(true);
-                }}
-                onGuide={(guide) => {
-                  setPickerOpen(false);
-                  void startGuide(guide);
-                }}
-                onTopic={(topic, domain) => {
-                  setPickerOpen(false);
-                  void startTopic(topic, domain);
-                }}
-              />
+              <div className="min-h-0 flex-1">{workspace(() => setSheetOpen(false))}</div>
             </div>
           </div>
         )}
       </div>
 
-      {chatOpen && (
-        <ChatPanel
-          messages={messages}
-          pending={pending}
-          extracting={extracting}
-          limit={limit}
-          onSend={send}
-          onClose={closeChat}
-        />
-      )}
+      {/* Ecran mare: coloana din dreapta, cu un singur conținut la un moment dat. */}
+      <aside className="hidden h-full w-[400px] shrink-0 flex-col border-l border-ink-line bg-ink-soft/70 sm:flex lg:w-[440px]">
+        {selectedId ? (
+          <NodeDetail key={selectedId} nodeId={selectedId} onClose={() => openNode(null)} onChanged={reload} />
+        ) : chatOpen ? (
+          <ChatPanel
+            messages={messages}
+            pending={pending}
+            extracting={extracting}
+            limit={limit}
+            onSend={send}
+            onClose={closeChat}
+          />
+        ) : (
+          workspace()
+        )}
+      </aside>
 
-      {selectedId && (
-        <NodeDetail
-          key={selectedId}
-          nodeId={selectedId}
-          onClose={() => setSelectedId(null)}
-          onChanged={reload}
-        />
-      )}
+      {/* Telefon: conversația și nodul deschis sunt foi peste hartă. */}
+      <div className="sm:hidden">
+        {chatOpen && !selectedId && (
+          <ChatPanel
+            messages={messages}
+            pending={pending}
+            extracting={extracting}
+            limit={limit}
+            onSend={send}
+            onClose={closeChat}
+          />
+        )}
+        {selectedId && (
+          <NodeDetail key={selectedId} nodeId={selectedId} onClose={() => openNode(null)} onChanged={reload} />
+        )}
+      </div>
     </div>
   );
 }

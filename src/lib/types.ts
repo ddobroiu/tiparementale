@@ -35,6 +35,22 @@ export type TransformationStatus = "proposed" | "practicing" | "adopted" | "dism
 
 export type SafetyFlag = "none" | "distress" | "crisis";
 
+/**
+ * Unde e nodul în transformare: fără lucru, cu o convingere nouă în exersare,
+ * sau rezolvat — convingerea nouă adoptată. Vine calculat din bază, cu harta.
+ */
+export type WorkStatus = "working" | "resolved";
+
+/** Ce se poate transforma: valorile și obiectivele nu se „rezolvă”. */
+export function isWorkable(node: Pick<MindNode, "type">): boolean {
+  return (
+    node.type === "belief" ||
+    node.type === "fear" ||
+    node.type === "pattern" ||
+    node.type === "emotion"
+  );
+}
+
 export const NODE_TYPE_LABELS: Record<NodeType, string> = {
   belief: "Convingere",
   value: "Valoare",
@@ -96,6 +112,8 @@ export interface MindNode {
   /** Schema Young de care ține, dacă se potrivește clar uneia. */
   schema_code: string | null;
   verdict: NodeVerdict;
+  /** Prezent doar în răspunsul hărții; lipsește la citirea unui singur nod. */
+  work_status?: WorkStatus | null;
   archived_at: string | null;
   created_at: string;
   updated_at: string;

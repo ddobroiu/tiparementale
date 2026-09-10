@@ -65,6 +65,23 @@ export function MapLegend({ nodes }: { nodes: MindNode[] }) {
             ))}
           </ul>
 
+          <ul className="mt-3 space-y-1.5 border-t border-ink-line pt-3">
+            <li className="flex items-center gap-2.5">
+              <svg viewBox="-14 -14 28 28" className="h-4 w-4 shrink-0">
+                <circle r={11} fill="none" stroke="#a0e7c4" strokeWidth={1.4} strokeDasharray="3 3" />
+                <circle r={6} fill="#c8b6ff" fillOpacity={0.4} stroke="#c8b6ff" strokeWidth={1.2} />
+              </svg>
+              <span className="text-xs text-paper-dim">În lucru</span>
+            </li>
+            <li className="flex items-center gap-2.5">
+              <svg viewBox="-14 -14 28 28" className="h-4 w-4 shrink-0">
+                <circle r={9} fill="#a0e7c4" fillOpacity={0.9} />
+                <text y={3.5} textAnchor="middle" fontSize={10} fontWeight={700} fill="#0a0a0f">✓</text>
+              </svg>
+              <span className="text-xs text-paper-dim">Rezolvată</span>
+            </li>
+          </ul>
+
           <p className="mt-3 max-w-[13rem] text-[11px] leading-snug text-paper-faint">
             Culoarea spune zona de viață. Conturul punctat înseamnă că nu ai
             confirmat încă, iar mărimea, cât de sigur e tiparul.
