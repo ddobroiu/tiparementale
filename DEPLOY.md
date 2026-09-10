@@ -11,8 +11,8 @@ e cea partajată de pe același server; aplicația se conectează cu rolul
 curl -fsSL https://get.docker.com | sh
 
 # Codul
-git clone https://github.com/ddobroiu/tiparementale.git /opt/tiparementale
-cd /opt/tiparementale
+git clone https://github.com/ddobroiu/tiparementale.git /opt/apps/tiparementale
+cd /opt/apps/tiparementale
 
 # Secretele — NU în depozit. Copiază din .env.example și completează.
 cp .env.example .env
@@ -42,7 +42,7 @@ Rulează o dată, de pe server, înainte de prima pornire (și după fiecare
 migrare nouă):
 
 ```bash
-cd /opt/tiparementale
+cd /opt/apps/tiparementale
 docker compose run --rm app node scripts/migrate.mjs
 ```
 
@@ -60,7 +60,7 @@ curl -I http://127.0.0.1:3007/intra   # 200
 ## Actualizare
 
 ```bash
-cd /opt/tiparementale
+cd /opt/apps/tiparementale
 git pull
 docker compose up -d --build
 ```
