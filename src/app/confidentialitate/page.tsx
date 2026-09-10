@@ -35,7 +35,17 @@ const SECTIONS = [
       "Nu vindem și nu închiriem datele tale nimănui.",
       "Nu folosim conversațiile tale pentru antrenarea unor modele de inteligență artificială.",
       "Nu citim conversațiile utilizatorilor. Accesul angajaților la conținut este restricționat tehnic și se produce doar la cererea ta explicită, pentru suport.",
-      "Nu facem profilare în scop publicitar.",
+      "Nu construim profiluri publicitare din ce scrii. Singura măsurare de marketing este cea descrisă mai jos, la cookie-uri, și doar cu acordul tău.",
+    ],
+  },
+  {
+    title: "Cookie-uri și măsurarea campaniilor",
+    paragraphs: [
+      "Site-ul funcționează cu un singur cookie strict necesar: sesiunea de autentificare. Pentru el nu cerem acord, pentru că fără el nu poți intra în cont.",
+      "Dacă accepți din banner, folosim Meta Pixel (Meta Platforms Ireland Ltd.) ca să măsurăm dacă reclamele noastre de pe Facebook și Instagram aduc vizitatori și dacă aceștia își fac cont sau cumpără un pachet. Meta primește: paginile publice vizitate, faptul că s-a creat un cont sau s-a făcut o plată, valoarea plății, adresa IP, tipul de browser și, sub formă de amprentă criptografică ireversibilă, adresa de email. Nu primește niciodată conținutul conversațiilor, harta sau orice element extras din ele.",
+      "Tot cu acordul tău, folosim Google Analytics 4 (Google Ireland Ltd.) ca să vedem câți oameni vizitează site-ul, din ce surse vin și ce pagini citesc. Google primește paginile vizitate, evenimentele de mai sus (cont creat, pornirea plății), adresa IP (trunchiată de Google) și date tehnice despre browser. Adresele IP nu sunt stocate, iar identificatorii de publicitate Google nu sunt activați.",
+      "Dacă refuzi, nu se încarcă nimic de la Meta sau Google și nu trimitem nimic către ei, nici din browser, nici de pe serverele noastre. Alegerea se ține minte un an într-un cookie propriu (tm_consent) și o poți schimba oricând ștergând cookie-urile site-ului.",
+      "Temeiul legal este consimțământul tău (art. 6 alin. 1 lit. a GDPR). Meta și Google pot prelucra aceste date și în afara UE, în baza clauzelor contractuale standard și a cadrului UE–SUA de protecție a datelor; detalii în politicile lor de confidențialitate.",
     ],
   },
   {
@@ -51,6 +61,7 @@ const SECTIONS = [
     paragraphs: [
       "Pentru generarea răspunsurilor și extragerea tiparelor folosim Anthropic (Claude). Conținutul trimis este prelucrat pentru a genera răspunsul și nu este folosit pentru antrenarea modelelor.",
       "Pentru plăți folosim Stripe. Pentru găzduire, Vercel.",
+      "Pentru măsurarea traficului și a campaniilor, doar cu acordul tău, Meta Platforms Ireland Ltd. și Google Ireland Ltd. (vezi secțiunea despre cookie-uri).",
     ],
   },
   {
@@ -79,7 +90,7 @@ export default function ConfidentialitatePage() {
           Politica de confidențialitate
         </h1>
         <p className="mt-4 text-sm text-paper-faint">
-          Ultima actualizare: 7 septembrie 2026
+          Ultima actualizare: 10 septembrie 2026
         </p>
         <p className="mt-6 leading-relaxed text-paper-dim">
           Ce scrii în {SITE.name} este printre cele mai personale conținuturi pe

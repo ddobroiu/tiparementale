@@ -1,13 +1,23 @@
+import type { Metadata } from "next";
 import Link from "next/link";
 
 import { BuyButton } from "@/components/BuyButton";
 import { Logo } from "@/components/Logo";
+import { TrackEvent } from "@/components/TrackEvent";
 import { getSessionUser } from "@/lib/auth";
 import { getWallet } from "@/lib/billing/entitlement";
 import { listPacks } from "@/lib/billing/packs";
 import { withUser } from "@/lib/db";
+import { SITE, canonical } from "@/lib/site";
 
-export const metadata = { title: "Pachete — Tipare Mentale" };
+export const metadata: Metadata = {
+  title: "Pachete și prețuri",
+  description:
+    "Prima ședință e gratuită. Apoi programe care nu expiră: Un tipar (149 lei), " +
+    "Harta completă (349 lei), Însoțire 3 luni (599 lei). Ședințe pe oricare din " +
+    "cele 12 lecții, transformări cu exerciții, fără abonament.",
+  alternates: { canonical: canonical("/pachete") },
+};
 
 export default async function PachetePage() {
   const [packs, user] = await Promise.all([listPacks(), getSessionUser()]);
@@ -16,8 +26,44 @@ export default async function PachetePage() {
     ? await withUser(user.id, (client) => getWallet(client, user.id))
     : null;
 
+  const jsonLd = {
+    "@context": "https://schema.org",
+    "@type": "ItemList",
+    name: "Pachete Tipare Mentale",
+    itemListElement: packs.map((pack, i) => ({
+      "@type": "ListItem",
+      position: i + 1,
+      item: {
+        "@type": "Product",
+        name: `${pack.name} — ${SITE.name}`,
+        description: `${pack.sessions} ședințe și ${pack.transformations} transformări. Nu expiră.`,
+        brand: { "@type": "Brand", name: SITE.name },
+        offers: {
+          "@type": "Offer",
+          price: pack.priceRon.toFixed(2),
+          priceCurrency: "RON",
+          availability: "https://schema.org/InStock",
+          url: canonical("/pachete"),
+        },
+      },
+    })),
+  };
+
   return (
     <main className="min-h-screen">
+      <script
+        type="application/ld+json"
+        dangerouslySetInnerHTML={{ __html: JSON.stringify(jsonLd) }}
+      />
+      <TrackEvent
+        name="ViewContent"
+        params={{
+          content_name: "pachete",
+          content_type: "product",
+          content_ids: packs.map((p) => p.code),
+          currency: "RON",
+        }}
+      />
       <header className="mx-auto flex max-w-5xl items-center justify-between px-6 py-6">
         <Link href="/">
           <Logo />
@@ -46,7 +92,8 @@ export default async function PachetePage() {
           <p className="mt-6 inline-block rounded-full border border-ink-line px-4 py-2 text-sm text-paper-dim">
             Ai acum{" "}
             <span className="text-paper">
-              {wallet.sessionsLeft} {wallet.sessionsLeft === 1 ? "ședință" : "ședințe"}
+              {wallet.sessionsLeft}{" "}
+              {wallet.sessionsLeft === 1 ? "ședință" : "ședințe"}
             </span>{" "}
             și {wallet.transformationsLeft}{" "}
             {wallet.transformationsLeft === 1 ? "transformare" : "transformări"}
@@ -79,28 +126,36 @@ export default async function PachetePage() {
 
               <ul className="mt-5 flex-1 space-y-2 text-sm text-paper-dim">
                 <li>
-                  <span className="text-paper">{pack.sessions} ședințe</span>: oricare din
-                  cele 12 lecții ale programului sau conversații libere, în orice ordine
+                  <span className="text-paper">{pack.sessions} ședințe</span>{" "}
+                  ghidate pe teme — copilăria, părinții, banii, relațiile, munca
+                  și rolul de părinte
                 </li>
                 <li>
-                  <span className="text-paper">{pack.transformations} transformări</span>:
-                  convingere nouă, exerciții cu urmărire, carte, film
+                  <span className="text-paper">
+                    {pack.transformations} transformări
+                  </span>
+                  : convingere nouă, exerciții cu urmărire, carte, film
                 </li>
                 <li>Predicții „te regăsești?” și citirea hărții, nelimitate</li>
                 <li>Harta rămâne a ta. Nu expiră nimic.</li>
               </ul>
 
-              <BuyButton pack={pack.code} highlighted={i === 1} loggedIn={Boolean(user)} />
+              <BuyButton
+                pack={pack.code}
+                priceRon={pack.priceRon}
+                highlighted={i === 1}
+                loggedIn={Boolean(user)}
+              />
             </div>
           ))}
         </div>
 
         <p className="mt-8 max-w-xl text-sm leading-relaxed text-paper-faint">
           O ședință înseamnă până la 25 de replici pe o temă, plus tot ce se
-          adaugă în hartă din ele. O transformare îți dă o convingere nouă pentru
-          un tipar confirmat, cu exerciții pe care le faci și le notezi în timp,
-          exemple concrete, o carte și un film. Prima ședință și predicțiile sunt
-          gratuite la crearea contului.
+          adaugă în hartă din ele. O transformare îți dă o convingere nouă
+          pentru un tipar confirmat, cu exerciții pe care le faci și le notezi
+          în timp, exemple concrete, o carte și un film. Prima ședință și
+          predicțiile sunt gratuite la crearea contului.
         </p>
       </section>
     </main>

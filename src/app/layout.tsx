@@ -1,6 +1,8 @@
 import type { Metadata, Viewport } from "next";
 import { Fraunces, Inter } from "next/font/google";
 
+import { CookieBanner } from "@/components/CookieBanner";
+import { MetaPixel } from "@/components/MetaPixel";
 import { SITE } from "@/lib/site";
 import "./globals.css";
 
@@ -65,6 +67,10 @@ export const metadata: Metadata = {
     googleBot: { index: true, follow: true, "max-image-preview": "large" },
   },
   formatDetection: { telephone: false },
+  // Codul din Search Console, când există; altfel nu scriem nimic.
+  verification: process.env.GOOGLE_SITE_VERIFICATION
+    ? { google: process.env.GOOGLE_SITE_VERIFICATION }
+    : undefined,
 };
 
 /** Identitatea site-ului, pentru motoarele de căutare. */
@@ -87,6 +93,25 @@ const organizationJsonLd = {
       inLanguage: "ro-RO",
       publisher: { "@id": `${SITE.url}#organization` },
     },
+    {
+      "@type": "SoftwareApplication",
+      "@id": `${SITE.url}#app`,
+      name: SITE.name,
+      url: SITE.url,
+      applicationCategory: "HealthApplication",
+      operatingSystem: "Web",
+      inLanguage: "ro-RO",
+      description: SITE.description,
+      offers: {
+        "@type": "AggregateOffer",
+        priceCurrency: "RON",
+        lowPrice: "0",
+        highPrice: "599",
+        offerCount: 4,
+        description: "Prima ședință gratuită; programe de la 149 lei, fără abonament.",
+      },
+      publisher: { "@id": `${SITE.url}#organization` },
+    },
   ],
 };
 
@@ -101,6 +126,9 @@ export default function RootLayout({
           dangerouslySetInnerHTML={{ __html: JSON.stringify(organizationJsonLd) }}
         />
         {children}
+        {/* Pixelul Meta se încarcă doar după „Accept" din banner. */}
+        <MetaPixel />
+        <CookieBanner />
       </body>
     </html>
   );

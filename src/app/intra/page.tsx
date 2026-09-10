@@ -6,6 +6,8 @@ import { Logo } from "@/components/Logo";
 import { useRouter, useSearchParams } from "next/navigation";
 import { Suspense, useState } from "react";
 
+import { newEventId, track } from "@/lib/meta/pixel";
+
 function AuthForm() {
   const router = useRouter();
   const params = useSearchParams();
@@ -22,10 +24,15 @@ function AuthForm() {
     setBusy(true);
     setError("");
 
+    // ID-ul evenimentului se generează înainte: serverul îl trimite la Meta
+    // odată cu crearea contului, browserul abia după răspuns. Același ID —
+    // un singur cont nou numărat.
+    const eventId = mode === "register" ? newEventId() : undefined;
+
     const res = await fetch("/api/auth", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ action: mode, email, password }),
+      body: JSON.stringify({ action: mode, email, password, eventId }),
     });
 
     if (!res.ok) {
@@ -34,6 +41,8 @@ function AuthForm() {
       setBusy(false);
       return;
     }
+
+    if (eventId) track("CompleteRegistration", { status: true }, eventId);
 
     router.push(redirect);
     router.refresh();

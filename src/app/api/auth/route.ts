@@ -11,6 +11,7 @@ import {
 import { appUrl } from "@/lib/billing/stripe";
 import { query } from "@/lib/db";
 import { sendPasswordResetEmail, sendWelcomeEmail } from "@/lib/email";
+import { readMetaClient, sendMetaEvent } from "@/lib/meta/capi";
 
 interface UserRow extends Record<string, unknown> {
   id: string;
@@ -55,6 +56,21 @@ export async function POST(request: Request) {
     );
 
     await createSession(created[0].id);
+
+    // Cont nou, raportat la Meta de pe server (browserul îl raportează și el,
+    // cu același ID). Nu așteptăm și nu condiționăm nimic de răspuns.
+    const eventId = typeof body?.eventId === "string" ? body.eventId.slice(0, 64) : "";
+    if (eventId) {
+      void sendMetaEvent({
+        name: "CompleteRegistration",
+        eventId,
+        email: created[0].email,
+        externalId: created[0].id,
+        client: readMetaClient(request),
+        customData: { status: true },
+      });
+    }
+
     // Contul există deja; e-mailul e o curtoazie, nu o condiție.
     await sendWelcomeEmail(created[0].email, `${appUrl()}/harta`);
     return NextResponse.json({ ok: true });

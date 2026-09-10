@@ -33,6 +33,10 @@ nano .env
 | `STRIPE_WEBHOOK_SECRET` | din Stripe → Developers → Webhooks, pentru `https://tiparementale.ro/api/stripe/webhook` |
 | `NEXT_PUBLIC_SITE_URL` | `https://tiparementale.ro` |
 | `NEXT_PUBLIC_APP_URL` | `https://tiparementale.ro` |
+| `NEXT_PUBLIC_META_PIXEL_ID` | `28179062978410852` — datasetul „Tipare Mentale - Pixel" din Events Manager |
+| `META_CAPI_ACCESS_TOKEN` | Events Manager → dataset → Settings → Conversions API → Generate access token |
+| `META_TEST_EVENT_CODE` | doar cât testezi (Events Manager → Test events); în producție lasă gol |
+| `NEXT_PUBLIC_GA_MEASUREMENT_ID` | `G-LGN82KWXF5` — GA4, proprietatea „Tipare Mentale" (cont Culoarea din Viata SA SRL) |
 
 Pentru că baza e pe același server, `DATABASE_URL` poate folosi `127.0.0.1`
 în loc de IP-ul public — dar din container, `127.0.0.1` e containerul însuși.

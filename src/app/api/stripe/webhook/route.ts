@@ -4,6 +4,8 @@ import { creditPurchase } from "@/lib/billing/packs";
 import { appUrl, stripe, stripeConfigured } from "@/lib/billing/stripe";
 import { query, withUser } from "@/lib/db";
 import { sendPurchaseEmail } from "@/lib/email";
+import { sendMetaEvent } from "@/lib/meta/capi";
+import { parseConsent } from "@/lib/meta/consent";
 
 /**
  * Confirmarea plății, venită de la Stripe.
@@ -68,6 +70,31 @@ export async function POST(request: Request) {
         )
       : [];
     if (user) await sendPurchaseEmail(user.email, pack ?? null, `${appUrl()}/harta`);
+
+    // Cumpărarea se raportează la Meta doar de aici și doar o dată (la prima
+    // creditare), cu ID-ul sesiunii Stripe ca `event_id`. Consimțământul și
+    // cookie-urile Meta au fost salvate la pornirea plății.
+    const m = session.metadata ?? {};
+    void sendMetaEvent({
+      name: "Purchase",
+      eventId: session.id,
+      email: user?.email ?? session.customer_email,
+      externalId: userId,
+      client: {
+        consent: parseConsent(m.metaConsent),
+        fbp: m.metaFbp || null,
+        fbc: m.metaFbc || null,
+        ip: m.metaIp || null,
+        userAgent: m.metaUa || null,
+        sourceUrl: `${appUrl()}/pachete`,
+      },
+      customData: {
+        content_ids: packCode ? [packCode] : undefined,
+        content_type: "product",
+        value: (session.amount_total ?? 0) / 100,
+        currency: (session.currency ?? "ron").toUpperCase(),
+      },
+    });
   }
 
   // `credited: false` înseamnă că plata fusese deja onorată. Stripe retrimite

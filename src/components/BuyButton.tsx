@@ -3,6 +3,8 @@
 import { useRouter } from "next/navigation";
 import { useState } from "react";
 
+import { track } from "@/lib/meta/pixel";
+
 /**
  * Cumpărarea unui pachet.
  *
@@ -12,10 +14,12 @@ import { useState } from "react";
  */
 export function BuyButton({
   pack,
+  priceRon,
   highlighted,
   loggedIn,
 }: {
   pack: string;
+  priceRon: number;
   highlighted: boolean;
   loggedIn: boolean;
 }) {
@@ -32,11 +36,20 @@ export function BuyButton({
     setBusy(true);
     setError("");
 
+    // Același ID pleacă din browser și, prin server, către Meta: un singur
+    // eveniment InitiateCheckout, nu două.
+    const eventId = track("InitiateCheckout", {
+      content_ids: [pack],
+      content_type: "product",
+      value: priceRon,
+      currency: "RON",
+    });
+
     try {
       const res = await fetch("/api/checkout", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ pack }),
+        body: JSON.stringify({ pack, eventId }),
       });
       const data = await res.json();
 

@@ -4,6 +4,7 @@ import { getSessionUser } from "@/lib/auth";
 import { getPack } from "@/lib/billing/packs";
 import { appUrl, stripe, stripeConfigured } from "@/lib/billing/stripe";
 import { withUser } from "@/lib/db";
+import { readMetaClient, sendMetaEvent } from "@/lib/meta/capi";
 
 /**
  * Pornește plata unui pachet.
@@ -31,6 +32,12 @@ export async function POST(request: Request) {
     return NextResponse.json({ error: "Pachet inexistent" }, { status: 400 });
   }
 
+  // Ce știm despre vizitator acum se pune în metadatele Stripe: webhook-ul
+  // vine de la Stripe, fără cookie-uri, și fără asta n-ar avea ce trimite la
+  // Meta când confirmă plata.
+  const meta = readMetaClient(request);
+  const eventId = typeof body?.eventId === "string" ? body.eventId.slice(0, 64) : "";
+
   const session = await stripe().checkout.sessions.create({
     mode: "payment",
     customer_email: user.email,
@@ -51,8 +58,33 @@ export async function POST(request: Request) {
     ],
     success_url: `${appUrl()}/harta?plata=reusita`,
     cancel_url: `${appUrl()}/pachete?plata=anulata`,
-    metadata: { userId: user.id, pack: pack.code },
+    metadata: {
+      userId: user.id,
+      pack: pack.code,
+      metaConsent: meta.consent ?? "",
+      metaFbp: meta.fbp ?? "",
+      metaFbc: meta.fbc ?? "",
+      metaIp: meta.ip ?? "",
+      metaUa: (meta.userAgent ?? "").slice(0, 500),
+    },
   });
+
+  if (eventId) {
+    // Nu așteptăm răspunsul Meta ca să dăm link-ul de plată.
+    void sendMetaEvent({
+      name: "InitiateCheckout",
+      eventId,
+      email: user.email,
+      externalId: user.id,
+      client: meta,
+      customData: {
+        content_ids: [pack.code],
+        content_type: "product",
+        value: pack.priceRon,
+        currency: "RON",
+      },
+    });
+  }
 
   // Cumpărarea se înregistrează ca „pending" acum, ca webhook-ul să aibă ce
   // confirma. Fără rândul acesta, o plată reușită nu ar avea unde să aterizeze.
