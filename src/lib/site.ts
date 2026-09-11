@@ -20,12 +20,18 @@ export const SITE = {
   email: "contact@tiparementale.ro",
 } as const;
 
+/**
+ * Meniul. Fiecare secțiune are o culoare a ei, folosită peste tot unde apare
+ * secțiunea: în meniu, pe pagina activă, pe carduri. Omul nu citește
+ * etichete, recunoaște culori — iar un site întreg în alb pe negru îl obligă
+ * să citească de fiecare dată.
+ */
 export const NAV = [
-  { href: "/cum-functioneaza", label: "Cum funcționează" },
-  { href: "/program", label: "Program" },
-  { href: "/articole", label: "Articole" },
-  { href: "/pachete", label: "Pachete" },
-  { href: "/intrebari", label: "Întrebări" },
+  { href: "/cum-functioneaza", label: "Cum funcționează", color: "#7cc4fb" },
+  { href: "/program", label: "Program", color: "#f6d186" },
+  { href: "/articole", label: "Articole", color: "#c8b6ff" },
+  { href: "/pachete", label: "Pachete", color: "#ffb4a2" },
+  { href: "/intrebari", label: "Întrebări", color: "#d8a0c4" },
 ] as const;
 
 export const FOOTER_LINKS = [

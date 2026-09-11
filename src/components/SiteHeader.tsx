@@ -32,17 +32,25 @@ export function SiteHeader() {
               <Link
                 key={item.href}
                 href={item.href}
-                className={`text-sm transition-colors ${
-                  active ? "text-paper" : "text-paper-dim hover:text-paper"
+                style={active ? { color: item.color } : undefined}
+                className={`relative py-1 text-sm transition-colors ${
+                  active ? "" : "text-paper-dim hover:text-paper"
                 }`}
               >
                 {item.label}
+                {active && (
+                  <span
+                    className="absolute inset-x-0 -bottom-0.5 h-0.5 rounded-full"
+                    style={{ background: item.color }}
+                  />
+                )}
               </Link>
             );
           })}
           <Link
             href="/harta"
-            className="rounded-full bg-paper px-4 py-1.5 text-sm font-medium text-ink transition-opacity hover:opacity-90"
+            style={{ background: "var(--step)" }}
+            className="rounded-full px-4 py-1.5 text-sm font-medium text-ink transition-opacity hover:opacity-90"
           >
             Harta mea
           </Link>
@@ -69,12 +77,20 @@ export function SiteHeader() {
                   <Link
                     href={item.href}
                     onClick={() => setOpen(false)}
-                    className={`flex items-center justify-between py-3.5 text-base ${
-                      active ? "text-paper" : "text-paper-dim"
+                    style={active ? { color: item.color } : undefined}
+                    className={`flex items-center gap-2.5 py-3.5 text-base ${
+                      active ? "" : "text-paper-dim"
                     }`}
                   >
+                    <span
+                      className="h-2 w-2 shrink-0 rounded-full"
+                      style={{
+                        background: item.color,
+                        opacity: active ? 1 : 0.45,
+                      }}
+                    />
                     {item.label}
-                    <span className="text-paper-faint">→</span>
+                    <span className="ml-auto text-paper-faint">→</span>
                   </Link>
                 </li>
               );
@@ -83,7 +99,8 @@ export function SiteHeader() {
           <Link
             href="/harta"
             onClick={() => setOpen(false)}
-            className="mt-4 block rounded-xl bg-paper px-4 py-3.5 text-center text-base font-medium text-ink"
+            style={{ background: "var(--step)" }}
+            className="mt-4 block rounded-xl px-4 py-3.5 text-center text-base font-medium text-ink"
           >
             Harta mea
           </Link>

@@ -1,12 +1,20 @@
 @import "tailwindcss";
 
 :root {
-  --ink: #0a0a0f;
-  --ink-soft: #12121a;
-  --ink-line: #22222e;
-  --paper: #f4f3f0;
-  --paper-dim: #a5a3ae;
-  --paper-faint: #6a6875;
+  /* Fundalul: albastru de noapte, nu negru. Harta e un cer, nu o gaură. */
+  --ink: #0a1424;
+  --ink-soft: #111e33;
+  --ink-line: #23344f;
+  --paper: #f2f5fa;
+  --paper-dim: #a7b5cb;
+  --paper-faint: #6d7d97;
+
+  /* Semnalele interfeței: verdele înseamnă „a reușit", mereu și peste tot.
+     Ambra e „mai ai de lucru", albastrul e pasul la care ești. */
+  --ok: #34d399;
+  --ok-soft: #0f3d33;
+  --todo: #f6d186;
+  --step: #7cc4fb;
 
   /* O culoare per tip de nod. Harta trebuie citită dintr-o privire. */
   --belief: #c8b6ff;
@@ -25,6 +33,9 @@
   --color-paper: var(--paper);
   --color-paper-dim: var(--paper-dim);
   --color-paper-faint: var(--paper-faint);
+  --color-ok: var(--ok);
+  --color-todo: var(--todo);
+  --color-step: var(--step);
   --font-sans: var(--font-inter), ui-sans-serif, system-ui, sans-serif;
   --font-serif: var(--font-fraunces), ui-serif, Georgia, serif;
 }

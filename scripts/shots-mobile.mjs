@@ -97,7 +97,11 @@ await shot("06c-identificare");
 // Selectorul există de două ori în DOM (varianta de ecran mare e doar ascunsă):
 // atingem-o pe cea vizibilă.
 const visible = (text) => page.getByText(text).filter({ visible: true }).first();
-await visible("Casa în care ai crescut").click();
+// Prima lecție de pe drum stă deschisă din start: nu mai e nimic de apăsat,
+// doar de derulat până la ea.
+await page.mouse.move(200, 600);
+await page.mouse.wheel(0, 520);
+await page.waitForTimeout(400);
 await shot("07-teme");
 
 // Chat deschis, pe o temă (consumă ședința gratuită; contul se șterge oricum).

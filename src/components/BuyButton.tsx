@@ -17,11 +17,14 @@ export function BuyButton({
   priceRon,
   highlighted,
   loggedIn,
+  color,
 }: {
   pack: string;
   priceRon: number;
   highlighted: boolean;
   loggedIn: boolean;
+  /** Culoarea pachetului: plin la cel recomandat, doar contur la celelalte. */
+  color: string;
 }) {
   const router = useRouter();
   const [busy, setBusy] = useState(false);
@@ -71,10 +74,9 @@ export function BuyButton({
       <button
         onClick={buy}
         disabled={busy}
+        style={highlighted ? { background: color } : { borderColor: color, color }}
         className={`mt-6 w-full rounded-xl px-4 py-3 text-sm font-medium transition-opacity hover:opacity-90 disabled:opacity-50 ${
-          highlighted
-            ? "bg-paper text-ink"
-            : "border border-ink-line text-paper hover:border-paper-faint"
+          highlighted ? "text-ink" : "border"
         }`}
       >
         {busy ? "Un moment…" : loggedIn ? "Cumpără" : "Fă-ți cont și cumpără"}

@@ -26,7 +26,7 @@ export default async function OpengraphImage() {
           height: "100%",
           display: "flex",
           alignItems: "center",
-          background: "#0a0a0f",
+          background: "#0a1424",
           padding: "72px",
           fontFamily: "sans-serif",
         }}
@@ -41,14 +41,14 @@ export default async function OpengraphImage() {
             paddingRight: 48,
           }}
         >
-          <div style={{ color: "#f4f3f0", fontSize: 30, letterSpacing: "-0.5px" }}>
+          <div style={{ color: "#f2f5fa", fontSize: 30, letterSpacing: "-0.5px" }}>
             {SITE.name}
           </div>
 
           <div style={{ display: "flex", flexDirection: "column", gap: "24px" }}>
             <div
               style={{
-                color: "#f4f3f0",
+                color: "#f2f5fa",
                 fontSize: 64,
                 lineHeight: 1.1,
                 letterSpacing: "-1.5px",
@@ -56,12 +56,12 @@ export default async function OpengraphImage() {
             >
               O hartă vie a felului în care gândești.
             </div>
-            <div style={{ color: "#a5a3ae", fontSize: 27 }}>
+            <div style={{ color: "#a7b5cb", fontSize: 27 }}>
               Convingerile care îți conduc reacțiile, vizibile și schimbabile.
             </div>
           </div>
 
-          <div style={{ color: "#6a6875", fontSize: 24 }}>{SITE.domain}</div>
+          <div style={{ color: "#6d7d97", fontSize: 24 }}>{SITE.domain}</div>
         </div>
 
         {/* eslint-disable-next-line @next/next/no-img-element */}

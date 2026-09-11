@@ -31,6 +31,13 @@ Pentru convingerile **confirmate**, aplicația propune o **convingere nouă** ca
 să le ia locul, împreună cu exerciții mici, exemple concrete, o carte și un film
 alese pentru convingerea aceea. Vezi §6.
 
+### Etapele se deschid una din alta
+Interpretarea e închisă până există ceva pe hartă; transformarea, până există o
+convingere confirmată. Nu e disciplină, e ordinea lucrului: o filă goală pe care
+omul o deschide singur arată ca o aplicație stricată. La fel, **lecțiile se fac
+în lanț** — următoarea se deschide când cea dinainte e terminată. Verdele
+înseamnă peste tot același lucru: gata.
+
 ---
 
 ## 2. Principii de produs

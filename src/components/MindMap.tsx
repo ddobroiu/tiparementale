@@ -343,7 +343,7 @@ export function MindMap({
             markerHeight="6"
             orient="auto-start-reverse"
           >
-            <path d="M 0 1 L 7 4 L 0 7 z" fill="#f4f3f0" fillOpacity={0.45} />
+            <path d="M 0 1 L 7 4 L 0 7 z" fill="#f2f5fa" fillOpacity={0.45} />
           </marker>
         </defs>
 
@@ -406,7 +406,7 @@ export function MindMap({
                 <path
                   d={`M ${from.x} ${from.y} Q ${mx + nx} ${my + ny} ${to.x} ${to.y}`}
                   fill="none"
-                  stroke="#f4f3f0"
+                  stroke="#f2f5fa"
                   strokeOpacity={active ? 0.42 : 0.1}
                   strokeWidth={active ? 1.4 : 0.8}
                   markerEnd={active ? "url(#arrow)" : undefined}
@@ -487,7 +487,7 @@ export function MindMap({
                   <circle
                     r={r + 8}
                     fill="none"
-                    stroke="#f4f3f0"
+                    stroke="#f2f5fa"
                     strokeOpacity={0.5}
                   />
                 )}
@@ -558,7 +558,7 @@ export function MindMap({
                       width={labelWidth(node)}
                       height={19}
                       rx={9.5}
-                      fill="#0a0a0f"
+                      fill="#0a1424"
                       fillOpacity={0.86}
                     />
                     <text
@@ -585,7 +585,7 @@ export function MindMap({
                           width={width}
                           height={height}
                           rx={10}
-                          fill="#0a0a0f"
+                          fill="#0a1424"
                           fillOpacity={0.92}
                           stroke={DOMAIN_COLORS[node.domain]}
                           strokeOpacity={0.5}

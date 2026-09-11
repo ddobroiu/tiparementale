@@ -92,8 +92,9 @@ export default function CumFunctioneazaPage() {
           <p className="mt-4 leading-relaxed text-paper-dim">
             Identificarea se face pe lecții: conversații ghidate de cinci-șase
             pași, în cinci module — rădăcini, sinele, relațiile, bani și muncă,
-            ca părinte. Le faci în orice ordine, sau vorbești liber. O lecție
-            costă o ședință.
+            ca părinte. Le faci pe rând: fiecare o deschide pe următoarea, pentru
+            că fiecare se sprijină pe ce a ieșit înainte. O lecție costă o
+            ședință. Dacă nu vrei o lecție anume, vorbești liber.
           </p>
           <Link
             href="/program"

@@ -7,13 +7,12 @@ import {
   LESSONS,
   MODULES,
   UNLISTED_GUIDES,
+  lessonAccess,
   lessonMinutes,
   lessonState,
-  nextLesson,
   type LessonProgress,
   type LessonState,
 } from "@/lib/program";
-import { SCHEMA_BY_CODE } from "@/lib/schemas";
 import { TOPICS, type Topic } from "@/lib/topics";
 import {
   DOMAIN_COLORS,
@@ -22,7 +21,8 @@ import {
   type LifeDomain,
 } from "@/lib/types";
 
-const RESOLVED = "#a0e7c4";
+/** Verdele de „reușit", același în toată navigarea (vezi --ok). */
+const RESOLVED = "#34d399";
 
 interface Props {
   progress: LessonProgress[];
@@ -41,10 +41,21 @@ function dateShort(iso: string): string {
   });
 }
 
-/** Numele scurt al schemei: „Abandon / instabilitate” → „Abandon”. */
-function schemaShort(code: string): string | null {
-  const s = SCHEMA_BY_CODE.get(code);
-  return s ? s.name.split(" / ")[0] : null;
+function Lock({ className = "" }: { className?: string }) {
+  return (
+    <svg
+      viewBox="0 0 24 24"
+      aria-hidden
+      fill="none"
+      stroke="currentColor"
+      strokeWidth={1.7}
+      strokeLinecap="round"
+      className={`h-3.5 w-3.5 shrink-0 ${className}`}
+    >
+      <rect x="5" y="10.5" width="14" height="9.5" rx="2.5" />
+      <path d="M8.2 10.5V7.8a3.8 3.8 0 0 1 7.6 0v2.7" />
+    </svg>
+  );
 }
 
 /**
@@ -52,13 +63,12 @@ function schemaShort(code: string): string | null {
  * lecției; la 100, o bifă; între ele, cât s-a parcurs.
  */
 function Ring({ state, number }: { state: LessonState; number: number }) {
-  const size = 30;
-  const r = 12.5;
+  const size = 28;
+  const r = 11.5;
   const c = 2 * Math.PI * r;
-  const filled = state.percent / 100;
 
   return (
-    <span className="relative flex h-[30px] w-[30px] shrink-0 items-center justify-center">
+    <span className="relative flex h-7 w-7 shrink-0 items-center justify-center">
       <svg
         viewBox={`0 0 ${size} ${size}`}
         className="absolute inset-0 h-full w-full -rotate-90"
@@ -68,7 +78,7 @@ function Ring({ state, number }: { state: LessonState; number: number }) {
           cy={size / 2}
           r={r}
           fill="none"
-          stroke="#22222e"
+          stroke="#23344f"
           strokeWidth={2}
         />
         {state.percent > 0 && (
@@ -80,7 +90,7 @@ function Ring({ state, number }: { state: LessonState; number: number }) {
             stroke={RESOLVED}
             strokeWidth={2}
             strokeLinecap="round"
-            strokeDasharray={`${c * filled} ${c}`}
+            strokeDasharray={`${c * (state.percent / 100)} ${c}`}
             className="transition-all duration-700"
           />
         )}
@@ -105,10 +115,16 @@ function Ring({ state, number }: { state: LessonState; number: number }) {
 }
 
 /**
- * Programul, ca listă: conversația liberă întâi, la același rang cu lecțiile;
- * apoi cele douăsprezece lecții pe module, fiecare cu procentul ei; la urmă
- * întrebările scurte. Nimic nu e blocat: orice lecție se începe oricând, cu o
- * ședință, în orice ordine. Ordinea afișată e doar drumul recomandat.
+ * Programul, ca drum: un lanț de douăsprezece lecții din care e deschisă una
+ * singură — următoarea. Cele făcute rămân în urmă ca un rând bifat, cele
+ * viitoare stau închise cu lacăt, iar modulele la care nu s-a ajuns încă se
+ * strâng fiecare într-un singur rând.
+ *
+ * Regula care ține ecranul curat: pe listă stau doar numărul, titlul și
+ * starea. Rezumatul, pașii și butoanele apar la lecția deschisă — adică
+ * exact acolo unde omul are ceva de făcut. Celelalte căi de intrare,
+ * conversația liberă și întrebările scurte, stau pliate la final: există,
+ * dar nu concurează cu drumul.
  */
 export function LessonCatalog({
   progress,
@@ -119,11 +135,6 @@ export function LessonCatalog({
   onResume,
   onTopic,
 }: Props) {
-  const [openLesson, setOpenLesson] = useState<string | null>(null);
-  const [moduleFilter, setModuleFilter] = useState<string | null>(null);
-  const [topicsOpen, setTopicsOpen] = useState(false);
-  const [topicDomain, setTopicDomain] = useState<LifeDomain | null>(null);
-
   const byGuide = new Map(progress.map((p) => [p.guideId, p]));
   const states = new Map(
     LESSONS.map((l) => [
@@ -131,6 +142,25 @@ export function LessonCatalog({
       lessonState(l.guide, byGuide.get(l.guide.id)),
     ]),
   );
+  const access = lessonAccess(progress);
+  // Lecția la care s-a ajuns: prima deschisă pe care chiar se poate lucra.
+  const actives = LESSONS.filter((l) => access.get(l.guide.id) === "active");
+  const current =
+    actives.find((l) => {
+      const s = states.get(l.guide.id)!;
+      return s.kind !== "partial" || !s.spent;
+    }) ??
+    actives[0] ??
+    null;
+
+  // `undefined` = nimic atins încă: stă deschisă lecția la care omul a ajuns.
+  const [opened, setOpened] = useState<string | null | undefined>(undefined);
+  const openId = opened === undefined ? (current?.guide.id ?? null) : opened;
+  const [stepsOpen, setStepsOpen] = useState(false);
+  const [openModule, setOpenModule] = useState<string | null>(null);
+  const [elseOpen, setElseOpen] = useState(false);
+  const [topicDomain, setTopicDomain] = useState<LifeDomain | null>(null);
+
   const done = LESSONS.filter(
     (l) => states.get(l.guide.id)!.kind === "done",
   ).length;
@@ -138,43 +168,22 @@ export function LessonCatalog({
     LESSONS.reduce((sum, l) => sum + states.get(l.guide.id)!.percent, 0) /
       LESSONS.length,
   );
-  const next = nextLesson(progress);
   const canStart = sessionsLeft > 0 && !busy;
-  const visibleModules = MODULES.filter(
-    (m) => moduleFilter === null || m.id === moduleFilter,
-  );
+
+  const toggle = (id: string) => {
+    setOpened(openId === id ? null : id);
+    setStepsOpen(false);
+  };
 
   return (
-    <div className="space-y-6">
-      {/* Conversația liberă: opțiune întreagă, nu notă de subsol. */}
-      <button
-        onClick={onFree}
-        disabled={!canStart}
-        className="w-full rounded-2xl border border-ink-line p-4 text-left transition-colors hover:border-paper-faint disabled:opacity-50"
-      >
-        <span className="flex items-center justify-between gap-3">
-          <span className="font-serif text-[17px] text-paper">
-            Conversație liberă
-          </span>
-          <span className="shrink-0 rounded-full border border-ink-line px-2 py-0.5 text-[10px] tracking-[0.12em] text-paper-faint uppercase">
-            1 ședință
-          </span>
-        </span>
-        <span className="mt-1.5 block text-[13px] leading-snug text-paper-dim">
-          Fără temă. Spui ce ai pe suflet, iar întrebările vin din ce spui.
-          Harta se completează la fel ca într-o lecție.
-        </span>
-      </button>
-
-      {/* Programul: progres total, filtre pe module, continuarea. */}
+    <div className="space-y-5">
+      {/* Unde ești pe drum: un număr, o bară, regula în două rânduri. */}
       <div>
         <div className="flex items-baseline justify-between">
           <h3 className="text-[11px] tracking-[0.16em] text-paper-faint uppercase">
-            Programul · {LESSONS.length} lecții
+            Drumul · {done} din {LESSONS.length}
           </h3>
-          <span className="text-xs text-paper-faint">
-            {done} {done === 1 ? "făcută" : "făcute"} · {overall}%
-          </span>
+          <span className="text-xs text-paper-faint">{overall}%</span>
         </div>
         <div className="mt-2 h-1.5 overflow-hidden rounded-full bg-ink-line">
           <div
@@ -183,100 +192,81 @@ export function LessonCatalog({
           />
         </div>
         <p className="mt-2 text-xs leading-relaxed text-paper-faint">
-          O lecție = o ședință. Le faci în orice ordine; cea de mai jos e doar
-          drumul recomandat. Procentul e cât ai parcurs din pașii lecției.
+          Pe rând: următoarea se deschide când o termini pe cea dinainte.
         </p>
-
-        <div className="mt-3 flex gap-1.5 overflow-x-auto pb-1 [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
-          <button
-            onClick={() => setModuleFilter(null)}
-            className={`shrink-0 rounded-full border px-3 py-1 text-xs whitespace-nowrap transition-colors ${
-              moduleFilter === null
-                ? "border-paper bg-paper text-ink"
-                : "border-ink-line text-paper-dim hover:border-paper-faint"
-            }`}
-          >
-            Toate
-          </button>
-          {MODULES.map((m) => {
-            const lessons = LESSONS.filter((l) => l.moduleId === m.id);
-            const doneHere = lessons.filter(
-              (l) => states.get(l.guide.id)!.kind === "done",
-            ).length;
-            const on = moduleFilter === m.id;
-            return (
-              <button
-                key={m.id}
-                onClick={() => setModuleFilter(on ? null : m.id)}
-                className={`flex shrink-0 items-center gap-1.5 rounded-full border px-3 py-1 text-xs whitespace-nowrap transition-colors ${
-                  on
-                    ? "border-paper bg-paper text-ink"
-                    : "border-ink-line text-paper-dim hover:border-paper-faint"
-                }`}
-              >
-                {m.title}
-                <span className={on ? "text-ink/60" : "text-paper-faint"}>
-                  {doneHere}/{lessons.length}
-                </span>
-              </button>
-            );
-          })}
-        </div>
-
-        {next && (done > 0 || overall > 0) && (
-          <button
-            onClick={() => {
-              const st = states.get(next.guide.id)!;
-              if (st.kind === "partial" && !st.spent)
-                onResume(st.conversationId);
-              else onStart(next.guide);
-            }}
-            disabled={
-              !canStart && states.get(next.guide.id)!.kind !== "partial"
-            }
-            className="mt-3 flex w-full items-center justify-between gap-3 rounded-xl border border-paper-faint/60 bg-ink-soft px-4 py-3 text-left disabled:opacity-50"
-          >
-            <span>
-              <span className="block text-[10px] tracking-[0.14em] text-paper-faint uppercase">
-                Continuă programul
-              </span>
-              <span className="block text-sm text-paper">
-                Lecția {next.number} · {next.guide.title}
-                {states.get(next.guide.id)!.kind === "partial" && (
-                  <span className="text-[color:var(--value)]">
-                    {" "}
-                    · {states.get(next.guide.id)!.percent}%
-                  </span>
-                )}
-              </span>
-            </span>
-            <span className="text-paper-faint">→</span>
-          </button>
-        )}
       </div>
 
-      {visibleModules.map((module) => {
+      {MODULES.map((module) => {
         const lessons = LESSONS.filter((l) => l.moduleId === module.id);
+        const locked = lessons.every((l) => access.get(l.guide.id) === "locked");
+        const doneHere = lessons.filter(
+          (l) => states.get(l.guide.id)!.kind === "done",
+        ).length;
+
+        // Un modul la care nu s-a ajuns încă: un singur rând, nu patru.
+        if (locked) {
+          const on = openModule === module.id;
+          return (
+            <section key={module.id}>
+              <button
+                onClick={() => setOpenModule(on ? null : module.id)}
+                className="flex w-full items-center gap-2 rounded-xl border border-ink-line/60 px-3 py-2.5 text-left"
+              >
+                <Lock className="text-paper-faint" />
+                <span
+                  className="h-1.5 w-1.5 shrink-0 rounded-full opacity-40"
+                  style={{ background: module.color }}
+                />
+                <span className="text-sm text-paper-faint">{module.title}</span>
+                <span className="text-[11px] text-paper-faint/70">
+                  {lessons.length} {lessons.length === 1 ? "lecție" : "lecții"}
+                </span>
+                <span className="ml-auto shrink-0 text-[11px] text-paper-faint/70">
+                  după lecția {lessons[0].number - 1}
+                </span>
+              </button>
+              {on && (
+                <ul className="mt-1.5 space-y-1 pl-8">
+                  {lessons.map((l) => (
+                    <li
+                      key={l.guide.id}
+                      className="text-[11px] text-paper-faint/70"
+                    >
+                      {l.number}. {l.guide.title}
+                    </li>
+                  ))}
+                </ul>
+              )}
+            </section>
+          );
+        }
+
         return (
           <section key={module.id}>
-            <h4 className="font-serif text-[15px] text-paper">
-              {module.title}
+            <h4 className="flex items-center gap-2 text-[11px] tracking-[0.16em] uppercase">
+              <span
+                className="h-2 w-2 shrink-0 rounded-full"
+                style={{ background: module.color }}
+              />
+              <span style={{ color: module.color }}>{module.title}</span>
+              <span className="text-paper-faint">
+                {doneHere}/{lessons.length}
+              </span>
             </h4>
-            <p className="mt-0.5 text-xs leading-snug text-paper-faint">
-              {module.lead}
-            </p>
-            <ul className="mt-2.5 space-y-1.5">
+            <ul className="mt-2 space-y-1.5">
               {lessons.map((l) => (
                 <LessonRow
                   key={l.guide.id}
                   number={l.number}
                   guide={l.guide}
+                  color={module.color}
                   state={states.get(l.guide.id)!}
-                  open={openLesson === l.guide.id}
+                  locked={access.get(l.guide.id) === "locked"}
+                  open={openId === l.guide.id}
+                  stepsOpen={stepsOpen}
                   canStart={canStart}
-                  onToggle={() =>
-                    setOpenLesson(openLesson === l.guide.id ? null : l.guide.id)
-                  }
+                  onToggle={() => toggle(l.guide.id)}
+                  onSteps={() => setStepsOpen((v) => !v)}
                   onStart={() => onStart(l.guide)}
                   onResume={onResume}
                 />
@@ -286,87 +276,105 @@ export function LessonCatalog({
         );
       })}
 
-      {moduleFilter === null && UNLISTED_GUIDES.length > 0 && (
-        <section>
-          <h4 className="font-serif text-[15px] text-paper">Alte lecții</h4>
-          <ul className="mt-2.5 space-y-1.5">
-            {UNLISTED_GUIDES.map((guide, i) => (
-              <LessonRow
-                key={guide.id}
-                number={LESSONS.length + i + 1}
-                guide={guide}
-                state={lessonState(guide, byGuide.get(guide.id))}
-                open={openLesson === guide.id}
-                canStart={canStart}
-                onToggle={() =>
-                  setOpenLesson(openLesson === guide.id ? null : guide.id)
-                }
-                onStart={() => onStart(guide)}
-                onResume={onResume}
-              />
-            ))}
-          </ul>
-        </section>
-      )}
-
-      {/* Întrebările scurte: a treia cale, pliată. */}
+      {/* Celelalte căi de intrare, la final și pliate. */}
       <section className="border-t border-ink-line pt-4">
         <button
-          onClick={() => setTopicsOpen((v) => !v)}
+          onClick={() => setElseOpen((v) => !v)}
           className="flex w-full items-center justify-between text-left"
         >
-          <span>
-            <span className="block text-[11px] tracking-[0.16em] text-paper-faint uppercase">
-              Întrebări scurte
-            </span>
-            <span className="mt-0.5 block text-xs text-paper-faint">
-              O singură întrebare, pe o zonă a vieții. Tot o ședință.
-            </span>
+          <span className="text-[11px] tracking-[0.16em] text-paper-faint uppercase">
+            Vrei altceva?
           </span>
-          <span className="text-paper-faint">{topicsOpen ? "−" : "+"}</span>
+          <span className="text-paper-faint">{elseOpen ? "−" : "+"}</span>
         </button>
 
-        {topicsOpen && (
-          <div className="mt-3">
-            <div className="flex flex-wrap gap-1.5">
-              {EXPLORABLE_DOMAINS.map((domain) => {
-                const on = topicDomain === domain;
-                return (
-                  <button
-                    key={domain}
-                    onClick={() => setTopicDomain(on ? null : domain)}
-                    className={`flex items-center gap-1.5 rounded-full border px-3 py-1.5 text-xs transition-colors ${
-                      on
-                        ? "border-paper-faint text-paper"
-                        : "border-ink-line text-paper-dim hover:border-paper-faint"
-                    }`}
-                  >
-                    <span
-                      className="h-1.5 w-1.5 rounded-full"
-                      style={{ background: DOMAIN_COLORS[domain] }}
-                    />
-                    {DOMAIN_LABELS[domain]}
-                  </button>
-                );
-              })}
-            </div>
-            {topicDomain && (
-              <ul className="mt-3 space-y-1.5">
-                {TOPICS[topicDomain].map((topic) => (
-                  <li key={topic.id}>
+        {elseOpen && (
+          <div className="mt-3 space-y-4">
+            <button
+              onClick={onFree}
+              disabled={!canStart}
+              className="w-full rounded-xl border border-ink-line p-3 text-left transition-colors hover:border-paper-faint disabled:opacity-50"
+            >
+              <span className="text-sm text-paper">Conversație liberă</span>
+              <span className="mt-1 block text-[11px] leading-snug text-paper-faint">
+                Fără temă. Spui ce ai pe suflet, iar întrebările vin din ce
+                spui. Tot o ședință.
+              </span>
+            </button>
+
+            <div>
+              <p className="text-[11px] text-paper-faint">
+                Sau o singură întrebare, pe o zonă a vieții:
+              </p>
+              <div className="mt-2 flex flex-wrap gap-1.5">
+                {EXPLORABLE_DOMAINS.map((domain) => {
+                  const on = topicDomain === domain;
+                  return (
                     <button
-                      disabled={!canStart}
-                      onClick={() => onTopic(topic, topicDomain)}
-                      className="w-full rounded-xl border border-ink-line p-3 text-left transition-colors hover:border-paper-faint disabled:opacity-50"
+                      key={domain}
+                      onClick={() => setTopicDomain(on ? null : domain)}
+                      className={`flex items-center gap-1.5 rounded-full border px-3 py-1.5 text-xs transition-colors ${
+                        on
+                          ? "border-paper-faint text-paper"
+                          : "border-ink-line text-paper-dim hover:border-paper-faint"
+                      }`}
                     >
-                      <span className="text-sm text-paper">{topic.title}</span>
-                      <span className="mt-1 block text-xs leading-snug text-paper-faint">
-                        {topic.opener}
-                      </span>
+                      <span
+                        className="h-1.5 w-1.5 rounded-full"
+                        style={{ background: DOMAIN_COLORS[domain] }}
+                      />
+                      {DOMAIN_LABELS[domain]}
                     </button>
-                  </li>
-                ))}
-              </ul>
+                  );
+                })}
+              </div>
+              {topicDomain && (
+                <ul className="mt-2 space-y-1.5">
+                  {TOPICS[topicDomain].map((topic) => (
+                    <li key={topic.id}>
+                      <button
+                        disabled={!canStart}
+                        onClick={() => onTopic(topic, topicDomain)}
+                        className="w-full rounded-xl border border-ink-line p-3 text-left transition-colors hover:border-paper-faint disabled:opacity-50"
+                      >
+                        <span className="text-sm text-paper">
+                          {topic.title}
+                        </span>
+                        <span className="mt-1 block text-xs leading-snug text-paper-faint">
+                          {topic.opener}
+                        </span>
+                      </button>
+                    </li>
+                  ))}
+                </ul>
+              )}
+            </div>
+
+            {UNLISTED_GUIDES.length > 0 && (
+              <div>
+                <p className="text-[11px] text-paper-faint">
+                  Lecții în afara drumului:
+                </p>
+                <ul className="mt-2 space-y-1.5">
+                  {UNLISTED_GUIDES.map((guide) => (
+                    <li key={guide.id}>
+                      <button
+                        disabled={!canStart}
+                        onClick={() => onStart(guide)}
+                        className="w-full rounded-xl border border-ink-line px-3 py-2.5 text-left transition-colors hover:border-paper-faint disabled:opacity-50"
+                      >
+                        <span className="text-sm text-paper">
+                          {guide.title}
+                        </span>
+                        <span className="mt-0.5 block text-[11px] text-paper-faint">
+                          {guide.steps.length} pași · ~{lessonMinutes(guide)}{" "}
+                          min
+                        </span>
+                      </button>
+                    </li>
+                  ))}
+                </ul>
+              </div>
             )}
           </div>
         )}
@@ -375,37 +383,64 @@ export function LessonCatalog({
   );
 }
 
+/**
+ * Un rând de lecție. Închis: lacăt, număr, titlu și după ce se deschide.
+ * Făcut: bifă, titlu, data. Deschis: tot ce e de făcut acum, și atât.
+ */
 function LessonRow({
   number,
   guide,
+  color,
   state,
+  locked,
   open,
+  stepsOpen,
   canStart,
   onToggle,
+  onSteps,
   onStart,
   onResume,
 }: {
   number: number;
   guide: Guide;
+  color: string;
   state: LessonState;
+  locked: boolean;
   open: boolean;
+  stepsOpen: boolean;
   canStart: boolean;
   onToggle: () => void;
+  onSteps: () => void;
   onStart: () => void;
   onResume: (conversationId: string) => void;
 }) {
-  const schemas = [...new Set(guide.steps.flatMap((s) => s.schemas))]
-    .map(schemaShort)
-    .filter((s): s is string => Boolean(s))
-    .slice(0, 4);
+  if (locked) {
+    return (
+      <li className="flex items-center gap-3 rounded-xl border border-ink-line/60 px-3 py-2.5">
+        <span className="flex h-7 w-7 shrink-0 items-center justify-center">
+          <Lock className="text-paper-faint/70" />
+        </span>
+        <span className="line-clamp-2 min-w-0 flex-1 text-sm text-paper-faint">
+          {number}. {guide.title}
+        </span>
+        <span className="shrink-0 text-[11px] text-paper-faint/70">
+          după lecția {number - 1}
+        </span>
+      </li>
+    );
+  }
+
   const resumable = state.kind === "partial" && !state.spent;
+  const next =
+    state.kind === "partial"
+      ? guide.steps[Math.min(state.step - 1, guide.steps.length - 1)]
+      : guide.steps[0];
 
   return (
     <li
+      style={open ? { borderColor: color } : undefined}
       className={`overflow-hidden rounded-xl border transition-colors ${
-        open
-          ? "border-paper-faint bg-ink-soft"
-          : "border-ink-line hover:border-paper-faint/60"
+        open ? "bg-ink-soft" : "border-ink-line hover:border-paper-faint/60"
       }`}
     >
       <button
@@ -417,29 +452,39 @@ function LessonRow({
           <span className="flex items-center gap-2">
             <span
               className="h-1.5 w-1.5 shrink-0 rounded-full"
-              style={{ background: DOMAIN_COLORS[guide.domain] }}
+              style={{
+                background: color,
+                opacity: state.kind === "done" ? 0.4 : 1,
+              }}
             />
-            <span className="truncate text-sm text-paper">{guide.title}</span>
+            <span
+              className={`line-clamp-2 text-sm ${
+                state.kind === "done" ? "text-paper-dim" : "text-paper"
+              }`}
+            >
+              {guide.title}
+            </span>
           </span>
           <span className="mt-0.5 block text-[11px] text-paper-faint">
-            {guide.steps.length} pași · ~{lessonMinutes(guide)} min
-            {state.kind === "partial" && (
+            {state.kind === "done" ? (
+              <>făcută pe {dateShort(state.at)}</>
+            ) : state.kind === "partial" ? (
               <span className="text-[color:var(--value)]">
-                {" "}
-                · pasul {state.step} din {state.steps}
+                pasul {state.step} din {state.steps}
                 {state.spent ? ", ședință consumată" : ""}
               </span>
-            )}
-            {state.kind === "done" && (
-              <span> · făcută pe {dateShort(state.at)}</span>
+            ) : (
+              <>
+                {guide.steps.length} pași · ~{lessonMinutes(guide)} min · rândul
+                tău
+              </>
             )}
           </span>
         </span>
         <span className="text-paper-faint">{open ? "−" : "+"}</span>
       </button>
 
-      {/* Linia de progres de la baza cardului: se vede și fără să deschizi. */}
-      {state.percent > 0 && (
+      {state.kind === "partial" && (
         <div className="h-0.5 w-full bg-ink-line">
           <div
             className="h-full transition-all duration-700"
@@ -449,72 +494,24 @@ function LessonRow({
       )}
 
       {open && (
-        <div className="px-3 pt-3 pb-3">
+        <div className="px-3 pt-2.5 pb-3">
           <p className="text-[13px] leading-relaxed text-paper-dim">
             {guide.summary}
           </p>
 
-          {schemas.length > 0 && (
-            <p className="mt-2 flex flex-wrap gap-1.5">
-              {schemas.map((s) => (
-                <span
-                  key={s}
-                  className="rounded-full border border-ink-line px-2 py-0.5 text-[10px] text-paper-faint"
-                >
-                  {s}
-                </span>
-              ))}
+          {state.kind !== "done" && (
+            <p className="mt-2 line-clamp-2 text-[12px] leading-snug text-paper-faint">
+              {state.kind === "partial" ? "Urmează" : "Începe cu"}: „
+              {next.question}”
             </p>
           )}
-
-          {/* Pașii, ca listă: cei parcurși bifați, următorul marcat. */}
-          <ol className="mt-3 space-y-1">
-            {guide.steps.map((step, i) => {
-              const passed =
-                state.kind === "done" ||
-                (state.kind === "partial" && i < state.step - 1);
-              const current = state.kind === "partial" && i === state.step - 1;
-              return (
-                <li
-                  key={step.id}
-                  className="flex items-start gap-2 text-[11px] leading-snug"
-                >
-                  <span
-                    className={`mt-0.5 flex h-3.5 w-3.5 shrink-0 items-center justify-center rounded-full border text-[8px] ${
-                      passed
-                        ? "border-[color:var(--value)] bg-[color:var(--value)] text-ink"
-                        : current
-                          ? "border-[color:var(--value)] text-[color:var(--value)]"
-                          : "border-ink-line text-paper-faint"
-                    }`}
-                  >
-                    {passed ? "✓" : i + 1}
-                  </span>
-                  <span
-                    className={
-                      passed
-                        ? "text-paper-faint line-through decoration-ink-line"
-                        : current
-                          ? "text-paper"
-                          : "text-paper-faint"
-                    }
-                  >
-                    {step.question}
-                  </span>
-                </li>
-              );
-            })}
-          </ol>
-
-          <p className="mt-2 text-[10px] leading-snug text-paper-faint/80">
-            După {guide.sources.slice(0, 2).join(" · ")}
-          </p>
 
           <div className="mt-3 flex flex-wrap gap-2">
             {resumable && (
               <button
                 onClick={() => onResume(state.conversationId)}
-                className="rounded-full bg-paper px-4 py-1.5 text-xs font-medium text-ink"
+                style={{ background: color }}
+                className="rounded-full px-4 py-1.5 text-xs font-medium text-ink"
               >
                 Continuă de la {state.percent}% · fără ședință nouă
               </button>
@@ -522,10 +519,15 @@ function LessonRow({
             <button
               onClick={onStart}
               disabled={!canStart}
+              style={
+                resumable || state.kind === "done"
+                  ? undefined
+                  : { background: color }
+              }
               className={`rounded-full px-4 py-1.5 text-xs font-medium disabled:opacity-40 ${
-                resumable
+                resumable || state.kind === "done"
                   ? "border border-ink-line text-paper-dim"
-                  : "bg-paper text-ink"
+                  : "text-ink"
               }`}
             >
               {state.kind === "done"
@@ -535,6 +537,53 @@ function LessonRow({
                   : "Începe · 1 ședință"}
             </button>
           </div>
+
+          <button
+            onClick={onSteps}
+            className="mt-2.5 text-[11px] text-paper-faint hover:text-paper-dim"
+          >
+            {stepsOpen ? "− ascunde pașii" : `+ cei ${guide.steps.length} pași`}
+          </button>
+
+          {stepsOpen && (
+            <ol className="mt-2 space-y-1">
+              {guide.steps.map((step, i) => {
+                const passed =
+                  state.kind === "done" ||
+                  (state.kind === "partial" && i < state.step - 1);
+                const current = state.kind === "partial" && i === state.step - 1;
+                return (
+                  <li
+                    key={step.id}
+                    className="flex items-start gap-2 text-[11px] leading-snug"
+                  >
+                    <span
+                      className={`mt-0.5 flex h-3.5 w-3.5 shrink-0 items-center justify-center rounded-full border text-[8px] ${
+                        passed
+                          ? "border-[color:var(--value)] bg-[color:var(--value)] text-ink"
+                          : current
+                            ? "border-[color:var(--value)] text-[color:var(--value)]"
+                            : "border-ink-line text-paper-faint"
+                      }`}
+                    >
+                      {passed ? "✓" : i + 1}
+                    </span>
+                    <span
+                      className={
+                        passed
+                          ? "text-paper-faint line-through decoration-ink-line"
+                          : current
+                            ? "text-paper"
+                            : "text-paper-faint"
+                      }
+                    >
+                      {step.question}
+                    </span>
+                  </li>
+                );
+              })}
+            </ol>
+          )}
         </div>
       )}
     </li>

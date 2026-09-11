@@ -76,7 +76,7 @@ export function MapLegend({ nodes }: { nodes: MindNode[] }) {
             <li className="flex items-center gap-2.5">
               <svg viewBox="-14 -14 28 28" className="h-4 w-4 shrink-0">
                 <circle r={9} fill="#a0e7c4" fillOpacity={0.9} />
-                <text y={3.5} textAnchor="middle" fontSize={10} fontWeight={700} fill="#0a0a0f">✓</text>
+                <text y={3.5} textAnchor="middle" fontSize={10} fontWeight={700} fill="#0a1424">✓</text>
               </svg>
               <span className="text-xs text-paper-dim">Rezolvată</span>
             </li>

@@ -3,45 +3,57 @@ import { GUIDE_BY_ID, GUIDES, type Guide } from "./guides";
 /**
  * Programul: cele douăsprezece lecții, așezate în module, în ordinea în care
  * are sens să le parcurgi — de la rădăcini spre ce faci azi. Ordinea e o
- * recomandare, nu o condiție: orice lecție se poate începe oricând, cu o
- * singură ședință. Cine vrea să sară direct la bani sau la relații, sare.
+ * condiție, nu o sugestie: lecția următoare se deschide când cea dinainte e
+ * făcută. Vezi `lessonAccess`.
  */
 
 export interface ProgramModule {
   id: string;
   title: string;
   lead: string;
+  /** Culoarea capitolului: aceeași pe hartă, în program și pe drum. */
+  color: string;
   guideIds: string[];
 }
 
+/**
+ * Ordinea are un singur criteriu: ce trebuie să știi ca să înțelegi ce
+ * urmează. Întâi casa și cei doi oameni din ea (de acolo vine totul), apoi
+ * ce ai făcut din tine cu ce ai primit, apoi cum te porți cu ceilalți, apoi
+ * banii și munca — unde se văd toate astea în viața de adult — și la final
+ * ce transmiți mai departe, care are sens doar după ce ți-ai văzut tiparul.
+ */
 export const MODULES: ProgramModule[] = [
   {
     id: "radacini",
     title: "Rădăcini",
-    lead: "De unde vin tiparele: casa, mama, tata, felul în care ai învățat să fii în siguranță.",
+    lead: "De unde vin tiparele: casa în care ai crescut și cei doi oameni din ea.",
+    color: "#f6d186",
     guideIds: [
       "casa-in-care-ai-crescut",
       "relatia-cu-mama",
       "relatia-cu-tata",
-      "siguranta",
     ],
   },
   {
     id: "sine",
     title: "Sinele",
-    lead: "Cum ai învățat să te vezi: ce se întâmpla când greșeai, ce aveai voie să simți, rușinea.",
-    guideIds: ["cand-greseai", "emotiile-acasa", "rusinea"],
+    lead: "Cum ai învățat să te vezi: ce aveai voie să simți, ce se întâmpla când greșeai, rușinea.",
+    color: "#c8b6ff",
+    guideIds: ["emotiile-acasa", "cand-greseai", "rusinea"],
   },
   {
     id: "relatii",
     title: "Relațiile",
-    lead: "Apropierea și retragerea, învățate devreme și repetate cu oameni diferiți.",
-    guideIds: ["apropiere-si-retragere"],
+    lead: "Cum te legi de oameni: siguranța învățată devreme, apropierea și retragerea de azi.",
+    color: "#d8a0c4",
+    guideIds: ["siguranta", "apropiere-si-retragere"],
   },
   {
     id: "bani-munca",
     title: "Bani și muncă",
     lead: "Ce ai moștenit despre bani, despre cât valorezi și despre ce nu delegi.",
+    color: "#a2d6f9",
     guideIds: [
       "banii-in-copilarie",
       "munca-si-valoarea",
@@ -51,7 +63,8 @@ export const MODULES: ProgramModule[] = [
   {
     id: "parinte",
     title: "Ca părinte",
-    lead: "Ce transmiți mai departe fără să vrei.",
+    lead: "Ce transmiți mai departe fără să vrei. Ultima lecție, pentru că are sens doar după celelalte.",
+    color: "#ffb4a2",
     guideIds: ["ca-parinte"],
   },
 ];
@@ -64,6 +77,14 @@ export const LESSONS: Array<{
 }> = MODULES.flatMap((m) =>
   m.guideIds.map((id) => ({ guide: GUIDE_BY_ID.get(id)!, moduleId: m.id })),
 ).map((l, i) => ({ number: i + 1, ...l }));
+
+export const MODULE_BY_ID = new Map(MODULES.map((m) => [m.id, m]));
+
+/** Culoarea capitolului din care face parte lecția. */
+export function lessonColor(guideId: string): string {
+  const lesson = LESSONS.find((l) => l.guide.id === guideId);
+  return lesson ? MODULE_BY_ID.get(lesson.moduleId)!.color : "#a7b5cb";
+}
 
 const NUMBER_BY_GUIDE = new Map(LESSONS.map((l) => [l.guide.id, l.number]));
 
@@ -188,3 +209,53 @@ export function nextLesson(
     ) ?? null
   );
 }
+
+/** Unde stă o lecție pe drum: făcută, deschisă acum, sau încă închisă. */
+export type LessonAccess = "done" | "active" | "locked";
+
+/**
+ * Drumul e un lanț: lecția următoare se deschide când cea dinainte e făcută.
+ * Motivul nu e disciplina, e claritatea — douăsprezece uși deschise deodată
+ * nu sunt libertate, sunt o listă în care omul se pierde. Așa are mereu un
+ * singur lucru de făcut, iar ordinea (rădăcini → sine → relații → bani →
+ * copii) chiar înseamnă ceva: fiecare lecție se sprijină pe ce a ieșit în
+ * cele dinainte.
+ *
+ * Două excepții, ca nimeni să nu ajungă în fundătură: o lecție deja începută
+ * rămâne deschisă oriunde ar fi pe drum, iar una a cărei ședință s-a consumat
+ * fără s-o termine lasă drumul să meargă mai departe. Ședința plătită se
+ * respectă, oricum ar fi ieșit lecția.
+ */
+export function lessonAccess(
+  progress: LessonProgress[],
+): Map<string, LessonAccess> {
+  const byGuide = new Map(progress.map((p) => [p.guideId, p]));
+  const access = new Map<string, LessonAccess>();
+  let opened = false;
+
+  for (const l of LESSONS) {
+    const state = lessonState(l.guide, byGuide.get(l.guide.id));
+    if (state.kind === "done") {
+      access.set(l.guide.id, "done");
+      continue;
+    }
+
+    // Începută: rămâne deschisă. Oprește drumul doar dacă mai are replici —
+    // altfel omul ar sta blocat pe o lecție pe care n-o mai poate continua.
+    if (state.kind === "partial") {
+      access.set(l.guide.id, "active");
+      if (!state.spent) opened = true;
+      continue;
+    }
+
+    if (!opened) {
+      access.set(l.guide.id, "active");
+      opened = true;
+      continue;
+    }
+    access.set(l.guide.id, "locked");
+  }
+
+  return access;
+}
+

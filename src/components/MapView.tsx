@@ -1,7 +1,7 @@
 "use client";
 
 import Link from "next/link";
-import { useCallback, useState } from "react";
+import { useCallback, useEffect, useState } from "react";
 
 import type {
   Edge,
@@ -25,6 +25,7 @@ import type { SimilarPair } from "./SimilarityPrompt";
 import {
   TABS,
   Workspace,
+  stepStates,
   workspaceCounts,
   type WorkspaceTab,
 } from "./Workspace";
@@ -74,6 +75,8 @@ export function MapView({
   const [tab, setTab] = useState<WorkspaceTab>("identify");
   // Pe telefon panoul e o foaie care se ridică din bara de jos.
   const [sheetOpen, setSheetOpen] = useState(false);
+  // De ce e închis un pas, când omul îl atinge în bara de jos.
+  const [stepHint, setStepHint] = useState<string | null>(null);
   const [messages, setMessages] = useState<ChatMessage[]>([]);
   const [pending, setPending] = useState(false);
   const [extracting, setExtracting] = useState(false);
@@ -93,6 +96,13 @@ export function MapView({
   const [focusDomain, setFocusDomain] = useState<LifeDomain | null>(null);
   const [query, setQuery] = useState("");
   const [account, setAccount] = useState<AccountSummary>(initialAccount);
+
+  // Sfatul de pe pasul închis pleacă singur: nu e o eroare, e o îndrumare.
+  useEffect(() => {
+    if (!stepHint) return;
+    const id = setTimeout(() => setStepHint(null), 5000);
+    return () => clearTimeout(id);
+  }, [stepHint]);
 
   const loadAccount = useCallback(async () => {
     const res = await fetch("/api/account");
@@ -334,6 +344,7 @@ export function MapView({
   }
 
   function openTab(next: WorkspaceTab) {
+    setStepHint(null);
     setTab(next);
     setSheetOpen(true);
   }
@@ -346,6 +357,7 @@ export function MapView({
     (e) => visibleIds.has(e.from_node) && visibleIds.has(e.to_node),
   );
   const counts = workspaceCounts(nodes);
+  const steps = stepStates(counts);
 
   const workspace = (onClose?: () => void) => (
     <Workspace
@@ -496,42 +508,101 @@ export function MapView({
           </div>
         )}
 
+        {/* De ce nu se poate încă: se spune, nu se lasă butonul mut. */}
+        {stepHint && !chatOpen && !sheetOpen && (
+          <div className="animate-fade-up absolute inset-x-0 bottom-24 z-20 flex justify-center px-4 sm:hidden">
+            <button
+              onClick={() => setStepHint(null)}
+              className="rounded-xl border border-[color:var(--todo)]/40 bg-ink-soft/95 px-4 py-2.5 text-center text-[13px] leading-snug text-[color:var(--todo)] backdrop-blur-md"
+            >
+              {stepHint}
+            </button>
+          </div>
+        )}
+
         {/* Telefon: cele trei etape, ca bară jos. Fiecare deschide foaia pe fila ei. */}
         {!chatOpen && !sheetOpen && (
           <nav className="absolute inset-x-0 bottom-0 z-20 grid grid-cols-3 gap-1.5 border-t border-ink-line bg-ink/90 px-3 pt-2.5 pb-[calc(0.625rem+env(safe-area-inset-bottom))] backdrop-blur-md sm:hidden">
             {TABS.map((t) => {
+              const state = steps[t.id];
               const badge =
                 t.id === "identify"
                   ? account.sessionsLeft
                   : t.id === "interpret"
                     ? counts.unconfirmed
                     : counts.todo + counts.working;
-              const primary = t.id === "identify" && nodes.length === 0;
+              // Pasul de făcut acum: primul deschis și neterminat.
+              const primary =
+                !state.locked &&
+                !state.done &&
+                TABS.every(
+                  (o) =>
+                    o.step >= t.step || steps[o.id].done || steps[o.id].locked,
+                );
               return (
                 <button
                   key={t.id}
-                  onClick={() => openTab(t.id)}
+                  onClick={() =>
+                    state.locked ? setStepHint(state.reason) : openTab(t.id)
+                  }
+                  aria-label={
+                    state.locked
+                      ? `Pasul ${t.step}, ${t.label} — încă închis`
+                      : undefined
+                  }
+                  style={
+                    primary
+                      ? { background: t.color, borderColor: t.color }
+                      : undefined
+                  }
                   className={`relative rounded-xl border px-2.5 py-2.5 pr-7 text-left ${
                     primary
-                      ? "border-paper bg-paper text-ink"
-                      : "border-ink-line text-paper-dim"
+                      ? "text-ink"
+                      : state.locked
+                        ? "border-ink-line/60 text-paper-faint"
+                        : state.done
+                          ? "border-[color:var(--ok)]/50 bg-[color:var(--ok)]/10 text-paper"
+                          : "border-ink-line text-paper-dim"
                   }`}
                 >
                   <span
-                    className={`block text-[10px] ${primary ? "text-ink/60" : "text-paper-faint"}`}
+                    className={`flex items-center gap-1 text-[10px] ${primary ? "text-ink/60" : "text-paper-faint"}`}
                   >
+                    {state.locked && (
+                      <svg
+                        viewBox="0 0 24 24"
+                        aria-hidden
+                        fill="none"
+                        stroke="currentColor"
+                        strokeWidth={1.8}
+                        strokeLinecap="round"
+                        className="h-3 w-3 shrink-0"
+                      >
+                        <rect x="5" y="10.5" width="14" height="9.5" rx="2.5" />
+                        <path d="M8.2 10.5V7.8a3.8 3.8 0 0 1 7.6 0v2.7" />
+                      </svg>
+                    )}
                     Pasul {t.step}
                   </span>
                   <span className="flex items-center gap-1.5 text-[13px] font-medium">
                     {t.label}
-                    {badge > 0 && (
-                      <span
-                        className={`absolute top-1.5 right-1.5 rounded-full px-1.5 text-[10px] ${
-                          primary ? "bg-ink/10" : "bg-ink-line"
-                        }`}
-                      >
-                        {badge}
+                    {state.done ? (
+                      <span className="absolute top-1.5 right-1.5 text-[12px] text-[color:var(--ok)]">
+                        ✓
                       </span>
+                    ) : (
+                      badge > 0 &&
+                      !state.locked && (
+                        <span
+                          className={`absolute top-1.5 right-1.5 rounded-full px-1.5 text-[10px] ${
+                            primary
+                              ? "bg-ink/10"
+                              : "bg-[color:var(--todo)]/15 text-[color:var(--todo)]"
+                          }`}
+                        >
+                          {badge}
+                        </span>
+                      )
                     )}
                   </span>
                 </button>

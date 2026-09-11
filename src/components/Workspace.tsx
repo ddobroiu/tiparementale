@@ -1,9 +1,9 @@
 "use client";
 
 import Link from "next/link";
+import { useEffect, useState } from "react";
 
 import type { Guide } from "@/lib/guides";
-import { LESSONS, lessonNumber, lessonState } from "@/lib/program";
 import type { Topic } from "@/lib/topics";
 import {
   DOMAIN_COLORS,
@@ -28,28 +28,90 @@ export const TABS: Array<{
   step: number;
   label: string;
   lead: string;
+  /** Culoarea pasului. Verdele nu apare aici: el înseamnă „gata”. */
+  color: string;
 }> = [
   {
     id: "identify",
     step: 1,
     label: "Identificare",
-    lead: "Ședințele construiesc harta. Alegi o temă, povestești, iar din ce spui apar convingerile, valorile și fricile tale.",
+    lead: "Din ce povestești în ședințe apar convingerile, valorile și fricile tale.",
+    color: "#7cc4fb",
   },
   {
     id: "interpret",
     step: 2,
     label: "Interpretare",
     lead: "Harta se citește. Confirmi ce e adevărat, respingi ce nu e, și ceri o citire de ansamblu.",
+    color: "#f6d186",
   },
   {
     id: "transform",
     step: 3,
     label: "Transformare",
     lead: "Pe fiecare convingere confirmată se lucrează: o convingere nouă, exerciții, bifezi ce ai făcut. Când o simți ca a ta, o marchezi rezolvată și devine verde pe hartă.",
+    color: "#c8b6ff",
   },
 ];
 
+/** Starea unui pas în bara de navigare: închis, în lucru sau reușit. */
+export interface StepState {
+  locked: boolean;
+  done: boolean;
+  /** De ce e închis — se arată omului când îl atinge. */
+  reason: string | null;
+}
+
+/**
+ * Pașii se deschid unul din altul, ca lecțiile.
+ *
+ * Nu e o regulă de disciplină, e ordinea firească a lucrului: nu ai ce
+ * interpreta pe o hartă goală și nu ai ce transforma într-o convingere pe
+ * care n-ai confirmat-o. Înainte arătam ambele file de la început, iar omul
+ * intra în ele, le găsea goale și nu înțelegea ce a greșit.
+ */
+export function stepStates(
+  counts: ReturnType<typeof workspaceCounts>,
+): Record<WorkspaceTab, StepState> {
+  const hasMap = counts.total > 0;
+  const hasConfirmed = counts.confirmed > 0;
+
+  return {
+    identify: { locked: false, done: hasMap, reason: null },
+    interpret: {
+      locked: !hasMap,
+      done: hasMap && counts.unconfirmed === 0,
+      reason: "Se deschide după prima ședință, când harta are ce arăta.",
+    },
+    transform: {
+      locked: !hasConfirmed,
+      done: hasConfirmed && counts.resolved > 0 && counts.todo + counts.working === 0,
+      reason: hasMap
+        ? "Se deschide după ce confirmi prima convingere, la pasul 2."
+        : "Se deschide după prima ședință și prima convingere confirmată.",
+    },
+  };
+}
+
 const RESOLVED = "#a0e7c4";
+
+/** Lacătul pașilor încă închiși. Mic, cât o literă. */
+function LockGlyph() {
+  return (
+    <svg
+      viewBox="0 0 24 24"
+      aria-hidden
+      fill="none"
+      stroke="currentColor"
+      strokeWidth={1.8}
+      strokeLinecap="round"
+      className="h-3 w-3 shrink-0"
+    >
+      <rect x="5" y="10.5" width="14" height="9.5" rx="2.5" />
+      <path d="M8.2 10.5V7.8a3.8 3.8 0 0 1 7.6 0v2.7" />
+    </svg>
+  );
+}
 
 interface Props {
   tab: WorkspaceTab;
@@ -111,7 +173,18 @@ export function Workspace({
   onClose,
 }: Props) {
   const counts = workspaceCounts(nodes);
-  const current = TABS.find((t) => t.id === tab)!;
+  const steps = stepStates(counts);
+  // Dacă pasul pe care stăteai s-a închis (ai respins tot ce aveai pe hartă),
+  // nu rămâi într-o filă goală: te întorci la identificare.
+  const active = steps[tab].locked ? "identify" : tab;
+  const current = TABS.find((t) => t.id === active)!;
+  const [hint, setHint] = useState<string | null>(null);
+
+  useEffect(() => {
+    if (!hint) return;
+    const id = setTimeout(() => setHint(null), 4500);
+    return () => clearTimeout(id);
+  }, [hint]);
 
   return (
     <div className="flex h-full flex-col">
@@ -132,7 +205,8 @@ export function Workspace({
 
         <div className="mt-3 grid grid-cols-3 gap-1.5">
           {TABS.map((t) => {
-            const on = t.id === tab;
+            const state = steps[t.id];
+            const on = t.id === active;
             const badge =
               t.id === "identify"
                 ? null
@@ -142,24 +216,51 @@ export function Workspace({
             return (
               <button
                 key={t.id}
-                onClick={() => onTab(t.id)}
+                onClick={() =>
+                  state.locked ? setHint(state.reason) : onTab(t.id)
+                }
+                aria-label={
+                  state.locked
+                    ? `Pasul ${t.step}, ${t.label} — încă închis`
+                    : undefined
+                }
+                style={
+                  on && !state.locked
+                    ? { background: t.color, borderColor: t.color }
+                    : undefined
+                }
                 className={`rounded-xl border px-2 py-2 text-left transition-colors ${
-                  on
-                    ? "border-paper bg-paper text-ink"
-                    : "border-ink-line text-paper-dim hover:border-paper-faint hover:text-paper"
+                  on && !state.locked
+                    ? "text-ink"
+                    : state.locked
+                      ? "border-ink-line/60 text-paper-faint"
+                      : state.done
+                        ? "border-[color:var(--ok)]/50 bg-[color:var(--ok)]/10 text-paper"
+                        : "border-ink-line text-paper-dim hover:border-paper-faint hover:text-paper"
                 }`}
               >
                 <span
-                  className={`block text-[10px] ${on ? "text-ink/60" : "text-paper-faint"}`}
+                  className={`flex items-center gap-1 text-[10px] ${
+                    on && !state.locked ? "text-ink/60" : "text-paper-faint"
+                  }`}
                 >
+                  {state.locked && <LockGlyph />}
                   Pasul {t.step}
                 </span>
                 <span className="mt-0.5 flex items-center gap-1.5 text-[13px] font-medium">
                   {t.label}
-                  {badge ? (
+                  {state.done ? (
+                    <span
+                      className={`text-[11px] ${on ? "text-ink" : "text-[color:var(--ok)]"}`}
+                    >
+                      ✓
+                    </span>
+                  ) : badge ? (
                     <span
                       className={`rounded-full px-1.5 text-[10px] ${
-                        on ? "bg-ink/10 text-ink" : "bg-ink-line text-paper-dim"
+                        on
+                          ? "bg-ink/10 text-ink"
+                          : "bg-[color:var(--todo)]/15 text-[color:var(--todo)]"
                       }`}
                     >
                       {badge}
@@ -171,13 +272,19 @@ export function Workspace({
           })}
         </div>
 
-        <p className="mt-3 text-[13px] leading-relaxed text-paper-dim">
-          {current.lead}
-        </p>
+        {hint ? (
+          <p className="mt-3 rounded-xl border border-[color:var(--todo)]/40 bg-[color:var(--todo)]/10 px-3 py-2 text-[13px] leading-relaxed text-[color:var(--todo)]">
+            {hint}
+          </p>
+        ) : (
+          <p className="mt-3 text-[13px] leading-relaxed text-paper-dim">
+            {current.lead}
+          </p>
+        )}
       </div>
 
       <div className="flex-1 overflow-y-auto px-4 py-4 sm:px-5">
-        {tab === "identify" && (
+        {active === "identify" && (
           <IdentifyTab
             account={account}
             pending={pending}
@@ -189,7 +296,7 @@ export function Workspace({
             onChanged={onChanged}
           />
         )}
-        {tab === "interpret" && (
+        {active === "interpret" && (
           <InterpretTab
             nodes={nodes}
             counts={counts}
@@ -200,7 +307,7 @@ export function Workspace({
             onChanged={onChanged}
           />
         )}
-        {tab === "transform" && (
+        {active === "transform" && (
           <TransformTab
             nodes={nodes}
             counts={counts}
@@ -236,18 +343,6 @@ function IdentifyTab({
   | "onChanged"
 >) {
   const none = account.sessionsLeft === 0;
-  // Lecțiile începute și lăsate, cu replici rămase în ședința lor.
-  const inProgress = account.lessons
-    .map((l) => {
-      const lesson = LESSONS.find((x) => x.guide.id === l.guideId);
-      return lesson
-        ? { progress: l, state: lessonState(lesson.guide, l) }
-        : null;
-    })
-    .filter(
-      (x): x is NonNullable<typeof x> =>
-        x !== null && x.state.kind === "partial" && !x.state.spent,
-    );
 
   return (
     <>
@@ -263,8 +358,8 @@ function IdentifyTab({
               : `${account.sessionsLeft} ${account.sessionsLeft === 1 ? "ședință rămasă" : "ședințe rămase"}`}
           </p>
           <p className="text-xs text-paper-faint">
-            O ședință = o lecție sau o conversație liberă, la alegere, în orice
-            ordine.
+            O lecție sau o conversație liberă. Reluarea uneia lăsate la
+            jumătate nu costă alta.
           </p>
         </div>
         <Link
@@ -279,33 +374,6 @@ function IdentifyTab({
         </Link>
       </div>
 
-      {inProgress.length > 0 && (
-        <div className="mt-4 rounded-xl border border-[color:var(--value)]/40 px-4 py-3">
-          <p className="text-[10px] tracking-[0.14em] text-paper-faint uppercase">
-            Lecție în curs
-          </p>
-          {inProgress.map(({ progress: l, state }) => (
-            <button
-              key={l.conversationId}
-              onClick={() => onResume(l.conversationId)}
-              className="mt-1.5 flex w-full items-center justify-between gap-3 text-left text-sm text-paper hover:underline"
-            >
-              <span>
-                Lecția {lessonNumber(l.guideId) ?? "·"} ·{" "}
-                {state.kind === "partial"
-                  ? `${state.percent}%, pasul ${state.step} din ${state.steps}`
-                  : ""}
-              </span>
-              <span className="text-xs text-[color:var(--value)]">
-                continuă →
-              </span>
-            </button>
-          ))}
-          <p className="mt-1.5 text-[11px] text-paper-faint">
-            Reluarea nu costă o ședință nouă.
-          </p>
-        </div>
-      )}
 
       <div className="mt-6">
         <LessonCatalog
