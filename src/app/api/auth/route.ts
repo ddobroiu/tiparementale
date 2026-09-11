@@ -71,8 +71,10 @@ export async function POST(request: Request) {
       });
     }
 
-    // Contul există deja; e-mailul e o curtoazie, nu o condiție.
-    await sendWelcomeEmail(created[0].email, `${appUrl()}/harta`);
+    // Contul există deja; e-mailul e o curtoazie, nu o condiție — și nu ține
+    // răspunsul în loc: dacă serverul de e-mail răspunde greu, omul ar rămâne
+    // blocat pe formular, cu contul făcut și harta neatinsă.
+    void sendWelcomeEmail(created[0].email, `${appUrl()}/harta`);
     return NextResponse.json({ ok: true });
   }
 

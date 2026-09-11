@@ -3,15 +3,25 @@
 import Link from "next/link";
 
 import { Logo } from "@/components/Logo";
-import { useRouter, useSearchParams } from "next/navigation";
+import { useSearchParams } from "next/navigation";
 import { Suspense, useState } from "react";
 
 import { newEventId, track } from "@/lib/meta/pixel";
 
+/**
+ * Ținta de după autentificare vine din adresă, deci din mâna oricui. Acceptăm
+ * doar o cale din acest site: „/ceva”, niciodată „//alt-site” sau o adresă
+ * completă. Altfel formularul de intrare ar deveni o trambulină spre afară.
+ */
+function safeRedirect(value: string | null): string {
+  if (!value || !value.startsWith("/")) return "/harta";
+  if (value.startsWith("//") || value.startsWith("/\\")) return "/harta";
+  return value;
+}
+
 function AuthForm() {
-  const router = useRouter();
   const params = useSearchParams();
-  const redirect = params.get("redirect") ?? "/harta";
+  const redirect = safeRedirect(params.get("redirect"));
 
   const [mode, setMode] = useState<"login" | "register">("login");
   const [email, setEmail] = useState("");
@@ -29,11 +39,18 @@ function AuthForm() {
     // un singur cont nou numărat.
     const eventId = mode === "register" ? newEventId() : undefined;
 
-    const res = await fetch("/api/auth", {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ action: mode, email, password, eventId }),
-    });
+    let res: Response;
+    try {
+      res = await fetch("/api/auth", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ action: mode, email, password, eventId }),
+      });
+    } catch {
+      setError("Nu am putut ajunge la server. Verifică internetul și încearcă din nou.");
+      setBusy(false);
+      return;
+    }
 
     if (!res.ok) {
       const data = await res.json().catch(() => ({}));
@@ -44,8 +61,10 @@ function AuthForm() {
 
     if (eventId) track("CompleteRegistration", { status: true }, eventId);
 
-    router.push(redirect);
-    router.refresh();
+    // Navigare completă, nu `router.push`: cookie-ul de sesiune tocmai s-a
+    // pus, iar poarta din `proxy.ts` și pagina hărții trebuie să-l vadă pe o
+    // cerere nouă. Cu o navigare din client, omul rămânea pe formular.
+    window.location.assign(redirect);
   }
 
   const isRegister = mode === "register";
@@ -104,25 +123,29 @@ function AuthForm() {
 
       {error && <p className="mt-4 text-sm text-[color:var(--emotion)]">{error}</p>}
 
-      <div className="mt-6 flex flex-wrap gap-x-5 gap-y-2 text-sm text-paper-faint">
+      <div className="mt-8 rounded-xl border border-ink-line bg-ink-soft p-4 text-center">
+        <p className="text-sm text-paper-dim">
+          {isRegister ? "Ai deja un cont?" : "Prima dată aici?"}
+        </p>
         <button
+          type="button"
           onClick={() => {
             setMode(isRegister ? "login" : "register");
             setError("");
           }}
-          className="underline underline-offset-4 transition-colors hover:text-paper-dim"
+          className="mt-3 w-full rounded-xl border border-paper-faint px-4 py-3 text-sm font-medium text-paper transition-colors hover:border-paper hover:bg-ink-line"
         >
-          {isRegister ? "Am deja cont" : "Nu am cont încă"}
+          {isRegister ? "Intră în cont" : "Creează un cont"}
         </button>
-        {!isRegister && (
-          <Link
-            href="/resetare"
-            className="underline underline-offset-4 transition-colors hover:text-paper-dim"
-          >
+      </div>
+
+      {!isRegister && (
+        <p className="mt-5 text-center text-sm text-paper-faint">
+          <Link href="/resetare" className="underline underline-offset-4 hover:text-paper-dim">
             Ai uitat parola?
           </Link>
-        )}
-      </div>
+        </p>
+      )}
 
       <p className="mt-8 text-xs leading-relaxed text-paper-faint">
         Ce scrii aici rămâne al tău. Poți exporta sau șterge tot, oricând.

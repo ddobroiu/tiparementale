@@ -10,7 +10,10 @@ import { loadLessonProgress } from "@/lib/lessons";
 
 export default async function HartaPage(props: PageProps<"/harta">) {
   const user = await getSessionUser();
-  if (!user) redirect("/intra");
+  // Cookie prezent dar mort (sesiune expirată sau ștearsă): poarta din
+  // `proxy.ts` l-a lăsat să treacă, aici se oprește — cu harta ca țintă, ca
+  // omul să ajungă unde voia după ce intră.
+  if (!user) redirect("/intra?redirect=/harta");
 
   // Întoarcerea de la Stripe: confirmăm în hartă, ca omul să nu se întrebe
   // dacă plata a mers. Creditarea propriu-zisă vine din webhook, nu de aici.
