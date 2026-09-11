@@ -42,8 +42,8 @@ const PACKS: Record<
   },
   "insotire-3-luni": {
     color: "#c8b6ff",
-    fit: "Pentru cine vrea și timp de întors.",
-    covers: "Drumul întreg și încă pe atât: reiei lecțiile care te-au zguduit și vorbești liber între ele.",
+    fit: "Pentru cine vrea să lucreze pe fiecare tipar, nu doar să-l vadă.",
+    covers: "Tot drumul, cele douăsprezece lecții — și o transformare pentru fiecare: la fiecare pas, o convingere nouă în locul celei vechi.",
   },
 };
 
@@ -158,8 +158,10 @@ export default async function PachetePage() {
                   <span className="ml-1 text-base text-paper-faint">lei</span>
                 </p>
                 <p className="mt-1 text-xs text-paper-faint">
-                  {(pack.priceRon / pack.sessions).toFixed(0)} lei pe ședință ·
-                  plată unică
+                  {pack.transformations >= pack.sessions
+                    ? "o transformare la fiecare lecție"
+                    : `${(pack.priceRon / pack.sessions).toFixed(0)} lei pe ședință`}{" "}
+                  · plată unică
                 </p>
 
                 <ul className="mt-5 flex-1 space-y-2.5 text-sm text-paper-dim">

@@ -75,7 +75,7 @@ un bug, un abuz — contul se oprește la plafon, nu la factura noastră.
 | Cont gratuit | 1,5 $ | 0,8 $ | ×1,9 |
 | Un tipar | 6 $ | 3,5 $ | ×1,7 |
 | Harta completă | 18 $ | 10,5 $ | ×1,7 |
-| Însoțire 3 luni | 36 $ | 21 $ | ×1,7 |
+| Însoțire 3 luni | 24 $ | 12 $ | ×2,0 |
 
 Creditele adăugate de mână din admin ridică plafonul cu 1 $ per credit.
 
