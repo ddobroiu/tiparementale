@@ -5,7 +5,7 @@ import { LandingSteps } from "@/components/LandingSteps";
 import { SiteFooter } from "@/components/SiteFooter";
 import { SiteHeader } from "@/components/SiteHeader";
 import { SpinningBadge } from "@/components/SpinningBadge";
-import { sortedArticles } from "@/lib/articles";
+import { FAQ_HOME } from "@/lib/faq";
 import { SITE, canonical } from "@/lib/site";
 
 export const metadata: Metadata = {
@@ -27,8 +27,6 @@ export const metadata: Metadata = {
 };
 
 export default function Home() {
-  const articles = sortedArticles().slice(0, 3);
-
   return (
     <>
       <SiteHeader />
@@ -108,39 +106,39 @@ export default function Home() {
           </div>
         </section>
 
+        {/* Întrebările pe care le are oricine înainte să-și facă cont. Aici,
+            nu într-o pagină separată din meniu: cine ezită nu pleacă să caute. */}
         <section className="mx-auto max-w-6xl px-6 pb-24">
           <div className="flex items-end justify-between gap-4">
             <h2 className="font-serif text-2xl sm:text-3xl">
-              De citit între timp
+              Întrebări frecvente
             </h2>
             <Link
-              href="/articole"
+              href="/intrebari"
               className="shrink-0 text-sm text-paper-faint hover:text-paper-dim"
             >
-              Toate articolele →
+              Toate întrebările →
             </Link>
           </div>
 
-          <ul className="mt-8 grid gap-6 sm:grid-cols-3">
-            {articles.map((article) => (
-              <li key={article.slug}>
-                <Link
-                  href={`/articole/${article.slug}`}
-                  className="group block h-full rounded-2xl border border-ink-line p-6 transition-colors hover:border-paper-faint"
-                >
-                  <p className="text-xs text-paper-faint">
-                    {article.readingMinutes} min de citit
-                  </p>
-                  <h3 className="mt-2 font-serif text-lg leading-snug text-paper transition-colors group-hover:text-[color:var(--belief)]">
-                    {article.title}
-                  </h3>
-                  <p className="mt-3 text-sm leading-relaxed text-paper-dim">
-                    {article.description}
-                  </p>
-                </Link>
-              </li>
+          <div className="mt-8 grid gap-3 sm:grid-cols-2">
+            {FAQ_HOME.map((item) => (
+              <details
+                key={item.q}
+                className="group rounded-2xl border border-ink-line p-5 transition-colors open:border-[color:var(--step)]/60 hover:border-paper-faint"
+              >
+                <summary className="flex cursor-pointer list-none items-center justify-between gap-4 font-serif text-lg leading-snug text-paper [&::-webkit-details-marker]:hidden">
+                  {item.q}
+                  <span className="shrink-0 text-paper-faint transition-transform group-open:rotate-45">
+                    +
+                  </span>
+                </summary>
+                <p className="mt-3 text-sm leading-relaxed text-paper-dim">
+                  {item.a}
+                </p>
+              </details>
             ))}
-          </ul>
+          </div>
         </section>
       </main>
 

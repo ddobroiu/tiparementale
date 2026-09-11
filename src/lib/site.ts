@@ -31,7 +31,6 @@ export const NAV = [
   { href: "/program", label: "Program", color: "#f6d186" },
   { href: "/articole", label: "Articole", color: "#c8b6ff" },
   { href: "/pachete", label: "Pachete", color: "#ffb4a2" },
-  { href: "/intrebari", label: "Întrebări", color: "#d8a0c4" },
 ] as const;
 
 export const FOOTER_LINKS = [

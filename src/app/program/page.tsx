@@ -105,6 +105,9 @@ export default function ProgramPage() {
           ))}
         </dl>
 
+        {/* Drumul, desenat ca drum: o singură coloană, o linie care leagă
+            lecțiile în ordinea în care se deschid, culoarea capitolului pe
+            fiecare segment. Aceeași imagine ca în aplicație. */}
         <div className="mt-14 space-y-12">
           {MODULES.map((module, mi) => {
             const lessons = LESSONS.filter((l) => l.moduleId === module.id);
@@ -115,7 +118,10 @@ export default function ProgramPage() {
                     className="h-2 w-2 rounded-full"
                     style={{ background: module.color }}
                   />
-                  <span style={{ color: module.color }}>Modulul {mi + 1}</span>
+                  <span style={{ color: module.color }}>
+                    Capitolul {mi + 1} · {lessons.length}{" "}
+                    {lessons.length === 1 ? "lecție" : "lecții"}
+                  </span>
                 </p>
                 <h2 className="mt-2 font-serif text-3xl text-paper">
                   {module.title}
@@ -124,39 +130,54 @@ export default function ProgramPage() {
                   {module.lead}
                 </p>
 
-                <ol className="mt-6 grid gap-3 sm:grid-cols-2">
+                <ol className="relative mt-6 space-y-3 pl-12">
+                  {/* Linia drumului, în culoarea capitolului. */}
+                  <span
+                    aria-hidden
+                    className="absolute top-2 bottom-2 left-[15px] w-0.5 rounded-full opacity-40"
+                    style={{ background: module.color }}
+                  />
                   {lessons.map((l) => (
-                    <li key={l.guide.id}>
+                    <li key={l.guide.id} className="relative">
+                      <span
+                        className="absolute top-5 -left-12 flex h-8 w-8 items-center justify-center rounded-full border-2 bg-ink text-sm font-medium"
+                        style={{
+                          borderColor: module.color,
+                          color: module.color,
+                        }}
+                      >
+                        {l.number}
+                      </span>
                       <Link
                         href={`/program/${l.guide.id}`}
-                        className="group flex h-full gap-4 rounded-2xl border border-ink-line p-5 transition-colors hover:border-paper-faint"
+                        className="group block rounded-2xl border border-ink-line p-5 transition-colors hover:border-paper-faint"
                       >
-                        <span
-                          className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full border text-sm"
-                          style={{
-                            borderColor: module.color,
-                            color: module.color,
-                          }}
-                        >
-                          {l.number}
+                        <span className="flex flex-wrap items-baseline justify-between gap-x-4 gap-y-1">
+                          <span className="font-serif text-lg leading-snug text-paper transition-colors group-hover:text-[color:var(--step)]">
+                            {l.guide.title}
+                          </span>
+                          <span
+                            className="rounded-full border border-ink-line px-2.5 py-0.5 text-[11px] text-paper-faint"
+                            style={
+                              l.number === 1
+                                ? {
+                                    borderColor: "var(--ok)",
+                                    color: "var(--ok)",
+                                  }
+                                : undefined
+                            }
+                          >
+                            {l.number === 1
+                              ? "aici începi · gratuit"
+                              : `după lecția ${l.number - 1}`}
+                          </span>
                         </span>
-                        <span className="min-w-0">
-                          <span className="flex items-center gap-2">
-                            <span
-                              className="h-1.5 w-1.5 shrink-0 rounded-full"
-                              style={{ background: module.color }}
-                            />
-                            <span className="font-serif text-lg leading-snug text-paper transition-colors group-hover:text-[color:var(--belief)]">
-                              {l.guide.title}
-                            </span>
-                          </span>
-                          <span className="mt-2 block text-sm leading-relaxed text-paper-dim">
-                            {l.guide.summary}
-                          </span>
-                          <span className="mt-3 block text-xs text-paper-faint">
-                            {l.guide.steps.length} pași · ~
-                            {lessonMinutes(l.guide)} min
-                          </span>
+                        <span className="mt-2 block text-sm leading-relaxed text-paper-dim">
+                          {l.guide.summary}
+                        </span>
+                        <span className="mt-3 block text-xs text-paper-faint">
+                          {l.guide.steps.length} pași · ~
+                          {lessonMinutes(l.guide)} min · o ședință
                         </span>
                       </Link>
                     </li>
