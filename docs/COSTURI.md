@@ -16,6 +16,7 @@ Curs folosit: 1 $ ≈ 4,6 lei.
 | Meserie | Model | Gândire | Cost mediu pe apel | De ce |
 |---|---|---|---|---|
 | Replica din conversație | claude-opus-5 | low | ≈ 1,5 ¢ | Fața produsului. Sonnet vorbea corect, dar formulaic („Deci…” la fiecare replică) și trăgea concluzii mai mari decât spusese omul. |
+| Replica din lecția introductivă | claude-sonnet-5 | low | ≈ 0,6 ¢ | Gratuită și adusă din trafic gratuit: nu poate merge pe Opus. Ghidul strâns (un fir, pași de două replici) îi ține în frâu formulele. `MODEL_REPLY_INTRO` / `EFFORT_REPLY_INTRO`. |
 | Extracția pe hartă | claude-sonnet-5 | medium | ≈ 1,6 ¢ | E ghidată de schemă; diferența de calitate față de Opus nu se vede, prețul se vede (6,6 ¢ pe Opus). |
 | Transformarea | claude-opus-5 | high | ≈ 14 ¢ | O dată per convingere; momentul care convinge omul să plătească. |
 | Predicții, citirea hărții | claude-sonnet-5 | medium | ≈ 1–3 ¢ | Rare, nelimitate, ieftine. |
@@ -60,9 +61,13 @@ Nicio ședință nu poate costa mai mult: după 25 de replici se închide.
 Comisionul Stripe (≈ 1,5 % + 1 leu) e sub 4 lei pe orice pachet și nu
 schimbă tabloul.
 
-**Contul gratuit** (o ședință, zero transformări) costă tipic 0,7–1,2 lei
-și cel mult 3,7 lei. E costul de a-i arăta omului harta lui înainte să
-plătească — cel mai ieftin marketing pe care îl avem.
+**Contul gratuit** nu mai primește o ședință, ci lecția introductivă
+„Regula pe care o porți”: cel mult 12 replici pe Sonnet (≈ 0,6 ¢ una) și o
+singură extracție, la final (≈ 1,6 ¢). Tipic ≈ 8 ¢ ≈ 0,37 lei, cel mult
+≈ 10 ¢ ≈ 0,45 lei — de opt ori mai puțin decât ședința gratuită de dinainte
+(până la 3,7 lei), fără să se piardă momentul „prima convingere a apărut pe
+hartă”. Plafonul tehnic al contului nou: 0,5 $. Măsurătoarea exactă:
+`node --env-file=.env.local scripts/smoke-intro.mjs`.
 
 ## Plafonul tehnic
 

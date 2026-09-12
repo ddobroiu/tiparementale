@@ -2,11 +2,11 @@ import Anthropic from "@anthropic-ai/sdk";
 import { zodOutputFormat } from "@anthropic-ai/sdk/helpers/zod";
 
 import type { LifeDomain, MindNode } from "@/lib/types";
-import { DOMAIN_LABELS, EXPLORABLE_DOMAINS, displayLabel } from "@/lib/types";
+import { DOMAIN_LABELS, EXPLORABLE_DOMAINS, displayLabel, isFormed } from "@/lib/types";
 import { ReplySchema, type Reply } from "@/lib/extraction/schema";
 import { readUsage, type TokenUsage } from "@/lib/billing/pricing";
 import { EFFORT, MODELS, reasoningFor } from "@/lib/models";
-import { getGuide, type Guide, type GuideStep } from "@/lib/guides";
+import { DEFAULT_TURNS_PER_STEP, getGuide, type Guide, type GuideStep } from "@/lib/guides";
 import { SCHEMA_BY_CODE } from "@/lib/schemas";
 
 /**
@@ -55,6 +55,25 @@ nu un chestionar.
 - **Nu consolezi automat.** „Înțeleg cât de greu trebuie să fie" nu ajută pe
   nimeni. O întrebare bună arată mai multă atenție decât o mângâiere.
 - Scurt. Două-trei propoziții, apoi întrebarea.
+
+## Convingerea se verifică, nu se ghicește
+
+Harta arată o convingere abia după ce a apărut în mai multe momente ale
+discuției — nu dintr-o frază. Deci când auzi prima dată o regulă („nu am voie
+să greșesc", „dacă nu fac eu, nu face nimeni"), nu treci mai departe și nu o
+numești: o pui la încercare.
+
+- **Ceri al doilea moment.** „S-a mai întâmplat și altă dată? Unde?" — la
+  muncă, acasă, cu prietenii. O regulă adevărată apare în mai multe locuri.
+- **Ceri consecința.** „Și dacă n-ai fi făcut așa, ce s-ar fi întâmplat?"
+  Răspunsul e convingerea, în forma ei brută.
+- **Ceri originea.** „Cine mai făcea așa în casa în care ai crescut?"
+
+Trei momente în care revine aceeași regulă valorează mai mult decât zece teme
+atinse o dată. Pe ghid, un pas ține cât are nevoie ca regula să fie spusă
+încă o dată, nu cât să bifezi întrebarea. Ipotezele în formare din harta lui
+sunt exact lucrurile de verificat: nu i le spui, dar cauți scena în care apar
+— sau nu apar.
 
 ## Ce te trădează ca robot
 
@@ -123,10 +142,23 @@ rest „none". Nu schimba tonul din cauza flagului — de restul se ocupă inter
  * Fără id-uri, fără rezumate, fără citate — acelea sunt treaba extracției.
  */
 function compactMap(nodes: MindNode[]): string {
-  const visible = nodes.filter((n) => n.verdict !== "rejected");
+  const visible = nodes.filter((n) => n.verdict !== "rejected" && isFormed(n));
+  // Ipotezele nevăzute: modelul le știe ca să le verifice, nu ca să le spună.
+  const forming = nodes.filter((n) => n.verdict !== "rejected" && !isFormed(n));
+  const formingSection =
+    forming.length > 0
+      ? "## Ipoteze în formare — nu i le spui; caută momentele în care revin " +
+        "sau nu\n" +
+        forming.map((n) => `- ${displayLabel(n)}`).join("\n")
+      : "";
 
   if (visible.length === 0) {
-    return "## Harta este goală\n\nPrima conversație. Nu știi încă nimic despre el.";
+    return [
+      "## Harta este goală\n\nPrima conversație. Nu știi încă nimic sigur despre el.",
+      formingSection,
+    ]
+      .filter(Boolean)
+      .join("\n\n");
   }
 
   const grouped = new Map<LifeDomain, string[]>();
@@ -154,13 +186,11 @@ function compactMap(nodes: MindNode[]): string {
     untouched.length > 0
       ? `**Domenii neatinse:** ${untouched.map((d) => DOMAIN_LABELS[d]).join(", ")}.`
       : "",
+    formingSection,
   ]
     .filter(Boolean)
     .join("\n\n");
 }
-
-/** Câte replici poate ține un pas. Aceeași valoare o impune și serverul. */
-const MAX_TURNS_PER_STEP = 3;
 
 /** Busola: unde e conversația în ghid și ce caută pasul de acum. */
 function guideBrief(
@@ -170,7 +200,16 @@ function guideBrief(
 ): string {
   const step: GuideStep | undefined = guide.steps[stepIndex];
   const next: GuideStep | undefined = guide.steps[stepIndex + 1];
-  const mustAdvance = turnsOnStep + 1 >= MAX_TURNS_PER_STEP;
+  // Câte replici poate ține un pas. Aceeași valoare o impune și serverul.
+  const maxTurnsPerStep = guide.turnsPerStep ?? DEFAULT_TURNS_PER_STEP;
+  const mustAdvance = turnsOnStep + 1 >= maxTurnsPerStep;
+  // Lecția cu încheiere proprie (introducerea) se termină cum spune ea.
+  const closing =
+    guide.closing ??
+    "**Aceasta este ultima replică a lecției.** Pune advance_step pe adevărat și " +
+      "încheie: două-trei propoziții cu ce ai auzit de la el, în cuvintele lui, " +
+      "legate între ele — nu diagnostic, nu sfat, nu întrebare nouă. Spune-i că " +
+      "harta lui se actualizează acum cu ce a povestit. options goală.";
 
   if (!step) {
     return (
@@ -189,6 +228,7 @@ function guideBrief(
 
   return [
     `## Ghid: ${guide.title}`,
+    guide.brief ?? "",
     `Pasul ${stepIndex + 1} din ${guide.steps.length}.`,
     `**Întrebarea de pornire a pasului:** ${step.question}`,
     step.options ? `**Variante sugerate:** ${step.options.join(" · ")}` : "",
@@ -197,20 +237,22 @@ function guideBrief(
     stepIndex === 0 && turnsOnStep === 0
       ? "Este primul pas: omul a răspuns deja la întrebarea de deschidere. Sapă în răspuns."
       : "",
-    `**Replici petrecute pe acest pas:** ${turnsOnStep}. Un pas ține de regulă ` +
-      `1–${MAX_TURNS_PER_STEP} replici: o întrebare de adâncire, poate două, apoi mai departe.`,
+    `**Replici petrecute pe acest pas:** ${turnsOnStep}. Un pas ține cel mult ` +
+      `${maxTurnsPerStep} replici: ` +
+      (maxTurnsPerStep > 2
+        ? "o întrebare de adâncire, apoi una care cere al doilea moment al aceleiași " +
+          "reguli („s-a mai întâmplat și altă dată?”), apoi mai departe."
+        : "o singură întrebare de adâncire, apoi mai departe."),
     // Ultimul pas nu deschide nimic: încheie lecția, cu o concluzie și fără
     // întrebare. O lecție care se termină cu o întrebare nu se termină.
     !next && mustAdvance
-      ? "**Aceasta este ultima replică a lecției.** Pune advance_step pe adevărat și " +
-        "încheie: două-trei propoziții cu ce ai auzit de la el, în cuvintele lui, " +
-        "legate între ele — nu diagnostic, nu sfat, nu întrebare nouă. Spune-i că " +
-        "harta lui se actualizează acum cu ce a povestit. options goală."
+      ? closing
       : !next
         ? "Dacă omul a răspuns pe fond, pune advance_step pe adevărat și încheie " +
-          "lecția chiar în această replică: două-trei propoziții cu ce ai auzit, " +
-          "fără întrebare nouă, și spune-i că harta se actualizează. Dacă mai e de " +
-          "săpat, o singură întrebare, apoi încheierea vine oricum la următoarea."
+          "lecția chiar în această replică, așa: " +
+          closing +
+          " Dacă mai e de săpat, o singură întrebare, apoi încheierea vine oricum " +
+          "la următoarea."
         : mustAdvance
           ? "**Aceasta este ultima replică pe acest pas.** Pune advance_step pe adevărat " +
             "și încheie pasul cu întrebarea care deschide următorul — nu mai săpa aici."
@@ -293,6 +335,8 @@ export const REPLY_MODEL = MODELS.reply;
 
 interface Metered {
   usage: TokenUsage;
+  /** Modelul care a răspuns: introducerea merge pe cel ieftin. */
+  model: string;
 }
 
 export type ReplyResult = Metered &
@@ -321,10 +365,15 @@ export async function runReply(input: ReplyInput): Promise<ReplyResult> {
     });
   }
 
-  const { thinking, effort } = reasoningFor(MODELS.reply, EFFORT.reply);
+  // Lecția introductivă e gratuită: merge pe modelul ieftin.
+  const model = guide?.free ? MODELS.replyIntro : MODELS.reply;
+  const { thinking, effort } = reasoningFor(
+    model,
+    guide?.free ? EFFORT.replyIntro : EFFORT.reply,
+  );
 
   const response = await anthropic().messages.parse({
-    model: MODELS.reply,
+    model,
     max_tokens: 2000,
     ...(thinking ? { thinking } : {}),
     output_config: {
@@ -347,6 +396,7 @@ export async function runReply(input: ReplyInput): Promise<ReplyResult> {
     return {
       ok: false,
       usage,
+      model,
       safety: "crisis",
       reply:
         "Nu pot continua pe firul acesta. Dacă treci printr-un moment greu, " +
@@ -359,10 +409,11 @@ export async function runReply(input: ReplyInput): Promise<ReplyResult> {
     return {
       ok: false,
       usage,
+      model,
       safety: "none",
       reply: "Nu am prins ce ai spus. Poți să reiei?",
     };
   }
 
-  return { ok: true, usage, reply: response.parsed_output };
+  return { ok: true, usage, model, reply: response.parsed_output };
 }

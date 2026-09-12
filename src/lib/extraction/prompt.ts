@@ -1,6 +1,6 @@
 import { schemaIndexForPrompt } from "@/lib/schemas";
 import type { MindNode } from "@/lib/types";
-import { DOMAIN_LABELS, NODE_TYPE_LABELS, displayLabel } from "@/lib/types";
+import { DOMAIN_LABELS, NODE_TYPE_LABELS, displayLabel, isFormed } from "@/lib/types";
 
 /**
  * Instrucțiunile de extracție. Conținut stabil: identic pentru toți
@@ -32,9 +32,18 @@ reacție și relațiile importante.
 - **Preferă actualizarea în locul creării.** Caută nodul în index înainte de a
   crea unul nou. „Trebuie să fiu perfect" și „dacă nu iese impecabil, nu merită"
   sunt același nod. La îndoială, actualizează.
-- **Un singur nod per idee, chiar dacă apare de trei ori** în bucata primită.
-  Adună mențiunile într-o singură observație, cu citatul cel mai limpede.
-- **Încrederea crește lent.** O singură mențiune rareori trece de 0.5. Un tipar
+- **Un singur nod per idee, dar câte un citat pentru fiecare moment** în care
+  apare. O convingere nu se naște dintr-o frază: se naște din repetare — o
+  scenă din copilărie, o scenă de săptămâna trecută, consecința pe care o
+  trage din ele. Fiecare dintre acestea e o observație separată, cu citatul
+  ei. Nu comasa trei momente într-un citat și nu inventa un al doilea citat
+  din același moment.
+- **Harta arată doar nodurile cu destule momente.** Ce extragi dintr-o
+  singură mențiune nu apare încă: rămâne ipoteză nevăzută, cu citatul ei, și
+  se formează când revine în bucățile următoare. Deci nu evita nodurile cu o
+  singură mențiune — le extragi, ca sămânță — dar nici nu le umfla: o
+  mențiune e o mențiune.
+- **Încrederea crește lent.** O singură mențiune rareori trece de 0.4. Un tipar
   devine credibil prin repetare în timp, nu prin intensitatea unei propoziții.
 - **Muchiile contează doar dacă spun ceva** — o convingere și temerea care o
   alimentează, o valoare și convingerea care o contrazice. Nu lega două noduri
@@ -46,7 +55,11 @@ reacție și relațiile importante.
   cum a scris-o. Nu le contrazice.
 - **Respinse** — interpretări pe care le-am greșit. Nu le repropune sub alt
   nume. Sunt exemple din care înveți ce nu este el.
-- **Neconfirmate** — ipotezele de până acum. Le poți întări sau slăbi.
+- **Neconfirmate** — ipotezele de până acum, vizibile pe hartă. Le poți
+  întări sau slăbi.
+- **În formare** — ipoteze cu prea puține momente ca să se vadă. Dacă bucata
+  de acum le confirmă, actualizează-le (nu crea un nod nou pentru aceeași
+  idee): fiecare moment nou le apropie de hartă.
 
 ## Clasarea pe scheme
 
@@ -71,6 +84,8 @@ ${schemaIndexForPrompt()}`;
  */
 const MAX_INDEXED = 70;
 const MAX_REJECTED = 12;
+/** Ipotezele nevăzute: puține prin natura lor — se formează sau se uită. */
+const MAX_FORMING = 24;
 
 function mostRelevant(nodes: MindNode[], limit: number): MindNode[] {
   return [...nodes]
@@ -103,11 +118,17 @@ export function buildGraphIndex(nodes: MindNode[]): string {
     MAX_REJECTED,
   );
   const unconfirmed = mostRelevant(
-    nodes.filter((n) => n.verdict === "unconfirmed"),
+    nodes.filter((n) => n.verdict === "unconfirmed" && isFormed(n)),
     Math.max(0, MAX_INDEXED - confirmed.length),
   );
+  // Ipotezele nevăzute: exact cele pe care o mențiune nouă le poate forma.
+  const forming = mostRelevant(
+    nodes.filter((n) => n.verdict === "unconfirmed" && !isFormed(n)),
+    MAX_FORMING,
+  );
 
-  const omitted = nodes.length - confirmed.length - rejected.length - unconfirmed.length;
+  const omitted =
+    nodes.length - confirmed.length - rejected.length - unconfirmed.length - forming.length;
 
   const sections: string[] = ["## Indexul hărții"];
 
@@ -126,6 +147,13 @@ export function buildGraphIndex(nodes: MindNode[]): string {
   if (unconfirmed.length > 0) {
     sections.push(
       "### Neconfirmate — ipotezele de până acum\n" + unconfirmed.map(line).join("\n"),
+    );
+  }
+  if (forming.length > 0) {
+    sections.push(
+      "### În formare — nevăzute încă, cu prea puține momente; " +
+        "actualizează-le dacă revin, nu crea altele pentru aceeași idee\n" +
+        forming.map(line).join("\n"),
     );
   }
 

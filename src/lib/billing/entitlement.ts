@@ -91,11 +91,23 @@ export function canStartSession(wallet: Wallet): Decision {
   return { allowed: true };
 }
 
-export function canContinueSession(wallet: Wallet, turns: number): Decision {
+/**
+ * Lecția introductivă nu costă ședință; singura ei limită e plafonul tehnic
+ * al contului, care există tocmai ca demonstrația să nu poată fi abuzată.
+ */
+export function canStartFree(wallet: Wallet): Decision {
+  return withinCeiling(wallet);
+}
+
+export function canContinueSession(
+  wallet: Wallet,
+  turns: number,
+  maxTurns: number = MAX_TURNS_PER_SESSION,
+): Decision {
   const ceiling = withinCeiling(wallet);
   if (!ceiling.allowed) return ceiling;
 
-  if (turns >= MAX_TURNS_PER_SESSION) {
+  if (turns >= maxTurns) {
     return {
       allowed: false,
       code: "session_full",

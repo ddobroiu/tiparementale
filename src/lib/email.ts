@@ -145,7 +145,7 @@ export function sendWelcomeEmail(to: string, mapUrl: string): Promise<boolean> {
     subject: "Harta ta a pornit",
     heading: "Bine ai venit. Harta ta e goală, și asta e bine.",
     paragraphs: [
-      "Ai o ședință gratuită. Alege o temă — casa în care ai crescut, banii, relațiile — și răspunde cum îți vine. Din ce spui, harta începe să se umple cu convingerile, valorile și fricile care îți conduc reacțiile.",
+      "Lecția introductivă e gratuită: zece minute despre un singur lucru pe care îl faci mereu, deși te costă. Răspunde cum îți vine. Din ce spui, prima ta convingere apare pe hartă — cu citatul din care a fost dedusă.",
       "Fiecare punct de pe hartă păstrează citatul exact din care a fost dedus. Poți confirma, respinge sau reformula orice. Nimic nu se hotărăște peste tine.",
       "Ce scrii rămâne al tău: poți exporta sau șterge tot, oricând, din setări.",
     ],

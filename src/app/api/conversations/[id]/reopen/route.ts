@@ -3,6 +3,7 @@ import { NextResponse } from "next/server";
 import { getSessionUser } from "@/lib/auth";
 import { MAX_TURNS_PER_SESSION } from "@/lib/billing/entitlement";
 import { withUser } from "@/lib/db";
+import { getGuide } from "@/lib/guides";
 
 /**
  * Redeschide o lecție închisă înainte de a fi terminată, ca să poată fi
@@ -22,12 +23,15 @@ export async function POST(
   const { id } = await context.params;
 
   const result = await withUser(user.id, async (client) => {
-    const { rows } = await client.query<{ turns: number }>(
-      "select turns from conversations where id = $1",
+    const { rows } = await client.query<{ turns: number; guide_id: string | null }>(
+      "select turns, guide_id from conversations where id = $1",
       [id],
     );
     if (!rows[0]) return "missing" as const;
-    if (rows[0].turns >= MAX_TURNS_PER_SESSION) return "spent" as const;
+    // Lecția introductivă are mai puține replici decât o ședință obișnuită.
+    const guide = rows[0].guide_id ? getGuide(rows[0].guide_id) : null;
+    const maxTurns = guide?.maxTurns ?? MAX_TURNS_PER_SESSION;
+    if (rows[0].turns >= maxTurns) return "spent" as const;
     await client.query("update conversations set closed_at = null where id = $1", [id]);
     return "ok" as const;
   });

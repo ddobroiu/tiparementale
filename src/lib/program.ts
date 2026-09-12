@@ -1,4 +1,11 @@
-import { GUIDE_BY_ID, GUIDES, type Guide } from "./guides";
+import { GUIDE_BY_ID, GUIDES, INTRO_GUIDE_ID, type Guide } from "./guides";
+
+/**
+ * Lecția introductivă: înaintea drumului, gratuită, o singură dată. Nu e
+ * numerotată — drumul începe cu lecția 1 — dar stă în catalog deasupra lui,
+ * fiindcă e primul lucru pe care îl face un cont nou.
+ */
+export const INTRO_GUIDE: Guide = GUIDE_BY_ID.get(INTRO_GUIDE_ID)!;
 
 /**
  * Programul: cele douăsprezece lecții, așezate în module, în ordinea în care
@@ -93,7 +100,9 @@ export function lessonNumber(guideId: string): number | null {
 }
 
 /** Orice ghid care nu e în module apare totuși, la final — nimic nu se pierde. */
-export const UNLISTED_GUIDES = GUIDES.filter((g) => !NUMBER_BY_GUIDE.has(g.id));
+export const UNLISTED_GUIDES = GUIDES.filter(
+  (g) => !NUMBER_BY_GUIDE.has(g.id) && !g.free,
+);
 
 /**
  * Ce lecție continuă fiecare articol. Articolul explică tiparul la modul
@@ -194,7 +203,7 @@ export function lessonState(
     steps,
     conversationId: progress.conversationId,
     closed: progress.closedAt !== null,
-    spent: progress.turns >= TURNS_PER_SESSION,
+    spent: progress.turns >= (guide.maxTurns ?? TURNS_PER_SESSION),
   };
 }
 

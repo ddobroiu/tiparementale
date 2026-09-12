@@ -354,12 +354,13 @@ function IdentifyTab({
         <div>
           <p className="text-sm text-paper">
             {none
-              ? "Nu mai ai ședințe"
+              ? "Fără ședințe"
               : `${account.sessionsLeft} ${account.sessionsLeft === 1 ? "ședință rămasă" : "ședințe rămase"}`}
           </p>
           <p className="text-xs text-paper-faint">
-            O lecție sau o conversație liberă. Reluarea uneia lăsate la
-            jumătate nu costă alta.
+            {none
+              ? "Lecția introductivă e gratuită. Drumul — cele douăsprezece lecții — se deschide cu un pachet."
+              : "O lecție sau o conversație liberă. Reluarea uneia lăsate la jumătate nu costă alta."}
           </p>
         </div>
         <Link

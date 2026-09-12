@@ -23,6 +23,10 @@ export const MODELS = {
   // costă de două ori și jumătate mai mult pe replică (≈1,2 cenți față de 0,5),
   // adică ~10 cenți în plus pe lecție. La 29–37 lei pe ședință, nu e o decizie.
   reply: process.env.MODEL_REPLY ?? "claude-opus-5",
+  // Lecția introductivă e gratuită și adusă din trafic gratuit: nu poate
+  // merge pe Opus. Sonnet vorbește corect româna; ghidul strâns (un singur
+  // fir, pași de două replici) îi ține în frâu formulele și concluziile.
+  replyIntro: process.env.MODEL_REPLY_INTRO ?? "claude-sonnet-5",
   extraction: process.env.MODEL_EXTRACTION ?? "claude-sonnet-5",
   transformation: process.env.MODEL_TRANSFORMATION ?? "claude-opus-5",
   prediction: process.env.MODEL_PREDICTION ?? "claude-sonnet-5",
@@ -51,6 +55,7 @@ function effortFromEnv(name: string, fallback: Effort): Effort {
 
 export const EFFORT = {
   reply: effortFromEnv("EFFORT_REPLY", "low"),
+  replyIntro: effortFromEnv("EFFORT_REPLY_INTRO", "low"),
   extraction: effortFromEnv("EFFORT_EXTRACTION", "medium"),
   transformation: effortFromEnv("EFFORT_TRANSFORMATION", "high"),
   prediction: effortFromEnv("EFFORT_PREDICTION", "medium"),

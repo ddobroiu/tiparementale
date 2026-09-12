@@ -62,7 +62,7 @@ export default function ArticolePage() {
           </h2>
           <p className="mt-3 max-w-lg leading-relaxed text-paper-dim">
             {SITE.name} construiește harta convingerilor tale din ce spui, nu din
-            teorie generală. Prima ședință este gratuită.
+            teorie generală. Lecția introductivă este gratuită.
           </p>
           <Link
             href="/intra"

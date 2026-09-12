@@ -13,7 +13,7 @@ import { SITE, canonical } from "@/lib/site";
 export const metadata: Metadata = {
   title: "Pachete și prețuri",
   description:
-    "Prima ședință e gratuită. Apoi programe care nu expiră: Un tipar (149 lei), " +
+    "Lecția introductivă e gratuită. Apoi programe care nu expiră: Un tipar (149 lei), " +
     "Harta completă (349 lei), Însoțire 3 luni (599 lei). Ședințe pe cele 12 " +
     "lecții ale drumului, transformări cu exerciții, fără abonament.",
   alternates: { canonical: canonical("/pachete") },
@@ -198,8 +198,9 @@ export default async function PachetePage() {
           O ședință înseamnă până la 25 de replici pe o temă, plus tot ce se
           adaugă în hartă din ele. O transformare îți dă o convingere nouă
           pentru un tipar confirmat, cu exerciții pe care le faci și le notezi
-          în timp, exemple concrete, o carte și un film. Prima ședință și
-          predicțiile sunt gratuite la crearea contului.
+          în timp, exemple concrete, o carte și un film. Lecția introductivă
+          și predicțiile sunt gratuite la crearea contului; lecțiile de pe
+          drum și conversațiile libere cer un pachet.
         </p>
       </section>
 

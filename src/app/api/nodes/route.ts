@@ -51,9 +51,10 @@ export async function POST(request: Request) {
 
   const node = await withUser(user.id, async (client) => {
     const { rows } = await client.query<MindNode>(
+      // Adăugat de mână: e formulat chiar de el, deci apare pe hartă imediat.
       `insert into nodes
-         (user_id, type, domain, label, summary, confidence, verdict, schema_code)
-       values ($1, $2, $3, $4, $5, 0.6, 'confirmed', $6)
+         (user_id, type, domain, label, summary, confidence, verdict, schema_code, formed_at)
+       values ($1, $2, $3, $4, $5, 0.6, 'confirmed', $6, now())
        returning *`,
       [user.id, type, domain, label, summary || null, schemaCode],
     );

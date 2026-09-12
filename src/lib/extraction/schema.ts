@@ -107,7 +107,12 @@ export const NewNodeSchema = z.object({
         "De exemplu: „Trebuie să fiu perfect ca să merit”.",
     ),
   summary: z.string().describe("O propoziție care explică nodul."),
-  confidence: z.number().describe("De la 0 la 1. O singură mențiune rareori trece de 0.5."),
+  confidence: z
+    .number()
+    .describe(
+      "De la 0 la 1. O singură mențiune rareori trece de 0.4; trei momente " +
+        "diferite în care revine aceeași regulă justifică 0.6–0.7.",
+    ),
   schema_code: z
     .string()
     .nullable()
@@ -115,12 +120,24 @@ export const NewNodeSchema = z.object({
       "Codul schemei Young de care ține (din lista dată), sau null dacă nu se " +
         "potrivește clar niciuneia. O clasare forțată e mai rea decât niciuna.",
     ),
-  observation: ObservationSchema,
+  observations: z
+    .array(ObservationSchema)
+    .describe(
+      "Câte un citat pentru fiecare moment distinct în care apare ideea: o " +
+        "scenă, apoi alta, apoi consecința. Nu le comasa într-unul singur și nu " +
+        "repeta același citat. Un nod apare pe hartă abia când are destule " +
+        "momente, deci fiecare contează.",
+    ),
 });
 
 export const NodeUpdateSchema = z.object({
   node_id: z.string().describe("id-ul unui nod existent din index."),
-  observation: ObservationSchema,
+  observations: z
+    .array(ObservationSchema)
+    .describe(
+      "Momentele noi din această bucată în care ideea revine — câte un citat " +
+        "pentru fiecare. Cel puțin unul.",
+    ),
   confidence_delta: z
     .number()
     .describe(

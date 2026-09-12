@@ -59,8 +59,9 @@ export const FAQ: FaqItem[] = [
   {
     q: "Cât costă?",
     a:
-      "Prima ședință este gratuită — prima lecție de pe drum sau o conversație " +
-      "liberă — ca să vezi ce cumperi. După ea, lucrezi pe programe: „Un tipar” " +
+      "Lecția introductivă este gratuită — zece minute despre un singur lucru " +
+      "pe care îl faci mereu deși te costă — ca să vezi ce cumperi: prima ta " +
+      "convingere apare pe hartă. După ea, lucrezi pe programe: „Un tipar” " +
       "(4 ședințe și 2 transformări, 149 lei), „Harta completă” (12 ședințe, 6 " +
       "transformări, 349 lei) sau „Însoțire 3 luni” (12 ședințe și câte o " +
       "transformare pentru fiecare, 599 lei). Programele nu expiră, nu există " +

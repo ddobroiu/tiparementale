@@ -3,7 +3,7 @@ import Link from "next/link";
 
 import { SiteFooter } from "@/components/SiteFooter";
 import { SiteHeader } from "@/components/SiteHeader";
-import { LESSONS, MODULES, lessonMinutes } from "@/lib/program";
+import { INTRO_GUIDE, LESSONS, MODULES, lessonMinutes } from "@/lib/program";
 import { SITE, canonical } from "@/lib/site";
 
 export const metadata: Metadata = {
@@ -105,6 +105,32 @@ export default function ProgramPage() {
           ))}
         </dl>
 
+        {/* Înaintea drumului: lecția introductivă, gratuită. E primul lucru
+            pe care îl face un cont nou, deci stă înaintea capitolelor. */}
+        <section
+          className="mt-14 rounded-2xl border p-6 sm:p-8"
+          style={{ borderColor: "var(--ok)" }}
+        >
+          <p className="text-xs tracking-[0.2em] uppercase" style={{ color: "var(--ok)" }}>
+            Înainte de drum · gratuit
+          </p>
+          <h2 className="mt-2 font-serif text-3xl text-paper">{INTRO_GUIDE.title}</h2>
+          <p className="mt-2 max-w-xl leading-relaxed text-paper-dim">
+            {INTRO_GUIDE.summary}
+          </p>
+          <p className="mt-3 text-xs text-paper-faint">
+            {INTRO_GUIDE.steps.length} pași · ~{lessonMinutes(INTRO_GUIDE)} min ·
+            fără ședință, fără card · o singură dată
+          </p>
+          <Link
+            href="/intra"
+            style={{ background: "var(--ok)" }}
+            className="mt-5 inline-block rounded-full px-5 py-2.5 text-sm font-medium text-ink transition-opacity hover:opacity-90"
+          >
+            Începe cu lecția introductivă
+          </Link>
+        </section>
+
         {/* Drumul, desenat ca drum: o singură coloană, o linie care leagă
             lecțiile în ordinea în care se deschid, culoarea capitolului pe
             fiecare segment. Aceeași imagine ca în aplicație. */}
@@ -168,7 +194,7 @@ export default function ProgramPage() {
                             }
                           >
                             {l.number === 1
-                              ? "aici începi · gratuit"
+                              ? "prima de pe drum"
                               : `după lecția ${l.number - 1}`}
                           </span>
                         </span>
@@ -189,11 +215,12 @@ export default function ProgramPage() {
         </div>
 
         <div className="mt-16 rounded-2xl border border-ink-line p-8">
-          <h2 className="font-serif text-2xl">Prima lecție e gratuită</h2>
+          <h2 className="font-serif text-2xl">Lecția introductivă e gratuită</h2>
           <p className="mt-3 max-w-lg leading-relaxed text-paper-dim">
-            Îți faci cont, începi cu prima lecție de pe drum și vezi harta
-            formându-se din ce spui. Fără card. Apoi, programe de la 149 lei,
-            care nu expiră.
+            Îți faci cont și începi cu „Regula pe care o porți”: zece minute
+            despre un singur lucru pe care îl faci mereu, deși te costă. Vezi
+            prima ta convingere apărând pe hartă. Fără card. Drumul de mai sus
+            se deschide apoi cu programe de la 149 lei, care nu expiră.
           </p>
           <div className="mt-6 flex flex-wrap gap-4">
             <Link

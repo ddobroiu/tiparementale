@@ -226,8 +226,9 @@ export default async function LectiePage(props: PageProps<"/program/[id]">) {
         <div className="mt-14 rounded-2xl border border-ink-line p-8">
           <h2 className="font-serif text-2xl">Începe lecția</h2>
           <p className="mt-3 max-w-lg leading-relaxed text-paper-dim">
-            Prima ședință e gratuită: poate fi chiar aceasta. Îți faci cont,
-            alegi lecția din program și harta pornește din ce povestești.
+            Îți faci cont și începi cu lecția introductivă, gratuită. Apoi
+            alegi un pachet și drumul se deschide, lecție după lecție — harta
+            pornește din ce povestești.
           </p>
           <Link
             href="/intra"

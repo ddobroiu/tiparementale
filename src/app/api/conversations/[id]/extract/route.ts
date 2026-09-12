@@ -9,7 +9,7 @@ import { recordSimilarities } from "@/lib/extraction/similarity";
 import { describeAiError } from "@/lib/ai-error";
 import type { MapDiff, MindNode } from "@/lib/types";
 
-const EMPTY_DIFF: MapDiff = { created: [], strengthened: [], connected: [] };
+const EMPTY_DIFF: MapDiff = { created: [], strengthened: [], connected: [], forming: 0 };
 
 interface PendingMessage extends Record<string, unknown> {
   id: string;
@@ -108,9 +108,10 @@ export async function POST(_request: Request, context: RouteContext<"/api/conver
 
     // După ce nodurile noi există, căutăm dacă vreunul spune același lucru cu
     // altul mai vechi, formulat altfel. Rezultatul devine întrebare, nu unire.
+    // Doar între noduri formate: o ipoteză nevăzută nu poate fi întrebată.
     if (applied.created.length > 0) {
       const { rows: current } = await client.query<MindNode>(
-        "select * from nodes where archived_at is null",
+        "select * from nodes where archived_at is null and formed_at is not null",
       );
       const createdIds = new Set(applied.created.map((n) => n.id));
       await recordSimilarities(

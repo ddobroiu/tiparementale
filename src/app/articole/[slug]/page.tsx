@@ -174,7 +174,7 @@ export default async function ArticolPage(
           <p className="mt-3 max-w-lg leading-relaxed text-paper-dim">
             Articolul de mai sus e despre oameni în general. {SITE.name}{" "}
             lucrează cu ce spui tu: convingerile ies din propriile tale cuvinte,
-            cu citatul din care au fost deduse. Prima ședință e gratuită.
+            cu citatul din care au fost deduse. Lecția introductivă e gratuită.
           </p>
           <Link
             href="/intra"

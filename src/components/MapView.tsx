@@ -46,7 +46,7 @@ interface Props {
   justPaid?: boolean;
 }
 
-const EMPTY_DIFF: MapDiff = { created: [], strengthened: [], connected: [] };
+const EMPTY_DIFF: MapDiff = { created: [], strengthened: [], connected: [], forming: 0 };
 
 function diffSize(diff: MapDiff): number {
   return diff.created.length + diff.strengthened.length + diff.connected.length;
@@ -82,9 +82,13 @@ export function MapView({
   const [extracting, setExtracting] = useState(false);
   const [conversationId, setConversationId] = useState<string | null>(null);
   const [chatTitle, setChatTitle] = useState<string | null>(null);
+  /** Lecția din panou, ca la final să știm dacă e cea introductivă. */
+  const [chatGuideId, setChatGuideId] = useState<string | null>(null);
   const [lessonDone, setLessonDone] = useState<{
     created: number;
     strengthened: number;
+    forming: number;
+    sale: boolean;
   } | null>(null);
   const [diff, setDiff] = useState<MapDiff | null>(null);
   const [safety, setSafety] = useState<SafetyFlag>("none");
@@ -202,6 +206,9 @@ export function MapView({
         setLessonDone({
           created: mapDiff.created.length,
           strengthened: mapDiff.strengthened.length,
+          forming: mapDiff.forming,
+          // După lecția introductivă, drumul continuă cu un pachet.
+          sale: chatGuideId ? getGuide(chatGuideId)?.free === true : false,
         });
         void loadAccount();
         return;
@@ -243,6 +250,7 @@ export function MapView({
 
       setConversationId(data.conversationId);
       setLessonDone(null);
+      setChatGuideId((body.guideId as string | undefined) ?? null);
       setChatTitle(titleFor(body.guideId as string | undefined));
       setMessages(
         data.opener
@@ -268,6 +276,7 @@ export function MapView({
     if (!guideId) return null;
     const guide = getGuide(guideId);
     if (!guide) return null;
+    if (guide.free) return `Introducere · ${guide.title}`;
     const n = lessonNumber(guideId);
     return n ? `Lecția ${n} · ${guide.title}` : guide.title;
   }
@@ -289,6 +298,7 @@ export function MapView({
       }
       setConversationId(data.conversationId);
       setLessonDone(null);
+      setChatGuideId(data.guideId ?? null);
       setChatTitle(titleFor(data.guideId));
       setMessages(
         (data.messages as ChatMessage[]).map((m) => ({
@@ -312,6 +322,7 @@ export function MapView({
   function startFree() {
     setSheetOpen(false);
     setSelectedId(null);
+    setChatGuideId(null);
     setChatTitle(null);
     setLessonDone(null);
     setChatOpen(true);
@@ -324,6 +335,7 @@ export function MapView({
     setLimit(null);
     setMessages([]);
     setConversationId(null);
+    setChatGuideId(null);
     setChatTitle(null);
     setLessonDone(null);
     // După o ședință, următorul pas firesc e să confirmi ce a apărut.

@@ -47,7 +47,7 @@ export default function Home() {
                 href="/intra"
                 className="rounded-full bg-paper px-6 py-3 text-sm font-medium text-ink transition-opacity hover:opacity-90"
               >
-                Începe harta ta — prima ședință e gratuită
+                Începe harta ta — lecția introductivă e gratuită
               </Link>
               <Link
                 href="/cum-functioneaza"

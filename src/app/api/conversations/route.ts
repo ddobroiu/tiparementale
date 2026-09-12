@@ -1,7 +1,12 @@
 import { NextResponse } from "next/server";
 
 import { getSessionUser } from "@/lib/auth";
-import { canStartSession, getWallet, spendSession } from "@/lib/billing/entitlement";
+import {
+  canStartFree,
+  canStartSession,
+  getWallet,
+  spendSession,
+} from "@/lib/billing/entitlement";
 import { withUser } from "@/lib/db";
 import { getGuide } from "@/lib/guides";
 import { findTopic } from "@/lib/topics";
@@ -36,17 +41,41 @@ export async function POST(request: Request) {
 
   const outcome = await withUser(user.id, async (client) => {
     const wallet = await getWallet(client, user.id);
-    const decision = canStartSession(wallet);
-    if (!decision.allowed) return { denied: decision };
 
-    if (!(await spendSession(client, user.id))) {
-      return {
-        denied: {
-          allowed: false as const,
-          code: "no_sessions",
-          reason: "Nu mai ai ședințe. Alege un pachet ca să continui harta.",
-        },
-      };
+    if (guide?.free) {
+      // Lecția introductivă: fără ședință, dar o singură dată. O lecție
+      // începută și lăsată se reia din catalog, nu se pornește din nou.
+      const decision = canStartFree(wallet);
+      if (!decision.allowed) return { denied: decision };
+
+      const { rows: prior } = await client.query<{ id: string }>(
+        "select id from conversations where guide_id = $1 limit 1",
+        [guide.id],
+      );
+      if (prior.length > 0) {
+        return {
+          denied: {
+            allowed: false as const,
+            code: "intro_done",
+            reason:
+              "Lecția introductivă se face o singură dată. Drumul continuă " +
+              "cu un pachet: alege-l și deschide prima lecție.",
+          },
+        };
+      }
+    } else {
+      const decision = canStartSession(wallet);
+      if (!decision.allowed) return { denied: decision };
+
+      if (!(await spendSession(client, user.id))) {
+        return {
+          denied: {
+            allowed: false as const,
+            code: "no_sessions",
+            reason: "Nu mai ai ședințe. Alege un pachet ca să continui harta.",
+          },
+        };
+      }
     }
 
     const { rows } = await client.query<{ id: string }>(

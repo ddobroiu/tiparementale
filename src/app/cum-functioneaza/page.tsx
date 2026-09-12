@@ -117,10 +117,11 @@ export default function CumFunctioneazaPage() {
         </section>
 
         <div className="mt-14 rounded-2xl border border-ink-line p-8">
-          <h2 className="font-serif text-2xl">Prima ședință e gratuită</h2>
+          <h2 className="font-serif text-2xl">Lecția introductivă e gratuită</h2>
           <p className="mt-3 max-w-lg leading-relaxed text-paper-dim">
-            Suficientă cât să vezi harta formându-se din ce spui. Fără card și
-            fără abonament.
+            Zece minute despre un singur lucru pe care îl faci mereu, deși te
+            costă. Suficient cât să vezi prima ta convingere apărând pe hartă.
+            Fără card și fără abonament.
           </p>
           <Link
             href="/intra"

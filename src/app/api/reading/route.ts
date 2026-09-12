@@ -31,7 +31,7 @@ export async function GET() {
     );
 
     const { rows: counts } = await client.query<{ n: string }>(
-      "select count(*) as n from nodes where archived_at is null",
+      "select count(*) as n from nodes where archived_at is null and formed_at is not null",
     );
 
     return { latest: rows[0] ?? null, nodeCount: Number(counts[0].n) };
@@ -54,7 +54,7 @@ export async function POST() {
 
   const source = await withUser(user.id, async (client) => {
     const { rows: nodes } = await client.query<MindNode>(
-      "select * from nodes where archived_at is null order by confidence desc",
+      "select * from nodes where archived_at is null and formed_at is not null order by confidence desc",
     );
     const { rows: edges } = await client.query<Edge>("select * from edges");
     const { rows: previous } = await client.query<{

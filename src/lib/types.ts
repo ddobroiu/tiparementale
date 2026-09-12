@@ -114,9 +114,19 @@ export interface MindNode {
   verdict: NodeVerdict;
   /** Prezent doar în răspunsul hărții; lipsește la citirea unui singur nod. */
   work_status?: WorkStatus | null;
+  /**
+   * Când a strâns destule mențiuni ca să apară pe hartă. Null: încă o
+   * ipoteză, nevăzută — stă în bază cu citatele ei și așteaptă să revină.
+   */
+  formed_at: string | null;
   archived_at: string | null;
   created_at: string;
   updated_at: string;
+}
+
+/** Nodurile care se văd: cele formate din destule momente, neretrase. */
+export function isFormed(node: Pick<MindNode, "formed_at">): boolean {
+  return node.formed_at !== null;
 }
 
 export interface Observation {
@@ -205,9 +215,15 @@ export interface ExerciseLog {
  * Fiecare conversație se termină aici: harta se animă și arată diferența.
  */
 export interface MapDiff {
+  /** Noduri care au apărut pe hartă acum: au strâns destule momente. */
   created: Array<{ id: string; type: NodeType; label: string }>;
   strengthened: Array<{ id: string; label: string; confidence: number }>;
   connected: Array<{ from: string; to: string; relation: string }>;
+  /**
+   * Ipoteze atinse, dar încă nevăzute: au o mențiune sau două și mai au
+   * nevoie de discuție. Omului i se spune că se conturează ceva, nu ce.
+   */
+  forming: number;
 }
 
 /**

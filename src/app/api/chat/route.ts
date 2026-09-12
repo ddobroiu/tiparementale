@@ -9,21 +9,14 @@ import {
   recordUsage,
   spendSession,
 } from "@/lib/billing/entitlement";
-import {
-  REPLY_MODEL,
-  runReply,
-  sanitizeOptions,
-} from "@/lib/conversation/reply";
-import { getGuide } from "@/lib/guides";
+import { runReply, sanitizeOptions } from "@/lib/conversation/reply";
+import { DEFAULT_TURNS_PER_STEP, getGuide } from "@/lib/guides";
 import { describeAiError } from "@/lib/ai-error";
 import { EXTRACTION_THRESHOLD } from "@/lib/models";
 import { withUser } from "@/lib/db";
 import type { MindNode } from "@/lib/types";
 
 const HISTORY_LIMIT = 12;
-
-/** Câte replici poate ține un pas de ghid înainte să treacă mai departe. */
-const MAX_TURNS_PER_STEP = 3;
 
 /**
  * Calea fierbinte: doar replica din conversație.
@@ -101,7 +94,13 @@ export async function POST(request: Request) {
       );
       conversationId = rows[0].id;
     } else {
-      const decision = canContinueSession(wallet, turns);
+      // Lecția introductivă are ședința ei, mai scurtă.
+      const guide = guideId ? getGuide(guideId) : null;
+      const decision = canContinueSession(
+        wallet,
+        turns,
+        guide?.maxTurns ?? MAX_TURNS_PER_SESSION,
+      );
       if (!decision.allowed) return { denied: decision };
     }
 
@@ -172,16 +171,17 @@ export async function POST(request: Request) {
   }
 
   const safetyFlag = result.ok ? result.reply.safety_flag : result.safety;
+  const guide = context.guideId ? getGuide(context.guideId) : null;
   // Pasul avansează când modelul spune că și-a făcut treaba — sau, oricum, după
-  // MAX_TURNS_PER_STEP replici. Lăsat singur, modelul sapă la nesfârșit într-un
-  // pas, iar o ședință de 25 de replici ar acoperi două teme din cinci.
+  // atâtea replici cât permite lecția. Lăsat singur, modelul sapă la nesfârșit
+  // într-un pas, iar o ședință de 25 de replici ar acoperi două teme din cinci.
+  const stepLimit = guide?.turnsPerStep ?? DEFAULT_TURNS_PER_STEP;
   const onGuide = context.guideId !== null;
   const advance =
     onGuide &&
     result.ok &&
-    (result.reply.advance_step || context.stepTurns + 1 >= MAX_TURNS_PER_STEP);
+    (result.reply.advance_step || context.stepTurns + 1 >= stepLimit);
   // Lecția s-a încheiat când s-a trecut de ultimul ei pas.
-  const guide = context.guideId ? getGuide(context.guideId) : null;
   const guideComplete = Boolean(
     guide && advance && context.stepIndex + 1 >= guide.steps.length,
   );
@@ -251,7 +251,7 @@ export async function POST(request: Request) {
       userId: user.id,
       conversationId: context.conversationId,
       kind: "reply",
-      model: REPLY_MODEL,
+      model: result.model,
       usage: result.usage,
     });
 
@@ -271,10 +271,12 @@ export async function POST(request: Request) {
     safetyFlag,
     domainInFocus: result.ok ? result.reply.domain_in_focus : null,
     // Harta se actualizează la pragul obișnuit, dar și la fiecare pas încheiat
-    // al lecției (dacă are din ce) și, oricum, la sfârșitul ei.
-    extractionDue:
-      after >= EXTRACTION_THRESHOLD || (advance && after >= 3) || guideComplete,
+    // al lecției (dacă are din ce) și, oricum, la sfârșitul ei. Lecția
+    // introductivă, gratuită, o actualizează o singură dată: la final.
+    extractionDue: guide?.free
+      ? guideComplete
+      : after >= EXTRACTION_THRESHOLD || (advance && after >= 3) || guideComplete,
     guideComplete,
-    turnsLeft: MAX_TURNS_PER_SESSION - context.turns,
+    turnsLeft: (guide?.maxTurns ?? MAX_TURNS_PER_SESSION) - context.turns,
   });
 }

@@ -103,6 +103,7 @@ Fără webhook, plățile reușesc la Stripe dar **nu creditează** contul.
 
 - `https://tiparementale.ro/` → 200, `https://…/harta` → 307 spre `/intra`
 - `https://…/sitemap.xml` și `/robots.txt` → 200
-- un cont nou primește 1 ședință și 0 transformări (`/setari`)
+- un cont nou primește 0 ședințe și 0 transformări (`/setari`), dar poate
+  porni lecția introductivă „Regula pe care o porți” din hartă, gratuit
 - `node --env-file=.env.local scripts/spend.mjs` de pe calculatorul tău arată
   consumul real după primele conversații

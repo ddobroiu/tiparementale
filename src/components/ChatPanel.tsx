@@ -23,9 +23,46 @@ interface Props {
   /** Lecția în curs, sau nimic pentru conversația liberă. */
   title?: string | null;
   /** Lecția s-a încheiat: ce s-a schimbat pe hartă, și ce poate face omul. */
-  done?: { created: number; strengthened: number } | null;
+  done?: {
+    created: number;
+    strengthened: number;
+    /** Ipoteze atinse, dar încă nevăzute: mai au nevoie de discuție. */
+    forming: number;
+    /** Lecția introductivă: după ea, drumul continuă cu un pachet. */
+    sale?: boolean;
+  } | null;
   /** Continuă conversația după încheiere, în aceeași ședință. */
   onContinue?: () => void;
+}
+
+/**
+ * Ce s-a schimbat pe hartă, spus omului. Un nod apare abia după ce a fost
+ * spus în mai multe momente, deci „nimic nou" nu înseamnă „nimic auzit":
+ * ipotezele care se conturează se numără, ca să știe că discuția a lăsat urme.
+ */
+function describeDone(done: {
+  created: number;
+  strengthened: number;
+  forming: number;
+}): string {
+  const parts: string[] = [];
+  if (done.created > 0) {
+    parts.push(
+      `au apărut ${done.created} ${done.created === 1 ? "element nou" : "elemente noi"}`,
+    );
+  }
+  if (done.strengthened > 0) parts.push(`s-au întărit ${done.strengthened}`);
+  const map = parts.length > 0 ? `Pe hartă ${parts.join(" și ")}.` : "";
+  const forming =
+    done.forming > 0
+      ? done.forming === 1
+        ? "O ipoteză se conturează și mai are nevoie de discuție ca să apară."
+        : `${done.forming} ipoteze se conturează și mai au nevoie de discuție ca să apară.`
+      : "";
+
+  if (!map && !forming) return "Harta e la zi cu ce ai povestit.";
+  if (!map) return `Nimic nou pe hartă încă. ${forming}`;
+  return [map, forming].filter(Boolean).join(" ");
 }
 
 /**
@@ -155,30 +192,56 @@ export function ChatPanel({
       {done && !limit ? (
         <div className="border-t border-[color:var(--value)]/40 bg-[color:var(--value)]/5 p-4">
           <p className="text-[11px] tracking-[0.16em] text-[color:var(--value)] uppercase">
-            Lecția s-a încheiat
+            {done.sale ? "Lecția introductivă s-a încheiat" : "Lecția s-a încheiat"}
           </p>
           <p className="mt-2 text-sm leading-relaxed text-paper">
-            {done.created + done.strengthened === 0
-              ? "Harta e la zi cu ce ai povestit."
-              : `Pe hartă ${done.created > 0 ? `au apărut ${done.created} ${done.created === 1 ? "element nou" : "elemente noi"}` : ""}${done.created > 0 && done.strengthened > 0 ? " și " : ""}${done.strengthened > 0 ? `s-au întărit ${done.strengthened}` : ""}.`}
+            {describeDone(done)}
           </p>
-          <p className="mt-1 text-xs leading-relaxed text-paper-faint">
-            Pasul următor: deschide elementele și spune dacă am nimerit. Ce
-            confirmi poate fi lucrat.
-          </p>
-          <button
-            onClick={onClose}
-            className="mt-3 w-full rounded-xl bg-paper px-4 py-2.5 text-sm font-medium text-ink transition-opacity hover:opacity-90"
-          >
-            Vezi harta și confirmă
-          </button>
-          {onContinue && (
-            <button
-              onClick={onContinue}
-              className="mt-2 w-full rounded-xl px-4 py-2 text-sm text-paper-faint transition-colors hover:text-paper-dim"
-            >
-              Mai am ceva de spus — continui în aceeași ședință
-            </button>
+          {done.sale ? (
+            <>
+              {/* După lecția introductivă, drumul continuă cu un pachet.
+                  Vânzarea o face ecranul, cu cifre sigure, nu modelul. */}
+              <p className="mt-1 text-xs leading-relaxed text-paper-faint">
+                Asta a fost o singură regulă, văzută din trei unghiuri. Drumul
+                are douăsprezece lecții — casa în care ai crescut, mama, tata,
+                banii, relațiile — și fiecare convingere confirmată poate fi
+                lucrată, cu exerciții. Lecțiile de pe drum se deschid cu un
+                pachet.
+              </p>
+              <a
+                href="/pachete"
+                className="mt-3 block rounded-xl bg-paper px-4 py-3 text-center text-sm font-semibold text-ink shadow-lg transition-opacity hover:opacity-90"
+              >
+                Alege un pachet și continuă drumul
+              </a>
+              <button
+                onClick={onClose}
+                className="mt-2 w-full rounded-xl px-4 py-2 text-sm text-paper-faint transition-colors hover:text-paper-dim"
+              >
+                Întâi vreau să văd harta
+              </button>
+            </>
+          ) : (
+            <>
+              <p className="mt-1 text-xs leading-relaxed text-paper-faint">
+                Pasul următor: deschide elementele și spune dacă am nimerit. Ce
+                confirmi poate fi lucrat.
+              </p>
+              <button
+                onClick={onClose}
+                className="mt-3 w-full rounded-xl bg-paper px-4 py-2.5 text-sm font-medium text-ink transition-opacity hover:opacity-90"
+              >
+                Vezi harta și confirmă
+              </button>
+              {onContinue && (
+                <button
+                  onClick={onContinue}
+                  className="mt-2 w-full rounded-xl px-4 py-2 text-sm text-paper-faint transition-colors hover:text-paper-dim"
+                >
+                  Mai am ceva de spus — continui în aceeași ședință
+                </button>
+              )}
+            </>
           )}
         </div>
       ) : limit ? (
@@ -190,7 +253,7 @@ export function ChatPanel({
           {/* Când omul a rămas fără ședințe, acțiunea principală este să
               cumpere, nu să se întoarcă în hartă. Butonul plin merge acolo
               unde vrem să meargă și el. */}
-          {limit.code === "no_sessions" ? (
+          {limit.code === "no_sessions" || limit.code === "intro_done" ? (
             <>
               <a
                 href="/pachete"

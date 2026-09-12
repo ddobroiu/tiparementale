@@ -64,6 +64,14 @@ Nodul nu conține adevărul — **observațiile îl conțin**. Nodul este agrega
 De aici rezultă gratuit citatul-sursă, evoluția în timp și recalcularea
 încrederii când apar date noi.
 
+**Un nod se formează din mai multe momente, nu dintr-o frază.** Extracția dă
+câte un citat pentru fiecare moment în care revine aceeași regulă (o scenă de
+demult, una de acum, consecința trasă din ele). Sub trei momente, nodul e
+ipoteză nevăzută (`formed_at` null): stă în bază cu citatele lui, intră în
+indexul extracției și în busola conversației, dar nu apare pe hartă. Apare
+când discuția l-a lucrat, nu doar atins — iar conversația e instruită să
+ceară al doilea și al treilea moment înainte să treacă mai departe.
+
 | Tabel | Rol |
 |---|---|
 | `users`, `auth_sessions` | cont și sesiune; singurele fără RLS (vezi §8) |
@@ -87,7 +95,9 @@ La fiecare extracție, promptul conține indexul hărții împărțit pe verdict
 
 - **confirmate** — adevăr stabilit, cu formularea utilizatorului (`user_label`);
 - **respinse** — exemple negative: „am interpretat greșit, nu repeta";
-- **neconfirmate** — ipoteze de lucru.
+- **neconfirmate** — ipoteze de lucru, vizibile pe hartă;
+- **în formare** — ipoteze cu prea puține momente ca să se vadă; se
+  actualizează, nu se dublează.
 
 Modelul primește indexul *înainte* de a extrage, deci face fuziunea nodurilor din
 prima, în loc să extragem orb și să curățăm după.
@@ -119,7 +129,8 @@ Sunt separate:
 
 | | Model | Când | Cost aproximativ |
 |---|---|---|---|
-| Conversație | `claude-sonnet-5`, efort redus, hartă compactă | fiecare replică | ~0,7 cenți |
+| Conversație | `claude-opus-5`, efort redus, hartă compactă | fiecare replică | ~1,5 cenți |
+| Lecția introductivă (gratuită) | `claude-sonnet-5`, efort redus; cel mult 12 replici, o singură extracție la final | fiecare replică | ~0,6 cenți |
 | Extracție | `claude-opus-5`, index complet, mai multe replici odată | la 4 replici și la închiderea panoului | ~0,8 cenți amortizat |
 
 **~1,5 cenți pe replică**, de trei ori mai puțin, cu calitatea hărții rămasă pe

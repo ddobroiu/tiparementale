@@ -88,8 +88,8 @@ export default function DesprePage() {
         <div className="mt-14 rounded-2xl border border-ink-line p-8">
           <h2 className="font-serif text-2xl">Vezi singur</h2>
           <p className="mt-3 max-w-lg leading-relaxed text-paper-dim">
-            Prima ședință e gratuită. Suficientă cât să vezi harta formându-se din
-            ce spui.
+            Lecția introductivă e gratuită. Suficientă cât să vezi prima ta
+            convingere apărând pe hartă, din ce spui.
           </p>
           <Link
             href="/intra"

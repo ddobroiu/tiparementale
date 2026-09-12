@@ -4,6 +4,7 @@ import { useState } from "react";
 
 import type { Guide } from "@/lib/guides";
 import {
+  INTRO_GUIDE,
   LESSONS,
   MODULES,
   UNLISTED_GUIDES,
@@ -169,6 +170,7 @@ export function LessonCatalog({
       LESSONS.length,
   );
   const canStart = sessionsLeft > 0 && !busy;
+  const introState = lessonState(INTRO_GUIDE, byGuide.get(INTRO_GUIDE.id));
 
   const toggle = (id: string) => {
     setOpened(openId === id ? null : id);
@@ -195,6 +197,14 @@ export function LessonCatalog({
           Pe rând: următoarea se deschide când o termini pe cea dinainte.
         </p>
       </div>
+
+      {/* Înaintea drumului: lecția introductivă, gratuită, o singură dată. */}
+      <IntroRow
+        state={introState}
+        busy={busy}
+        onStart={() => onStart(INTRO_GUIDE)}
+        onResume={onResume}
+      />
 
       {MODULES.map((module) => {
         const lessons = LESSONS.filter((l) => l.moduleId === module.id);
@@ -380,6 +390,86 @@ export function LessonCatalog({
         )}
       </section>
     </div>
+  );
+}
+
+/**
+ * Lecția introductivă. Nouă: cardul deschis, cu butonul de pornire — e
+ * singurul lucru pe care îl poate face un cont nou, deci stă la vedere.
+ * Începută: se continuă, fără ședință. Făcută sau consumată: un rând mut;
+ * nu se reface — demonstrația e o singură dată, drumul continuă cu un pachet.
+ */
+function IntroRow({
+  state,
+  busy,
+  onStart,
+  onResume,
+}: {
+  state: LessonState;
+  busy: boolean;
+  onStart: () => void;
+  onResume: (conversationId: string) => void;
+}) {
+  const guide = INTRO_GUIDE;
+
+  if (state.kind === "done" || (state.kind === "partial" && state.spent)) {
+    return (
+      <section className="flex items-center gap-3 rounded-xl border border-ink-line/60 px-3 py-2.5">
+        <span className="flex h-7 w-7 shrink-0 items-center justify-center rounded-full bg-[color:var(--ok)] text-[10px] font-medium text-ink">
+          ✓
+        </span>
+        <span className="min-w-0 flex-1">
+          <span className="block text-sm text-paper-dim">{guide.title}</span>
+          <span className="block text-[11px] text-paper-faint">
+            introducere ·{" "}
+            {state.kind === "done" ? `făcută pe ${dateShort(state.at)}` : "consumată"}
+          </span>
+        </span>
+      </section>
+    );
+  }
+
+  return (
+    <section
+      style={{ borderColor: "var(--ok)" }}
+      className="rounded-xl border bg-ink-soft px-3 pt-2.5 pb-3"
+    >
+      <div className="flex items-center gap-3">
+        <Ring state={state} number={0} />
+        <span className="min-w-0 flex-1">
+          <span className="block text-sm text-paper">{guide.title}</span>
+          <span className="block text-[11px] text-[color:var(--ok)]">
+            {state.kind === "partial"
+              ? `introducere · pasul ${state.step} din ${state.steps}`
+              : `introducere · ${guide.steps.length} pași · ~${lessonMinutes(guide)} min · gratuit`}
+          </span>
+        </span>
+      </div>
+      <p className="mt-2 text-[13px] leading-relaxed text-paper-dim">
+        {guide.summary}
+      </p>
+      <div className="mt-3">
+        {state.kind === "partial" ? (
+          <button
+            onClick={() => onResume(state.conversationId)}
+            disabled={busy}
+            style={{ background: "var(--ok)" }}
+            className="rounded-full px-4 py-1.5 text-xs font-medium text-ink disabled:opacity-40"
+          >
+            Continuă de la {state.percent}%
+          </button>
+        ) : (
+          <button
+            onClick={onStart}
+            disabled={busy}
+            style={{ background: "var(--ok)" }}
+            className="rounded-full px-4 py-1.5 text-xs font-medium text-ink disabled:opacity-40"
+          >
+            Începe · gratuit
+          </button>
+        )}
+      </div>
+    </section>
   );
 }
 

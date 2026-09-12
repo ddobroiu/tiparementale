@@ -111,7 +111,7 @@ const organizationJsonLd = {
         lowPrice: "0",
         highPrice: "599",
         offerCount: 4,
-        description: "Prima ședință gratuită; programe de la 149 lei, fără abonament.",
+        description: "Lecția introductivă gratuită; programe de la 149 lei, fără abonament.",
       },
       publisher: { "@id": `${SITE.url}#organization` },
     },

@@ -66,9 +66,129 @@ export interface Guide {
   goal: GuideGoal;
   sources: string[];
   steps: GuideStep[];
+  /**
+   * Lecția introductivă: nu consumă ședință, se face o singură dată, merge
+   * pe modelul ieftin și actualizează harta doar la final. Orice altceva
+   * cere un pachet.
+   */
+  free?: boolean;
+  /** Câte replici poate ține un pas, dacă nu e valoarea obișnuită. */
+  turnsPerStep?: number;
+  /** Câte replici are ședința pe această lecție, dacă nu e cea obișnuită. */
+  maxTurns?: number;
+  /** Ce trebuie să știe modelul pe tot parcursul lecției, la fiecare pas. */
+  brief?: string;
+  /** Cum se încheie lecția, dacă nu ca de obicei (bilanț, fără întrebare). */
+  closing?: string;
 }
 
+/**
+ * Câte replici ține un pas de ghid, de regulă. Serverul îl impune, modelul
+ * îl primește ca reper. Patru, nu trei: o convingere apare pe hartă abia
+ * după ce a fost spusă în mai multe momente, deci pasul trebuie să aibă loc
+ * pentru „s-a mai întâmplat și altă dată?” înainte să treacă mai departe.
+ */
+export const DEFAULT_TURNS_PER_STEP = 4;
+
+export const INTRO_GUIDE_ID = "regula-pe-care-o-porti";
+
 export const GUIDES: Guide[] = [
+  // ======================================================= introducere
+  /**
+   * Demonstrația. Universală — oricine are un lucru pe care îl face mereu
+   * deși îl costă — și construită ca să scoată o singură convingere din trei
+   * unghiuri (scena de acum, consecința temută, originea), adică exact cât
+   * îi trebuie unui nod ca să se formeze. Se încheie cu o întrebare lăsată
+   * deschisă; vânzarea o face ecranul, nu modelul.
+   */
+  {
+    id: INTRO_GUIDE_ID,
+    title: "Regula pe care o porți",
+    summary:
+      "Un singur lucru pe care îl faci mereu, deși te costă. De unde vine, ce " +
+      "păzește și cât te-a costat anul ăsta. Zece minute, gratuit.",
+    domain: "self",
+    goal: "self",
+    free: true,
+    turnsPerStep: 2,
+    maxTurns: 12,
+    sources: ["Young — Schema Therapy", "Beck — Cognitive Behavior Therapy", "Gibson — Adult Children of Emotionally Immature Parents"],
+    brief:
+      "Lecția introductivă: omul e la prima lui conversație aici, gratuită și " +
+      "scurtă. Nu te cunoaște și te judecă din prima replică. Un singur fir: " +
+      "regula lui — lucrul pe care îl face mereu deși îl costă. Toate " +
+      "întrebările sapă în același lucru, din unghiuri diferite: scena de acum, " +
+      "ce crede că s-ar întâmpla dacă n-ar respecta-o, de unde a învățat-o, cât " +
+      "l-a costat. Nu lărgi spre alte teme, oricât de interesante — sunt pentru " +
+      "drumul de după. Fiecare replică arată că ai auzit exact ce a spus, cu " +
+      "cuvintele lui. Când a răspuns pe fond, treci mai departe: pașii sunt " +
+      "scurți și numărați.",
+    closing:
+      "**Aceasta este ultima replică a lecției introductive.** Pune advance_step " +
+      "pe adevărat. Încheie în trei-patru propoziții: regula lui, cu cuvintele " +
+      "lui, așa cum a apărut în cele trei momente — scena de acum, ce crede că " +
+      "s-ar întâmpla dacă n-ar respecta-o, de unde a învățat-o — și prețul pe " +
+      "care l-a numit. Apoi o singură întrebare, pe care nu o pui ca să primești " +
+      "răspuns acum, ci ca să rămână cu el: ce ar face mâine altfel, dacă regula " +
+      "n-ar mai fi a lui? Fără sfat, fără concluzie liniștitoare, fără să anunți " +
+      "vreo ofertă sau vreun pas următor — de asta se ocupă ecranul. options goală.",
+    steps: [
+      {
+        id: "lucrul",
+        question:
+          "Ce lucru faci aproape de fiecare dată, deși știi că te costă? Nu un defect — un obicei mic, de zi cu zi.",
+        options: [
+          "Spun da când vreau să spun nu",
+          "Amân exact ce contează",
+          "Fac totul singur",
+          "Verific de trei ori",
+          "Tac, ca să nu stric atmosfera",
+        ],
+        lookingFor:
+          "Comportamentul repetat, numit precis. Fiecare variantă indică spre altă familie de scheme; ce scrie el liber e și mai bun. Nu interpreta încă — cere-i doar să-l numească exact, în termenii lui.",
+        schemas: ["subjugation", "self_sacrifice", "failure", "unrelenting_standards", "emotional_inhibition", "mistrust"],
+      },
+      {
+        id: "ultima-data",
+        question:
+          "Când s-a întâmplat ultima dată? Spune-mi scena: cine era de față, ce ai făcut, ce ai spus.",
+        lookingFor:
+          "Scena concretă, recentă, cu detalii. Regula în acțiune — de aici vine primul moment adevărat. Dacă răspunde general, cere „ultima dată” încă o dată.",
+        schemas: [],
+      },
+      {
+        id: "daca-nu",
+        question:
+          "Și dacă n-ai fi făcut-o? Nu ce ar fi fost rațional — ce simți că s-ar fi întâmplat.",
+        options: [
+          "Aș fi dezamăgit pe cineva",
+          "Aș fi părut slab sau incapabil",
+          "S-ar fi stricat ceva între noi",
+          "Aș fi fost dat la o parte",
+          "Nu știu, dar nu risc",
+        ],
+        lookingFor:
+          "Consecința temută. Aceasta este convingerea, în forma ei brută: „dacă nu fac X, se întâmplă Y”. Cere-i s-o spună cu cuvintele lui — al doilea moment.",
+        schemas: ["abandonment", "defectiveness", "approval_seeking", "subjugation", "vulnerability"],
+      },
+      {
+        id: "de-unde",
+        question:
+          "Cine, în casa în care ai crescut, făcea la fel? Sau: cine avea nevoie ca tu să faci așa?",
+        lookingFor:
+          "Originea. Regula a fost învățată de la cineva sau pentru cineva. O scenă de atunci, cu aceeași regulă, e al treilea moment — cel care o formează pe hartă.",
+        schemas: ["self_sacrifice", "enmeshment", "emotional_deprivation", "unrelenting_standards"],
+      },
+      {
+        id: "pretul",
+        question:
+          "Ce te-a costat regula asta în ultimul an? Ceva concret: o relație, o ocazie, ore, bani, somn.",
+        lookingFor:
+          "Costul, numit de el. Nu ca să-l sperii — ca să vadă că regula nu e gratuită. De aici pleacă motivul de a lucra pe ea.",
+        schemas: [],
+      },
+    ],
+  },
   // =========================================================== origini
   {
     id: "casa-in-care-ai-crescut",

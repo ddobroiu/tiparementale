@@ -56,6 +56,11 @@ if (reg.status !== 200) {
   process.exit(1);
 }
 console.log("  ✓\n");
+// Contul nou nu mai primește ședință (doar lecția introductivă): testul și-o dă singur.
+await admin.query(
+  "update tipare_mentale.wallets set sessions_balance = 1 where user_id = (select id from tipare_mentale.users where email = $1)",
+  [EMAIL],
+);
 
 console.log(`2. Pornire ghid „${GUIDE}”`);
 const started = await call("/api/conversations", {
