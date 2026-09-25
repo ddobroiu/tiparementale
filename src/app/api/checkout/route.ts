@@ -6,6 +6,15 @@ import { appUrl, stripe, stripeConfigured } from "@/lib/billing/stripe";
 import { withUser } from "@/lib/db";
 import { readMetaClient, sendMetaEvent } from "@/lib/meta/capi";
 
+/** Un cookie din cerere (vizitatorul mydashboard, `_md_vid`), ca plata să fie legată de sursa vizitei. */
+function readCookie(request: Request, name: string): string | null {
+  for (const part of (request.headers.get("cookie") ?? "").split(";")) {
+    const [k, ...v] = part.trim().split("=");
+    if (k === name && v.length) return decodeURIComponent(v.join("=")).slice(0, 64);
+  }
+  return null;
+}
+
 /**
  * Pornește plata unui pachet.
  *
@@ -38,9 +47,18 @@ export async function POST(request: Request) {
   const meta = readMetaClient(request);
   const eventId = typeof body?.eventId === "string" ? body.eventId.slice(0, 64) : "";
 
+  // Contul Stripe „Applications” e comun aplicatiilor: eticheta de proiect separa platile in mydashboard
+  const tag = {
+    project: "tiparementale",
+    ...(readCookie(request, "_md_vid") && { md_vid: readCookie(request, "_md_vid")! }),
+  };
   const session = await stripe().checkout.sessions.create({
     mode: "payment",
     customer_email: user.email,
+    // Numele, adresa si (pentru firme) CUI-ul pentru factura Oblio
+    billing_address_collection: "required",
+    tax_id_collection: { enabled: true },
+    payment_intent_data: { metadata: { ...tag, userId: user.id, pack: pack.code } },
     line_items: [
       {
         quantity: 1,
@@ -59,6 +77,7 @@ export async function POST(request: Request) {
     success_url: `${appUrl()}/harta?plata=reusita`,
     cancel_url: `${appUrl()}/pachete?plata=anulata`,
     metadata: {
+      ...tag,
       userId: user.id,
       pack: pack.code,
       metaConsent: meta.consent ?? "",

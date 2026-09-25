@@ -4,6 +4,7 @@ import { creditPurchase } from "@/lib/billing/packs";
 import { appUrl, stripe, stripeConfigured } from "@/lib/billing/stripe";
 import { query, withUser } from "@/lib/db";
 import { sendPurchaseEmail } from "@/lib/email";
+import { isOblioConfigured, issueInvoice } from "@/lib/billing/oblio";
 import { sendMetaEvent } from "@/lib/meta/capi";
 import { parseConsent } from "@/lib/meta/consent";
 
@@ -49,6 +50,10 @@ export async function POST(request: Request) {
   if (!userId) {
     return NextResponse.json({ received: true });
   }
+  // contul Stripe e comun aplicatiilor: evenimentele altor proiecte nu sunt ale noastre
+  if (session.metadata?.project && session.metadata.project !== "tiparementale") {
+    return NextResponse.json({ received: true });
+  }
 
   if (session.payment_status !== "paid") {
     return NextResponse.json({ received: true });
@@ -69,7 +74,31 @@ export async function POST(request: Request) {
           [packCode],
         )
       : [];
-    if (user) await sendPurchaseEmail(user.email, pack ?? null, `${appUrl()}/harta`);
+    // Factura Oblio pe datele cerute de Stripe la plata; nu blocheaza niciodata creditarea
+    let invoiceUrl: string | null = null;
+    if (isOblioConfigured()) {
+      try {
+        const inv = await issueInvoice(session, {
+          name: `Tipare Mentale - ${pack?.name ?? "pachet"}`,
+          amountCents: session.amount_total ?? 0,
+          currency: session.currency ?? "ron",
+        });
+        invoiceUrl = inv.url;
+        await withUser(userId, (client) =>
+          client.query(
+            `update purchases set invoice_series = $2, invoice_number = $3, invoice_url = $4, invoice_error = null where provider_ref = $1`,
+            [session.id, inv.series, inv.number, inv.url],
+          ),
+        );
+      } catch (error: unknown) {
+        const message = error instanceof Error ? error.message : String(error);
+        console.error("[oblio] factura:", session.id, message);
+        await withUser(userId, (client) =>
+          client.query(`update purchases set invoice_error = $2 where provider_ref = $1`, [session.id, message.slice(0, 500)]),
+        ).catch(() => {});
+      }
+    }
+    if (user) await sendPurchaseEmail(user.email, pack ?? null, `${appUrl()}/harta`, invoiceUrl);
 
     // Cumpărarea se raportează la Meta doar de aici și doar o dată (la prima
     // creditare), cu ID-ul sesiunii Stripe ca `event_id`. Consimțământul și

@@ -123,6 +123,10 @@ export default function RootLayout({
 }: Readonly<{ children: React.ReactNode }>) {
   return (
     <html lang="ro">
+      <head>
+        {/* mydashboard.ro: vizite, surse de trafic și legătura cu plățile (proiectul tiparementale) */}
+        <script defer src="https://mydashboard.ro/t.js" data-site="2c35558974bf50ff" />
+      </head>
       <body className={`${inter.variable} ${fraunces.variable} font-sans antialiased`}>
         <script
           type="application/ld+json"

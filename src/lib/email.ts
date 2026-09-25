@@ -173,6 +173,7 @@ export function sendPurchaseEmail(
   to: string,
   pack: { name: string; sessions: number; transformations: number } | null,
   mapUrl: string,
+  invoiceUrl: string | null = null,
 ): Promise<boolean> {
   const what = pack
     ? `Programul „${pack.name}” e activ: ${pack.sessions} ședințe ghidate și ${pack.transformations} transformări, adăugate în contul tău.`
@@ -185,7 +186,9 @@ export function sendPurchaseEmail(
     paragraphs: [
       what,
       "Nimic nu expiră. Lucrezi când ai spațiu pentru asta — o ședință pe săptămână lasă timp ca exercițiile să se așeze.",
-      "Factura vine separat, de la Stripe, pe această adresă.",
+      invoiceUrl
+        ? `Factura o găsești aici: ${invoiceUrl}`
+        : "Factura îți vine în scurt timp pe această adresă.",
     ],
     cta: { label: "Deschide harta", url: mapUrl },
     footnote: "Ai o întrebare despre plată sau program? Răspunde la acest e-mail.",
