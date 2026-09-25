@@ -7,6 +7,7 @@ import { sendPurchaseEmail } from "@/lib/email";
 import { isOblioConfigured, issueInvoice } from "@/lib/billing/oblio";
 import { sendMetaEvent } from "@/lib/meta/capi";
 import { parseConsent } from "@/lib/meta/consent";
+import { alerta } from "@/lib/alerts";
 
 /**
  * Confirmarea plății, venită de la Stripe.
@@ -59,7 +60,15 @@ export async function POST(request: Request) {
     return NextResponse.json({ received: true });
   }
 
-  const result = await withUser(userId, (client) => creditPurchase(client, session.id));
+  let result;
+  try {
+    result = await withUser(userId, (client) => creditPurchase(client, session.id));
+  } catch (error: unknown) {
+    // Aceeasi cale 500 ca inainte (Stripe reincearca), dar proprietarul afla.
+    const message = error instanceof Error ? error.message : String(error);
+    void alerta("error", "stripe-webhook", `Tipare Mentale: plata ${session.id} nu a putut fi procesata: ${message}`);
+    throw error;
+  }
 
   // Confirmarea pe e-mail pleacă o singură dată, la prima creditare. Dacă nu
   // ajunge, portofelul e oricum creditat: e-mailul e informare, nu dovadă.
@@ -93,6 +102,7 @@ export async function POST(request: Request) {
       } catch (error: unknown) {
         const message = error instanceof Error ? error.message : String(error);
         console.error("[oblio] factura:", session.id, message);
+        void alerta("error", "oblio", `Tipare Mentale: factura Oblio nu s-a emis pentru plata ${session.id}: ${message}`);
         await withUser(userId, (client) =>
           client.query(`update purchases set invoice_error = $2 where provider_ref = $1`, [session.id, message.slice(0, 500)]),
         ).catch(() => {});

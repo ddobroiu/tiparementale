@@ -1,5 +1,7 @@
 import Anthropic from "@anthropic-ai/sdk";
 
+import { alerta, faraCredite } from "@/lib/alerts";
+
 /**
  * Traducerea unei erori de la model în ceva folositor, în două direcții.
  *
@@ -23,6 +25,16 @@ export interface AiFailure {
 export function describeAiError(error: unknown, context: string): AiFailure {
   // Jurnalul primește întotdeauna tot, indiferent ce arătăm în interfață.
   console.error(`[ai:${context}]`, error);
+
+  // Credite terminate la Anthropic: anuntam proprietarul (mydashboard limiteaza la o data pe ora).
+  if (faraCredite(error)) {
+    const short = error instanceof Error ? error.message : String(error);
+    void alerta(
+      "credits",
+      "anthropic",
+      `Tipare Mentale: Anthropic a refuzat cererea - credite terminate. Generarea nu merge pana nu reincarci contul: ${short.slice(0, 300)}`,
+    );
+  }
 
   if (error instanceof Anthropic.APIError) {
     if (error.status === 429) {
