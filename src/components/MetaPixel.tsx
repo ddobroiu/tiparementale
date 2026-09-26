@@ -3,38 +3,53 @@
 import { usePathname } from "next/navigation";
 import { useEffect, useRef } from "react";
 
-import { GA_ID, loadGa } from "@/lib/ga";
-import { CONSENT_EVENT, readConsent, type Consent } from "@/lib/meta/consent";
-import { PIXEL_ID, loadPixel, trackPageView } from "@/lib/meta/pixel";
+import { loadGa } from "@/lib/ga";
+import { CONSENT_EVENT, readConsent, type ConsentChoice } from "@/lib/meta/consent";
+import { loadPixel, setPixelConsent, trackPageView } from "@/lib/meta/pixel";
+import { loadMydashboard, revokeMydashboard } from "@/lib/mydashboard";
 
 /**
- * Încarcă Meta Pixel și Google Analytics și raportează PageView la fiecare
- * schimbare de pagină.
+ * Încarcă scripturile de măsurare, fiecare doar cu acordul categoriei lui, și
+ * raportează PageView la fiecare schimbare de pagină.
  *
- * Nu pune nimic în pagină până nu există acord: scriptul de la Meta se
- * descarcă abia după „Accept" din banner (sau imediat, dacă acordul e deja
- * dat de la o vizită anterioară). Fără acord, componenta e complet inertă.
+ * - analitice: Google Analytics 4 (cu Consent Mode v2) și mydashboard.ro;
+ * - marketing: Meta Pixel.
+ *
+ * Nu pune nimic în pagină până nu există acord; alegerile făcute ulterior din
+ * banner se aplică fără reîncărcare (inclusiv retragerea acordului).
  */
 export function MetaPixel() {
   const pathname = usePathname();
   const lastPath = useRef<string | null>(null);
 
-  // Pornirea: la montare sau când vizitatorul își dă acordul.
   useEffect(() => {
-    if (!PIXEL_ID && !GA_ID) return;
+    function apply(choice: ConsentChoice | null) {
+      if (!choice) return;
 
-    function start() {
-      loadPixel();
-      loadGa();
-      trackPageView();
-      lastPath.current = pathname;
+      if (choice.analytics) loadMydashboard();
+      else revokeMydashboard();
+
+      // GA se încarcă doar cu acord analitic; dacă e deja încărcat, primește
+      // actualizarea Consent Mode (inclusiv „denied”).
+      loadGa(choice);
+
+      if (choice.marketing) {
+        loadPixel();
+        setPixelConsent(true);
+      } else {
+        setPixelConsent(false);
+      }
+
+      if (lastPath.current === null && (choice.analytics || choice.marketing)) {
+        trackPageView();
+        lastPath.current = pathname;
+      }
     }
 
-    if (readConsent() === "granted") start();
+    apply(readConsent());
 
     function onConsent(event: Event) {
-      const value = (event as CustomEvent<Consent>).detail;
-      if (value === "granted") start();
+      apply((event as CustomEvent<ConsentChoice>).detail);
     }
     window.addEventListener(CONSENT_EVENT, onConsent);
     return () => window.removeEventListener(CONSENT_EVENT, onConsent);

@@ -1,6 +1,6 @@
 import { createHash } from "node:crypto";
 
-import { parseConsent, CONSENT_COOKIE, type Consent } from "./consent";
+import { marketingConsent, CONSENT_COOKIE, type Consent } from "./consent";
 
 /**
  * Meta Conversions API — evenimente trimise de pe server.
@@ -48,7 +48,7 @@ export function readMetaClient(request: Request): MetaClient {
   const cookies = parseCookies(request.headers.get("cookie"));
   const forwarded = request.headers.get("x-forwarded-for");
   return {
-    consent: parseConsent(cookies[CONSENT_COOKIE]),
+    consent: marketingConsent(cookies[CONSENT_COOKIE]),
     ip: forwarded ? forwarded.split(",")[0].trim() : request.headers.get("x-real-ip"),
     userAgent: request.headers.get("user-agent"),
     fbp: cookies._fbp ?? null,

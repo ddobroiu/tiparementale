@@ -4,7 +4,9 @@ import { getSessionUser } from "@/lib/auth";
 import { getPack } from "@/lib/billing/packs";
 import { appUrl, stripe, stripeConfigured } from "@/lib/billing/stripe";
 import { withUser } from "@/lib/db";
+import { LEGAL_VERSION } from "@/lib/legal";
 import { readMetaClient, sendMetaEvent } from "@/lib/meta/capi";
+import { CONSENT_COOKIE, parseConsentCookie } from "@/lib/meta/consent";
 
 /** Un cookie din cerere (vizitatorul mydashboard, `_md_vid`), ca plata să fie legată de sursa vizitei. */
 function readCookie(request: Request, name: string): string | null {
@@ -41,16 +43,30 @@ export async function POST(request: Request) {
     return NextResponse.json({ error: "Pachet inexistent" }, { status: 400 });
   }
 
+  // Acordul cu termenii și cererea de executare imediată (cu pierderea
+  // dreptului de retragere, OUG 34/2014 art. 16 lit. a și m) se bifează
+  // înainte de plată; fără el nu pornim nicio plată.
+  if (body?.consent !== true) {
+    return NextResponse.json(
+      { error: "Bifează acordul cu Termenii și condițiile ca să continui." },
+      { status: 400 },
+    );
+  }
+  const consentAt = new Date();
+
   // Ce știm despre vizitator acum se pune în metadatele Stripe: webhook-ul
   // vine de la Stripe, fără cookie-uri, și fără asta n-ar avea ce trimite la
   // Meta când confirmă plata.
   const meta = readMetaClient(request);
   const eventId = typeof body?.eventId === "string" ? body.eventId.slice(0, 64) : "";
 
-  // Contul Stripe „Applications” e comun aplicatiilor: eticheta de proiect separa platile in mydashboard
+  // Contul Stripe „Applications” e comun aplicatiilor: eticheta de proiect separa platile in mydashboard.
+  // Vizitatorul mydashboard se trimite doar cu acord pentru cookie-uri analitice.
+  const analyticsOk = Boolean(parseConsentCookie(readCookie(request, CONSENT_COOKIE))?.analytics);
+  const mdVid = analyticsOk ? readCookie(request, "_md_vid") : null;
   const tag = {
     project: "tiparementale",
-    ...(readCookie(request, "_md_vid") && { md_vid: readCookie(request, "_md_vid")! }),
+    ...(mdVid && { md_vid: mdVid }),
   };
   const session = await stripe().checkout.sessions.create({
     mode: "payment",
@@ -80,6 +96,10 @@ export async function POST(request: Request) {
       ...tag,
       userId: user.id,
       pack: pack.code,
+      termsAccepted: "true",
+      withdrawalWaiver: "true",
+      termsVersion: LEGAL_VERSION,
+      consentAt: consentAt.toISOString(),
       metaConsent: meta.consent ?? "",
       metaFbp: meta.fbp ?? "",
       metaFbc: meta.fbc ?? "",
@@ -109,9 +129,9 @@ export async function POST(request: Request) {
   // confirma. Fără rândul acesta, o plată reușită nu ar avea unde să aterizeze.
   await withUser(user.id, (client) =>
     client.query(
-      `insert into purchases (user_id, pack_code, provider_ref, amount_ron)
-       values ($1, $2, $3, $4)`,
-      [user.id, pack.code, session.id, pack.priceRon],
+      `insert into purchases (user_id, pack_code, provider_ref, amount_ron, consent_at, terms_version)
+       values ($1, $2, $3, $4, $5, $6)`,
+      [user.id, pack.code, session.id, pack.priceRon, consentAt, LEGAL_VERSION],
     ),
   );
 

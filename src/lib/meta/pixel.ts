@@ -11,7 +11,7 @@
  */
 
 import { gaPageView, gaTrack } from "../ga";
-import { readConsent } from "./consent";
+import { hasConsent } from "./consent";
 
 export const PIXEL_ID = process.env.NEXT_PUBLIC_META_PIXEL_ID ?? "";
 
@@ -39,7 +39,7 @@ export function newEventId(): string {
 
 /** Pixelul e activ doar cu ID configurat și acord dat. */
 export function pixelEnabled(): boolean {
-  return Boolean(PIXEL_ID) && readConsent() === "granted";
+  return Boolean(PIXEL_ID) && hasConsent("marketing");
 }
 
 /**
@@ -69,6 +69,15 @@ export function loadPixel() {
   document.head.appendChild(script);
 
   window.fbq("init", PIXEL_ID);
+}
+
+/**
+ * Acordul retras (sau redat) fără reîncărcarea paginii: dacă pixelul e deja
+ * încărcat, nu mai trimite nimic până la un nou „grant”.
+ */
+export function setPixelConsent(granted: boolean) {
+  if (typeof window === "undefined" || !window.fbq) return;
+  window.fbq("consent", granted ? "grant" : "revoke");
 }
 
 /**

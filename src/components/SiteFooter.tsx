@@ -1,6 +1,8 @@
 import Link from "next/link";
 
+import { CookieSettingsButton } from "./CookieSettingsButton";
 import { Logo } from "./Logo";
+import { ANPC_SAL_URL, ANPC_URL, OPERATOR, OPERATOR_ADDRESS } from "@/lib/legal";
 import { FOOTER_LINKS, SITE } from "@/lib/site";
 
 /**
@@ -59,8 +61,37 @@ export function SiteFooter() {
             .
           </p>
 
-          <p className="mt-6 text-xs text-paper-faint">
-            © {new Date().getFullYear()} {SITE.name}. Toate drepturile rezervate.
+          <div className="mt-6 flex flex-wrap gap-x-5 gap-y-2 text-xs">
+            <CookieSettingsButton className="text-paper-dim underline underline-offset-4 hover:text-paper" />
+            <a
+              href={ANPC_SAL_URL}
+              target="_blank"
+              rel="noopener noreferrer"
+              className="text-paper-dim underline underline-offset-4 hover:text-paper"
+            >
+              ANPC – SAL (Soluționarea alternativă a litigiilor)
+            </a>
+            <a
+              href={ANPC_URL}
+              target="_blank"
+              rel="noopener noreferrer"
+              className="text-paper-dim underline underline-offset-4 hover:text-paper"
+            >
+              ANPC
+            </a>
+          </div>
+
+          <p className="mt-6 text-xs leading-relaxed text-paper-faint">
+            {SITE.name} este operat de {OPERATOR.name} · CUI {OPERATOR.cui} (
+            {OPERATOR.vatStatus}) · Nr. Reg. Com. {OPERATOR.regCom} · EUID{" "}
+            {OPERATOR.euid} · Sediul: {OPERATOR_ADDRESS} · Contact:{" "}
+            <a href={`mailto:${OPERATOR.email}`} className="text-paper-dim hover:text-paper">
+              {OPERATOR.email}
+            </a>
+          </p>
+
+          <p className="mt-3 text-xs text-paper-faint">
+            © {new Date().getFullYear()} {OPERATOR.name}. Toate drepturile rezervate.
           </p>
         </div>
       </div>

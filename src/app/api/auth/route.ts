@@ -10,6 +10,7 @@ import {
 } from "@/lib/auth";
 import { appUrl } from "@/lib/billing/stripe";
 import { query } from "@/lib/db";
+import { LEGAL_VERSION } from "@/lib/legal";
 import { sendPasswordResetEmail, sendWelcomeEmail } from "@/lib/email";
 import { readMetaClient, sendMetaEvent } from "@/lib/meta/capi";
 
@@ -42,6 +43,15 @@ export async function POST(request: Request) {
       return NextResponse.json({ error: PASSWORD_ERROR }, { status: 400 });
     }
 
+    // Acordul cu termenii și consimțământul explicit pentru datele care pot
+    // privi sănătatea (art. 9 GDPR) sunt condiții ale contului, nu opțiuni.
+    if (body?.acceptTerms !== true || body?.sensitiveConsent !== true) {
+      return NextResponse.json(
+        { error: "Ca să creezi contul, bifează ambele acorduri de mai sus." },
+        { status: 400 },
+      );
+    }
+
     const existing = await query<UserRow>("select id from users where lower(email) = $1", [email]);
     if (existing.length > 0) {
       return NextResponse.json(
@@ -51,8 +61,9 @@ export async function POST(request: Request) {
     }
 
     const created = await query<UserRow>(
-      "insert into users (email, password_hash) values ($1, $2) returning id, email",
-      [email, await hashPassword(password)],
+      `insert into users (email, password_hash, terms_accepted_at, terms_version, sensitive_data_consent_at)
+       values ($1, $2, now(), $3, now()) returning id, email`,
+      [email, await hashPassword(password), LEGAL_VERSION],
     );
 
     await createSession(created[0].id);

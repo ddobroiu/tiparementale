@@ -1,119 +1,146 @@
 import type { Metadata } from "next";
+import Link from "next/link";
 
-import { SiteFooter } from "@/components/SiteFooter";
-import { SiteHeader } from "@/components/SiteHeader";
+import { Ext, LegalDocument, type LegalSection } from "@/components/LegalDocument";
+import { ANSPDCP_URL, OPERATOR, OPERATOR_ADDRESS } from "@/lib/legal";
 import { SITE, canonical } from "@/lib/site";
 
 export const metadata: Metadata = {
   title: "Politica de confidențialitate",
   description:
-    "Ce date colectăm, de ce, cât le păstrăm și cum le poți exporta sau șterge.",
+    "Cine prelucrează datele tale, ce date, de ce, pe ce temei, cui le transmitem, " +
+    "cât le păstrăm și cum îți exerciți drepturile.",
   alternates: { canonical: canonical("/confidentialitate") },
 };
 
-const SECTIONS = [
+const Mail = () => (
+  <a className="text-paper underline underline-offset-4" href={`mailto:${OPERATOR.email}`}>
+    {OPERATOR.email}
+  </a>
+);
+
+const A = ({ href, children }: { href: string; children: React.ReactNode }) => (
+  <Link href={href} className="text-paper underline underline-offset-4">
+    {children}
+  </Link>
+);
+
+const SECTIONS: LegalSection[] = [
   {
-    title: "Ce date colectăm",
+    title: "Cine este operatorul",
     paragraphs: [
-      "Adresa de email și o parolă, stocată exclusiv sub formă de amprentă criptografică — parola în clar nu există nicăieri în sistemele noastre și nu poate fi recuperată, doar resetată.",
-      "Conținutul conversațiilor pe care le porți în aplicație, elementele extrase din ele (convingeri, valori, emoții, obiective, tipare) și citatele-sursă aferente.",
-      "Date tehnice minime necesare funcționării: sesiunea de autentificare și consumul de resurse al contului tău.",
-      "Dacă faci o cumpărare, plata este procesată de Stripe. Datele cardului nu trec prin serverele noastre și nu le vedem niciodată.",
+      `Operatorul datelor tale este ${OPERATOR.name}, CUI ${OPERATOR.cui}, Nr. Reg. Com. ${OPERATOR.regCom}, cu sediul în ${OPERATOR_ADDRESS}, care furnizează serviciul ${SITE.name} pe ${SITE.domain}.`,
+      <>
+        Pentru orice întrebare despre datele tale ne scrii la <Mail />. Nu am desemnat un responsabil cu protecția datelor (DPO); toate cererile se trimit la această adresă.
+      </>,
     ],
   },
   {
-    title: "De ce le prelucrăm",
+    title: "Ce date prelucrăm",
     paragraphs: [
-      "Pentru a-ți furniza serviciul: fără conținutul conversațiilor nu există hartă, iar fără citate nu ți-am putea arăta din ce a fost dedus fiecare element.",
-      "Pentru a-ți administra contul, ședințele cumpărate și facturarea.",
-      "Temeiul legal este executarea contractului dintre noi, respectiv obligațiile legale în cazul documentelor financiare.",
+      "Date de cont: adresa de e-mail, parola (stocată exclusiv ca amprentă criptografică — parola în clar nu există nicăieri la noi), numele afișat (dacă îl completezi), momentul acceptării termenilor și al consimțământului pentru datele sensibile, sesiunile de autentificare.",
+      "Conținutul Serviciului: conversațiile pe care le porți în aplicație, elementele extrase din ele (convingeri, valori, emoții, obiective, tipare), citatele-sursă, predicțiile confirmate sau respinse, convingerile alternative, exercițiile și notițele tale. Prin natura lor, aceste date pot dezvălui informații despre sănătatea ta psihică și emoțională, despre viața ta de familie și, în funcție de ce alegi să scrii, alte informații sensibile.",
+      "Date de plată și facturare: pachetul cumpărat, suma, data, starea plății, numele, adresa de facturare și, pentru firme, codul fiscal (colectate de Stripe pe pagina de plată), numărul și seria facturii, acordul dat înainte de plată și versiunea termenilor. Datele cardului sunt introduse direct la Stripe; noi nu le vedem și nu le stocăm.",
+      "Date de consum: câte ședințe și transformări ai folosit și costul tehnic al fiecărei prelucrări, pentru limitele contului.",
+      <>
+        Date tehnice și de măsurare: alegerea privind cookie-urile și, doar cu acordul tău, datele colectate de Google Analytics, mydashboard.ro și Meta (pagini vizitate, sursa vizitei, identificatori de cookie, adresa IP, tipul de browser). Detalii în <A href="/cookies">Politica de cookies</A>.
+      </>,
+      "Mesajele pe care ni le trimiți pe e-mail.",
+    ],
+  },
+  {
+    title: "De ce și pe ce temei",
+    paragraphs: [
+      "Furnizarea Serviciului (contul, conversațiile, harta, transformările, e-mailurile de serviciu precum bun venit, resetarea parolei, confirmarea plății): executarea contractului — art. 6 alin. (1) lit. b) GDPR.",
+      "Prelucrarea conținutului conversațiilor, care poate include date privind sănătatea: consimțământul tău explicit — art. 9 alin. (2) lit. a) GDPR, cerut separat la crearea contului. Îl poți retrage oricând ștergându-ți contul (din Setări) sau scriindu-ne; retragerea nu afectează prelucrarea făcută până atunci, dar fără acest consimțământ Serviciul nu mai poate fi furnizat.",
+      "Facturarea și evidența contabilă: îndeplinirea obligațiilor legale — art. 6 alin. (1) lit. c) GDPR (Legea contabilității nr. 82/1991, Codul fiscal, legislația RO e-Factura).",
+      "Securitatea Serviciului, prevenirea fraudei și a abuzului, limitele tehnice de consum, apărarea în caz de litigiu: interesul nostru legitim — art. 6 alin. (1) lit. f) GDPR.",
+      "Măsurarea traficului (Google Analytics, mydashboard.ro) și a campaniilor de publicitate (Meta Pixel și Conversions API): consimțământul tău — art. 6 alin. (1) lit. a) GDPR, dat din bannerul de cookie-uri și retras oricând din „Setări cookies”.",
+      "Furnizarea adresei de e-mail și a parolei este necesară pentru cont, iar a datelor de facturare, pentru plată; fără ele nu putem încheia contractul. Restul datelor le furnizezi după cum alegi.",
     ],
   },
   {
     title: "Ce NU facem",
     paragraphs: [
-      "Nu vindem și nu închiriem datele tale nimănui.",
-      "Nu folosim conversațiile tale pentru antrenarea unor modele de inteligență artificială.",
-      "Nu citim conversațiile utilizatorilor. Accesul angajaților la conținut este restricționat tehnic și se produce doar la cererea ta explicită, pentru suport.",
-      "Nu construim profiluri publicitare din ce scrii. Singura măsurare de marketing este cea descrisă mai jos, la cookie-uri, și doar cu acordul tău.",
+      "Nu vindem și nu închiriem datele tale.",
+      "Nu folosim conversațiile tale pentru antrenarea unor modele de inteligență artificială și nu le trimitem furnizorilor de publicitate. Meta și Google nu primesc niciodată conținutul conversațiilor, harta sau vreun element extras din ele.",
+      "Nu citim conversațiile utilizatorilor. Panoul nostru de administrare arată doar date de cont și de consum; accesul la conținut se face doar la cererea ta explicită, pentru suport.",
+      "Serviciul nu ia decizii bazate exclusiv pe prelucrare automată care să producă efecte juridice asupra ta sau să te afecteze similar în mod semnificativ (art. 22 GDPR). Interpretările generate de inteligența artificială sunt propuneri pe care le confirmi sau le respingi tu.",
     ],
   },
   {
-    title: "Cookie-uri și măsurarea campaniilor",
+    title: "Cui transmitem datele",
     paragraphs: [
-      "Site-ul funcționează cu un singur cookie strict necesar: sesiunea de autentificare. Pentru el nu cerem acord, pentru că fără el nu poți intra în cont.",
-      "Dacă accepți din banner, folosim Meta Pixel (Meta Platforms Ireland Ltd.) ca să măsurăm dacă reclamele noastre de pe Facebook și Instagram aduc vizitatori și dacă aceștia își fac cont sau cumpără un pachet. Meta primește: paginile publice vizitate, faptul că s-a creat un cont sau s-a făcut o plată, valoarea plății, adresa IP, tipul de browser și, sub formă de amprentă criptografică ireversibilă, adresa de email. Nu primește niciodată conținutul conversațiilor, harta sau orice element extras din ele.",
-      "Tot cu acordul tău, folosim Google Analytics 4 (Google Ireland Ltd.) ca să vedem câți oameni vizitează site-ul, din ce surse vin și ce pagini citesc. Google primește paginile vizitate, evenimentele de mai sus (cont creat, pornirea plății), adresa IP (trunchiată de Google) și date tehnice despre browser. Adresele IP nu sunt stocate, iar identificatorii de publicitate Google nu sunt activați.",
-      "Dacă refuzi, nu se încarcă nimic de la Meta sau Google și nu trimitem nimic către ei, nici din browser, nici de pe serverele noastre. Alegerea se ține minte un an într-un cookie propriu (tm_consent) și o poți schimba oricând ștergând cookie-urile site-ului.",
-      "Temeiul legal este consimțământul tău (art. 6 alin. 1 lit. a GDPR). Meta și Google pot prelucra aceste date și în afara UE, în baza clauzelor contractuale standard și a cadrului UE–SUA de protecție a datelor; detalii în politicile lor de confidențialitate.",
+      "Anthropic PBC (SUA) — furnizorul modelelor de inteligență artificială (Claude) care generează răspunsurile și extrag tiparele. Primește conținutul conversațiilor necesar fiecărei prelucrări, ca persoană împuternicită. Conform termenilor comerciali ai furnizorului, datele trimise prin API nu sunt folosite pentru antrenarea modelelor și sunt păstrate de furnizor doar pentru o perioadă limitată, pentru siguranță și prevenirea abuzurilor.",
+      "Hetzner Online GmbH (Germania) — găzduirea aplicației și a bazei de date, pe servere din Uniunea Europeană.",
+      "Stripe (Stripe Payments Europe Ltd., Irlanda, și afiliații săi, inclusiv din SUA) — procesarea plăților; pentru plată, Stripe acționează și ca operator independent, conform propriei politici.",
+      "Oblio Software SRL (România) — emiterea facturilor; facturile se transmit în sistemul RO e-Factura al ANAF.",
+      "Resend (Plus Five Five, Inc., SUA) — trimiterea e-mailurilor de serviciu (bun venit, resetarea parolei, confirmarea plății).",
+      "mydashboard.ro — instrumentul nostru intern de statistici, operat tot de noi, găzduit în UE; primește date doar cu acordul tău pentru cookie-uri analitice.",
+      "Google Ireland Ltd. (Google Analytics 4) și Meta Platforms Ireland Ltd. (Meta Pixel și Conversions API) — doar cu acordul tău, cu datele descrise în Politica de cookies. Pentru Meta, e-mailul se transmite doar sub formă de amprentă criptografică ireversibilă.",
+      "Autorități publice (de exemplu ANAF), atunci când legea ne obligă.",
     ],
   },
   {
-    title: "Cum sunt protejate",
+    title: "Transferuri în afara Spațiului Economic European",
     paragraphs: [
-      "Izolarea între utilizatori este impusă la nivelul bazei de date, nu doar în codul aplicației: politicile de securitate pe rânduri fac imposibil ca datele unui utilizator să fie returnate în contextul altuia, chiar și în cazul unei erori de programare.",
-      "Aplicația se conectează la baza de date cu un rol care nu are acces în afara schemei proiectului și nu poate modifica structura bazei.",
-      "Traficul este criptat integral prin HTTPS.",
-    ],
-  },
-  {
-    title: "Procesatori",
-    paragraphs: [
-      "Pentru generarea răspunsurilor și extragerea tiparelor folosim Anthropic (Claude). Conținutul trimis este prelucrat pentru a genera răspunsul și nu este folosit pentru antrenarea modelelor.",
-      "Pentru plăți folosim Stripe. Pentru găzduire, Vercel.",
-      "Pentru măsurarea traficului și a campaniilor, doar cu acordul tău, Meta Platforms Ireland Ltd. și Google Ireland Ltd. (vezi secțiunea despre cookie-uri).",
+      "Anthropic, Resend, Stripe, Google și Meta pot prelucra date în SUA. Transferurile se fac pe baza deciziei de adecvare a Comisiei Europene pentru Cadrul UE–SUA privind protecția datelor (Data Privacy Framework), pentru furnizorii certificați, și/sau pe baza clauzelor contractuale standard aprobate de Comisia Europeană, împreună cu măsurile suplimentare prevăzute în contractele acestor furnizori. Ne poți cere detalii la adresa de contact.",
     ],
   },
   {
     title: "Cât păstrăm datele",
     paragraphs: [
-      "Atât timp cât contul tău există. Ștergerea contului elimină definitiv conversațiile, harta, citatele și istoricul, fără copii de rezervă păstrate ulterior.",
-      "Documentele financiare se păstrează pe durata impusă de legislația fiscală.",
+      "Contul și conținutul Serviciului: cât timp contul există. Ștergerea contului elimină definitiv conversațiile, harta, citatele, istoricul și datele de consum din baza noastră de date.",
+      "Facturile și documentele financiare: 10 ani de la încheierea exercițiului financiar, conform Legii nr. 82/1991; ele se păstrează în platforma de facturare Oblio și în evidența contabilă, chiar dacă îți ștergi contul.",
+      "Sesiunile de autentificare expiră după 30 de zile; linkurile de resetare a parolei, după 60 de minute.",
+      "Alegerea privind cookie-urile: 6 luni. Datele din instrumentele de măsurare: conform setărilor acestora (de exemplu, Google Analytics: cel mult 14 luni).",
+      "Corespondența cu noi: cât este necesar pentru a rezolva cererea și, ulterior, cel mult 3 ani, pentru apărarea în eventuale litigii.",
+    ],
+  },
+  {
+    title: "Cum sunt protejate",
+    paragraphs: [
+      "Izolarea între utilizatori este impusă la nivelul bazei de date (politici de securitate pe rânduri), nu doar în codul aplicației. Aplicația se conectează cu un rol limitat la schema proiectului. Parolele sunt stocate doar ca amprente criptografice. Traficul este criptat integral prin HTTPS.",
     ],
   },
   {
     title: "Drepturile tale",
     paragraphs: [
-      "Ai dreptul de acces, rectificare, ștergere, restricționare, portabilitate și opoziție, conform Regulamentului (UE) 2016/679.",
-      `Le poți exercita scriind la ${SITE.email}. Răspundem în cel mult 30 de zile.`,
-      "Ai dreptul de a depune plângere la Autoritatea Națională de Supraveghere a Prelucrării Datelor cu Caracter Personal.",
+      "Conform Regulamentului (UE) 2016/679 (GDPR), ai dreptul: de acces la date; de rectificare; de ștergere; de restricționare a prelucrării; la portabilitate; de opoziție la prelucrările bazate pe interes legitim; de a-ți retrage oricând consimțământul, fără a afecta legalitatea prelucrării anterioare; de a nu face obiectul unei decizii bazate exclusiv pe prelucrare automată.",
+      <>
+        Multe le poți exercita singur, din pagina Setări: exportul complet al datelor (fișier JSON) și ștergerea contului. Pentru restul, scrie-ne la <Mail />. Răspundem în cel mult o lună de la primirea cererii, termen care poate fi prelungit în condițiile legii.
+      </>,
+      <>
+        Ai dreptul de a depune plângere la Autoritatea Națională de Supraveghere a Prelucrării Datelor cu Caracter Personal (ANSPDCP), B-dul G-ral. Gheorghe Magheru nr. 28-30, sector 1, București, <Ext href={ANSPDCP_URL}>www.dataprotection.ro</Ext>.
+      </>,
+    ],
+  },
+  {
+    title: "Minori",
+    paragraphs: [
+      "Serviciul este destinat exclusiv persoanelor de cel puțin 18 ani. Nu colectăm cu bună știință date ale minorilor; dacă aflăm că un cont aparține unui minor, îl ștergem.",
+    ],
+  },
+  {
+    title: "Modificări",
+    paragraphs: [
+      "Putem actualiza această politică. Versiunea și data intrării în vigoare sunt afișate la început; despre modificările importante te anunțăm prin e-mail.",
     ],
   },
 ];
 
 export default function ConfidentialitatePage() {
   return (
-    <>
-      <SiteHeader />
-      <main className="mx-auto max-w-3xl px-6 py-14 sm:py-20">
-        <h1 className="font-serif text-4xl leading-tight sm:text-5xl">
-          Politica de confidențialitate
-        </h1>
-        <p className="mt-4 text-sm text-paper-faint">
-          Ultima actualizare: 10 septembrie 2026
-        </p>
-        <p className="mt-6 leading-relaxed text-paper-dim">
+    <LegalDocument
+      title="Politica de confidențialitate"
+      intro={
+        <p>
           Ce scrii în {SITE.name} este printre cele mai personale conținuturi pe
           care le poate produce cineva. Documentul acesta spune exact ce facem cu
-          ele, în limbaj obișnuit.
+          ele, în limbaj obișnuit, conform art. 13 din GDPR.
         </p>
-
-        <div className="mt-12 space-y-10">
-          {SECTIONS.map((section) => (
-            <section key={section.title} className="border-t border-ink-line pt-8">
-              <h2 className="font-serif text-2xl text-paper">{section.title}</h2>
-              <div className="mt-4 space-y-3">
-                {section.paragraphs.map((text, i) => (
-                  <p key={i} className="leading-relaxed text-paper-dim">
-                    {text}
-                  </p>
-                ))}
-              </div>
-            </section>
-          ))}
-        </div>
-      </main>
-      <SiteFooter />
-    </>
+      }
+      sections={SECTIONS}
+    />
   );
 }

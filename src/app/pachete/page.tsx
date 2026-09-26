@@ -1,6 +1,7 @@
 import type { Metadata } from "next";
 
 import { BuyButton } from "@/components/BuyButton";
+import { CheckoutConsent } from "@/components/CheckoutConsent";
 import { SiteFooter } from "@/components/SiteFooter";
 import { SiteHeader } from "@/components/SiteHeader";
 import { TrackEvent } from "@/components/TrackEvent";
@@ -8,6 +9,7 @@ import { getSessionUser } from "@/lib/auth";
 import { getWallet } from "@/lib/billing/entitlement";
 import { listPacks } from "@/lib/billing/packs";
 import { withUser } from "@/lib/db";
+import { PRICE_NOTE } from "@/lib/legal";
 import { SITE, canonical } from "@/lib/site";
 
 export const metadata: Metadata = {
@@ -120,6 +122,7 @@ export default async function PachetePage() {
           </p>
         )}
 
+        <CheckoutConsent show={Boolean(user)}>
         <div className="mt-10 grid gap-4 sm:grid-cols-3">
           {packs.map((pack) => {
             const style = PACKS[pack.code] ?? NEUTRAL;
@@ -161,7 +164,7 @@ export default async function PachetePage() {
                   {pack.transformations >= pack.sessions
                     ? "o transformare la fiecare lecție"
                     : `${(pack.priceRon / pack.sessions).toFixed(0)} lei pe ședință`}{" "}
-                  · plată unică
+                  · plată unică · preț final
                 </p>
 
                 <ul className="mt-5 flex-1 space-y-2.5 text-sm text-paper-dim">
@@ -193,6 +196,12 @@ export default async function PachetePage() {
             );
           })}
         </div>
+        </CheckoutConsent>
+
+        <p className="mt-4 text-xs text-paper-faint">
+          Prețurile sunt în lei. {PRICE_NOTE} Plata se face cu cardul, prin
+          Stripe; factura se emite automat.
+        </p>
 
         <p className="mt-8 max-w-xl text-sm leading-relaxed text-paper-faint">
           O ședință înseamnă până la 25 de replici pe o temă, plus tot ce se

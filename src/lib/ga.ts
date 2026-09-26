@@ -7,7 +7,7 @@
  * rapoartele din cele două să spună aceeași poveste.
  */
 
-import { readConsent } from "./meta/consent";
+import { hasConsent } from "./meta/consent";
 import type { StandardEvent } from "./meta/pixel";
 
 export const GA_ID = process.env.NEXT_PUBLIC_GA_MEASUREMENT_ID ?? "";
@@ -22,13 +22,38 @@ declare global {
 }
 
 export function gaEnabled(): boolean {
-  return Boolean(GA_ID) && readConsent() === "granted";
+  return Boolean(GA_ID) && hasConsent("analytics");
 }
 
-/** Încarcă gtag.js o singură dată, cu consimțământul declarat înainte. */
-export function loadGa() {
+/** Stările Consent Mode v2 pentru o alegere din banner. */
+function consentState(choice: { analytics: boolean; marketing: boolean }) {
+  const ads = choice.marketing ? "granted" : "denied";
+  return {
+    ad_storage: ads,
+    ad_user_data: ads,
+    ad_personalization: ads,
+    analytics_storage: choice.analytics ? "granted" : "denied",
+  };
+}
+
+/** Alegerea schimbată după încărcare: Google o aplică fără reîncărcare. */
+export function gaConsentUpdate(choice: { analytics: boolean; marketing: boolean }) {
+  if (typeof window === "undefined" || !window.gtag) return;
+  window.gtag("consent", "update", consentState(choice));
+}
+
+/**
+ * Încarcă gtag.js o singură dată, doar cu acord pentru analiză. Consent Mode
+ * v2: întâi totul „denied” (implicit), apoi alegerea reală („update”), abia
+ * apoi `config`.
+ */
+export function loadGa(choice: { analytics: boolean; marketing: boolean }) {
   if (typeof window === "undefined" || !GA_ID) return;
-  if (window.gtag) return;
+  if (window.gtag) {
+    gaConsentUpdate(choice);
+    return;
+  }
+  if (!choice.analytics) return;
 
   window.dataLayer = window.dataLayer ?? [];
   const gtag: Gtag = function () {
@@ -38,14 +63,14 @@ export function loadGa() {
   };
   window.gtag = gtag;
 
-  // Consent Mode v2. Acordul e deja dat când ajungem aici (altfel nu se
-  // încarcă nimic), dar declarația explicită e ceea ce Google verifică.
   gtag("consent", "default", {
-    ad_storage: "granted",
-    ad_user_data: "granted",
-    ad_personalization: "granted",
-    analytics_storage: "granted",
+    ad_storage: "denied",
+    ad_user_data: "denied",
+    ad_personalization: "denied",
+    analytics_storage: "denied",
+    wait_for_update: 500,
   });
+  gtag("consent", "update", consentState(choice));
   gtag("js", new Date());
   // `send_page_view: false`: PageView-ul îl trimitem noi, la fiecare navigare,
   // sincron cu pixelul Meta.

@@ -3,6 +3,7 @@
 import { useRouter } from "next/navigation";
 import { useState } from "react";
 
+import { useCheckoutConsent } from "@/components/CheckoutConsent";
 import { track } from "@/lib/meta/pixel";
 
 /**
@@ -29,10 +30,17 @@ export function BuyButton({
   const router = useRouter();
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState("");
+  const consent = useCheckoutConsent();
 
   async function buy() {
     if (!loggedIn) {
       router.push(`/intra?redirect=${encodeURIComponent("/pachete")}`);
+      return;
+    }
+
+    if (!consent.accepted) {
+      consent.showError();
+      setError("Bifează mai sus acordul cu termenii ca să continui.");
       return;
     }
 
@@ -52,7 +60,7 @@ export function BuyButton({
       const res = await fetch("/api/checkout", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ pack, eventId }),
+        body: JSON.stringify({ pack, eventId, consent: true }),
       });
       const data = await res.json();
 

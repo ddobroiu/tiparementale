@@ -58,6 +58,8 @@ export const FOOTER_LINKS = [
       { href: "/despre", label: "Despre noi" },
       { href: "/confidentialitate", label: "Confidențialitate" },
       { href: "/termeni", label: "Termeni și condiții" },
+      { href: "/cookies", label: "Politica de cookies" },
+      { href: "/contact", label: "Contact și date firmă" },
     ],
   },
 ] as const;

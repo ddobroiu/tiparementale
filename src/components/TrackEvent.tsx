@@ -23,7 +23,8 @@ export function TrackEvent({
   useEffect(() => {
     let sent = false;
     function send() {
-      if (sent || readConsent() !== "granted") return;
+      const choice = readConsent();
+      if (sent || !choice || (!choice.analytics && !choice.marketing)) return;
       sent = true;
       // Pixelul se încarcă în MetaPixel; un tick de așteptare îi lasă loc.
       setTimeout(() => track(name, params), 0);

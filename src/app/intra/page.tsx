@@ -26,6 +26,8 @@ function AuthForm() {
   const [mode, setMode] = useState<"login" | "register">("login");
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
+  const [acceptTerms, setAcceptTerms] = useState(false);
+  const [sensitiveConsent, setSensitiveConsent] = useState(false);
   const [error, setError] = useState("");
   const [busy, setBusy] = useState(false);
 
@@ -44,7 +46,13 @@ function AuthForm() {
       res = await fetch("/api/auth", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ action: mode, email, password, eventId }),
+        body: JSON.stringify({
+          action: mode,
+          email,
+          password,
+          eventId,
+          ...(mode === "register" && { acceptTerms, sensitiveConsent }),
+        }),
       });
     } catch {
       setError("Nu am putut ajunge la server. Verifică internetul și încearcă din nou.");
@@ -111,6 +119,53 @@ function AuthForm() {
             className="w-full rounded-xl border border-ink-line bg-ink-soft px-4 py-3 text-paper outline-none placeholder:text-paper-faint focus:border-paper-faint"
           />
         </div>
+
+        {isRegister && (
+          <div className="space-y-3 pt-1 text-xs leading-relaxed text-paper-dim">
+            <label className="flex cursor-pointer items-start gap-3">
+              <input
+                type="checkbox"
+                required
+                checked={acceptTerms}
+                onChange={(e) => setAcceptTerms(e.target.checked)}
+                className="mt-0.5 h-4 w-4 shrink-0 accent-paper"
+              />
+              <span>
+                Am cel puțin 18 ani și sunt de acord cu{" "}
+                <Link href="/termeni" target="_blank" className="text-paper underline underline-offset-4">
+                  Termenii și condițiile
+                </Link>
+                . Am citit{" "}
+                <Link
+                  href="/confidentialitate"
+                  target="_blank"
+                  className="text-paper underline underline-offset-4"
+                >
+                  Politica de confidențialitate
+                </Link>
+                .
+              </span>
+            </label>
+            <label className="flex cursor-pointer items-start gap-3">
+              <input
+                type="checkbox"
+                required
+                checked={sensitiveConsent}
+                onChange={(e) => setSensitiveConsent(e.target.checked)}
+                className="mt-0.5 h-4 w-4 shrink-0 accent-paper"
+              />
+              <span>
+                Îmi dau consimțământul explicit ca datele pe care le scriu despre
+                gândurile, emoțiile și experiențele mele — inclusiv cele care pot
+                privi sănătatea mea — să fie prelucrate, inclusiv cu ajutorul
+                inteligenței artificiale, doar pentru furnizarea serviciului (art.
+                9 alin. 2 lit. a GDPR). Îl pot retrage oricând, prin ștergerea
+                contului. Înțeleg că serviciul nu este psihoterapie și nici
+                consultanță medicală.
+              </span>
+            </label>
+          </div>
+        )}
 
         <button
           type="submit"

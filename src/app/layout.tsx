@@ -3,6 +3,7 @@ import { Fraunces, Inter } from "next/font/google";
 
 import { CookieBanner } from "@/components/CookieBanner";
 import { MetaPixel } from "@/components/MetaPixel";
+import { organizationLegal } from "@/lib/legal";
 import { SITE } from "@/lib/site";
 import "./globals.css";
 
@@ -84,6 +85,7 @@ const organizationJsonLd = {
       "@type": "Organization",
       "@id": `${SITE.url}#organization`,
       name: SITE.name,
+      ...organizationLegal,
       url: SITE.url,
       email: SITE.email,
       description: SITE.description,
@@ -123,17 +125,13 @@ export default function RootLayout({
 }: Readonly<{ children: React.ReactNode }>) {
   return (
     <html lang="ro">
-      <head>
-        {/* mydashboard.ro: vizite, surse de trafic și legătura cu plățile (proiectul tiparementale) */}
-        <script defer src="https://mydashboard.ro/t.js" data-site="2c35558974bf50ff" />
-      </head>
       <body className={`${inter.variable} ${fraunces.variable} font-sans antialiased`}>
         <script
           type="application/ld+json"
           dangerouslySetInnerHTML={{ __html: JSON.stringify(organizationJsonLd) }}
         />
         {children}
-        {/* Pixelul Meta se încarcă doar după „Accept" din banner. */}
+        {/* GA4, mydashboard.ro și Meta Pixel se încarcă doar după acordul din banner. */}
         <MetaPixel />
         <CookieBanner />
       </body>
