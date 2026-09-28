@@ -1,5 +1,6 @@
 import { Resend } from "resend";
 
+import { alerta } from "@/lib/alerts";
 import { SITE } from "@/lib/site";
 
 /**
@@ -128,11 +129,13 @@ export async function sendEmail(content: EmailContent): Promise<boolean> {
 
     if (error) {
       console.error(`[email] ${error.name}: ${error.message} (către ${content.to})`);
+      void alerta("error", "resend", `Tipare Mentale: e-mailul „${content.subject}” nu a plecat: ${error.name}: ${error.message}`);
       return false;
     }
     return true;
   } catch (error) {
     console.error("[email] trimitere eșuată:", error);
+    void alerta("error", "resend", `Tipare Mentale: e-mailul „${content.subject}” nu a plecat: ${error instanceof Error ? error.message : String(error)}`);
     return false;
   }
 }
