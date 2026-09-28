@@ -87,6 +87,7 @@ const organizationJsonLd = {
       name: SITE.name,
       ...organizationLegal,
       url: SITE.url,
+      logo: `${SITE.url}/logo-512.png`,
       email: SITE.email,
       description: SITE.description,
     },

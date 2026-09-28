@@ -1,0 +1,47 @@
+# Tipare Mentale
+
+> Tipare Mentale (tiparementale.ro) este o aplicație web în limba română de auto-observație pentru adulții din România care vor să-și înțeleagă convingerile și tiparele de gândire despre bani, relații, muncă și despre ei înșiși. Prin conversații ghidate cu AI, convingerile care îți conduc reacțiile devin vizibile pe o hartă personală care crește în timp. Nu este terapie și nu pune diagnostice.
+
+Cum funcționează, pe scurt: (1) Identificare: ședințe ghidate pe teme (casa în care ai crescut, părinții, greșeala, rușinea, banii, munca, relațiile, rolul de părinte), din care harta se umple cu convingeri, frici, valori și tipare, fiecare cu citatul exact din care a fost dedusă; (2) Interpretare: confirmi, reformulezi sau respingi ce apare pe hartă și răspunzi la predicții de tip „te regăsești?”; (3) Transformare: pentru un tipar confirmat primești o convingere nouă, cu exerciții urmărite în timp, exemple, o carte și un film.
+
+Programul are 12 lecții, în 5 capitole (Rădăcini, Sinele, Relațiile, Bani și muncă, Ca părinte); o lecție înseamnă o ședință de până la 25 de replici. Lecția introductivă și predicțiile sunt gratuite la crearea contului. Pachetele, așa cum sunt afișate pe site: „Un tipar” 149 lei (4 ședințe, 2 transformări), „Harta completă” 349 lei (12 ședințe, 6 transformări), „Însoțire 3 luni” 599 lei (12 ședințe, 12 transformări). Plată unică, fără abonament, cu cardul prin Stripe; preț final, furnizorul nu este plătitor de TVA. Pachetele nu expiră.
+
+## Produs
+
+- [Cum funcționează](https://tiparementale.ro/cum-functioneaza): identificare, interpretare și transformare, pas cu pas
+- [Programul: 12 lecții](https://tiparementale.ro/program): lecțiile ghidate, pe capitole, și lecția introductivă gratuită
+- [Pachete și prețuri](https://tiparementale.ro/pachete): ce conține fiecare pachet și cât costă
+- [Întrebări frecvente](https://tiparementale.ro/intrebari): răspunsuri despre aplicație, date și plată
+- [Despre noi](https://tiparementale.ro/despre): cine face Tipare Mentale și de ce
+
+## Lecții
+
+- [Casa în care ai crescut](https://tiparementale.ro/program/casa-in-care-ai-crescut): atmosfera din familia de origine
+- [Relația cu mama](https://tiparementale.ro/program/relatia-cu-mama): cum aștepți să fii văzut și acceptat
+- [Relația cu tata](https://tiparementale.ro/program/relatia-cu-tata): respect, slăbiciune și siguranță
+- [Ce aveai voie să simți](https://tiparementale.ro/program/emotiile-acasa): emoțiile permise și interzise acasă
+- [Ce se întâmpla când greșeai](https://tiparementale.ro/program/cand-greseai): de unde vine felul în care îți vorbești după o greșeală
+- [Rușinea și cine te-a văzut](https://tiparementale.ro/program/rusinea): cum se instalează rușinea
+- [Toate lecțiile](https://tiparementale.ro/program): lista completă, inclusiv relațiile, banii, munca și rolul de părinte
+
+## Articole
+
+- [Toate articolele](https://tiparementale.ro/articole): articole despre convingeri și tipare
+- [Convingeri limitative](https://tiparementale.ro/articole/convingeri-limitative): cum le recunoști în propriile tale cuvinte
+- [Perfecționismul](https://tiparementale.ro/articole/perfectionism): de ce nu e despre standarde înalte
+- [Convingeri despre bani](https://tiparementale.ro/articole/convingeri-despre-bani): convingerile despre bani se moștenesc
+- [Tipare care se repetă](https://tiparementale.ro/articole/tipare-care-se-repeta): aceleași tipare, cu oameni diferiți
+- [Sindromul impostorului](https://tiparementale.ro/articole/sindromul-impostorului): de ce reușita nu te convinge
+- [Amânarea](https://tiparementale.ro/articole/amanarea): amânarea ca frică, nu lene
+- [Cum schimbi o convingere](https://tiparementale.ro/articole/cum-imi-schimb-o-convingere): cum schimbi efectiv o convingere despre tine
+
+## Informații legale
+
+- [Contact și date firmă](https://tiparementale.ro/contact): datele operatorului și adresa de e-mail
+- [Termeni și condiții](https://tiparementale.ro/termeni): condițiile de utilizare și cumpărare
+- [Politica de confidențialitate](https://tiparementale.ro/confidentialitate): cum sunt prelucrate datele personale
+- [Politica de cookies](https://tiparementale.ro/cookies): cookie-urile folosite pe site
+
+## Operator
+
+- CULOAREA DIN VIAȚA SA S.R.L., CUI 44820819. Contact exclusiv pe email: contact@tiparementale.ro
