@@ -90,7 +90,7 @@ export async function POST(request: Request) {
         },
       },
     ],
-    success_url: `${appUrl()}/harta?plata=reusita`,
+    success_url: `${appUrl()}/harta?plata=reusita&sid={CHECKOUT_SESSION_ID}`,
     cancel_url: `${appUrl()}/pachete?plata=anulata`,
     metadata: {
       ...tag,

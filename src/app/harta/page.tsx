@@ -1,5 +1,6 @@
 import { redirect } from "next/navigation";
 
+import { GaPurchase } from "@/components/GaPurchase";
 import { MapView } from "@/components/MapView";
 import type { SimilarPair } from "@/components/SimilarityPrompt";
 import { getSessionUser } from "@/lib/auth";
@@ -19,6 +20,7 @@ export default async function HartaPage(props: PageProps<"/harta">) {
   // dacă plata a mers. Creditarea propriu-zisă vine din webhook, nu de aici.
   const search = await props.searchParams;
   const justPaid = search.plata === "reusita";
+  const paidSession = justPaid && typeof search.sid === "string" ? search.sid : null;
 
   const data = await withUser(user.id, async (client) => {
     const { nodes, edges } = await loadGraph(client);
@@ -38,20 +40,41 @@ export default async function HartaPage(props: PageProps<"/harta">) {
         limit 5`,
     );
 
-    return { nodes, edges, wallet, similarPairs, lessons };
+    // Pentru evenimentul GA4 `purchase`: cumpărarea din sesiunea Stripe din URL,
+    // doar dacă e a acestui utilizator (RLS + filtrul explicit).
+    const paid = paidSession
+      ? (
+          await client.query<{ id: string; pack_code: string; amount_ron: string }>(
+            `select id, pack_code, amount_ron from purchases
+              where provider_ref = $1 and user_id = $2`,
+            [paidSession, user.id],
+          )
+        ).rows[0] ?? null
+      : null;
+
+    return { nodes, edges, wallet, similarPairs, lessons, paid };
   });
 
   return (
-    <MapView
-      initialNodes={data.nodes}
-      initialEdges={data.edges}
-      initialSimilarPairs={data.similarPairs as SimilarPair[]}
-      justPaid={justPaid}
-      initialAccount={{
-        sessionsLeft: data.wallet.sessionsLeft,
-        transformationsLeft: data.wallet.transformationsLeft,
-        lessons: data.lessons,
-      }}
-    />
+    <>
+      {data.paid && (
+        <GaPurchase
+          transactionId={data.paid.id}
+          value={Number(data.paid.amount_ron)}
+          pack={data.paid.pack_code}
+        />
+      )}
+      <MapView
+        initialNodes={data.nodes}
+        initialEdges={data.edges}
+        initialSimilarPairs={data.similarPairs as SimilarPair[]}
+        justPaid={justPaid}
+        initialAccount={{
+          sessionsLeft: data.wallet.sessionsLeft,
+          transformationsLeft: data.wallet.transformationsLeft,
+          lessons: data.lessons,
+        }}
+      />
+    </>
   );
 }

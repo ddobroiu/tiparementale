@@ -140,7 +140,7 @@ export function CookieBanner() {
         )}
 
         <div className="mt-4 flex flex-wrap justify-end gap-2">
-          <button onClick={() => answer({ analytics: false, marketing: false })} className={secondary}>
+          <button onClick={() => answer({ analytics: false, marketing: false })} className={primary}>
             Refuz
           </button>
           {settings ? (
