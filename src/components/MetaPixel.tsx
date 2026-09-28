@@ -3,6 +3,7 @@
 import { usePathname } from "next/navigation";
 import { useEffect, useRef } from "react";
 
+import { loadClarity, revokeClarity, syncClarityWithPath } from "@/lib/clarity";
 import { loadGa } from "@/lib/ga";
 import { CONSENT_EVENT, readConsent, type ConsentChoice } from "@/lib/meta/consent";
 import { loadPixel, setPixelConsent, trackPageView } from "@/lib/meta/pixel";
@@ -28,6 +29,10 @@ export function MetaPixel() {
 
       if (choice.analytics) loadMydashboard();
       else revokeMydashboard();
+
+      // Microsoft Clarity: doar cu acord analitic și niciodată în aplicație (lib/clarity.ts).
+      if (choice.analytics) loadClarity();
+      else revokeClarity();
 
       // GA se încarcă doar cu acord analitic; dacă e deja încărcat, primește
       // actualizarea Consent Mode (inclusiv „denied”).
@@ -56,6 +61,11 @@ export function MetaPixel() {
     // pathname e citit intenționat doar la pornire; navigarea e tratată mai jos.
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
+
+  // Clarity se oprește în aplicație (hartă, setări, autentificare, admin) și se reia în afara ei.
+  useEffect(() => {
+    syncClarityWithPath(pathname, readConsent()?.analytics ?? false);
+  }, [pathname]);
 
   // Navigarea în aplicație (fără reîncărcare) nu declanșează PageView singură.
   useEffect(() => {

@@ -43,7 +43,7 @@ const SECTIONS: LegalSection[] = [
       "Date de plată și facturare: pachetul cumpărat, suma, data, starea plății, numele, adresa de facturare și, pentru firme, codul fiscal (colectate de Stripe pe pagina de plată), numărul și seria facturii, acordul dat înainte de plată și versiunea termenilor. Datele cardului sunt introduse direct la Stripe; noi nu le vedem și nu le stocăm.",
       "Date de consum: câte ședințe și transformări ai folosit și costul tehnic al fiecărei prelucrări, pentru limitele contului.",
       <>
-        Date tehnice și de măsurare: alegerea privind cookie-urile și, doar cu acordul tău, datele colectate de Google Analytics, mydashboard.ro și Meta (pagini vizitate, sursa vizitei, identificatori de cookie, adresa IP, tipul de browser). Detalii în <A href="/cookies">Politica de cookies</A>.
+        Date tehnice și de măsurare: alegerea privind cookie-urile și, doar cu acordul tău, datele colectate de Google Analytics, mydashboard.ro, Microsoft Clarity și Meta (pagini vizitate, sursa vizitei, identificatori de cookie, adresa IP, tipul de browser). Detalii în <A href="/cookies">Politica de cookies</A>.
       </>,
       "Mesajele pe care ni le trimiți pe e-mail.",
     ],
@@ -77,14 +77,14 @@ const SECTIONS: LegalSection[] = [
       "Oblio Software SRL (România) — emiterea facturilor; facturile se transmit în sistemul RO e-Factura al ANAF.",
       "Resend (Plus Five Five, Inc., SUA) — trimiterea e-mailurilor de serviciu (bun venit, resetarea parolei, confirmarea plății).",
       "mydashboard.ro — instrumentul nostru intern de statistici, operat tot de noi, găzduit în UE; primește date doar cu acordul tău pentru cookie-uri analitice.",
-      "Google Ireland Ltd. (Google Analytics 4) și Meta Platforms Ireland Ltd. (Meta Pixel și Conversions API) — doar cu acordul tău, cu datele descrise în Politica de cookies. Pentru Meta, e-mailul se transmite doar sub formă de amprentă criptografică ireversibilă.",
+      "Google Ireland Ltd. (Google Analytics 4), Microsoft Corporation (Microsoft Clarity: hărți de clicuri și înregistrări ale sesiunii pe paginile publice, cu conținutul introdus mascat) și Meta Platforms Ireland Ltd. (Meta Pixel și Conversions API) — doar cu acordul tău, cu datele descrise în Politica de cookies. Pentru Meta, e-mailul se transmite doar sub formă de amprentă criptografică ireversibilă.",
       "Autorități publice (de exemplu ANAF), atunci când legea ne obligă.",
     ],
   },
   {
     title: "Transferuri în afara Spațiului Economic European",
     paragraphs: [
-      "Anthropic, Resend, Stripe, Google și Meta pot prelucra date în SUA. Transferurile se fac pe baza deciziei de adecvare a Comisiei Europene pentru Cadrul UE–SUA privind protecția datelor (Data Privacy Framework), pentru furnizorii certificați, și/sau pe baza clauzelor contractuale standard aprobate de Comisia Europeană, împreună cu măsurile suplimentare prevăzute în contractele acestor furnizori. Ne poți cere detalii la adresa de contact.",
+      "Anthropic, Resend, Stripe, Google, Microsoft și Meta pot prelucra date în SUA. Transferurile se fac pe baza deciziei de adecvare a Comisiei Europene pentru Cadrul UE–SUA privind protecția datelor (Data Privacy Framework), pentru furnizorii certificați, și/sau pe baza clauzelor contractuale standard aprobate de Comisia Europeană, împreună cu măsurile suplimentare prevăzute în contractele acestor furnizori. Ne poți cere detalii la adresa de contact.",
     ],
   },
   {

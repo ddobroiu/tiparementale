@@ -54,6 +54,18 @@ const ANALYTICS: Row[] = [
     purpose: "Vizita curentă și momentul ultimei activități (o vizită nouă începe după 30 de minute de pauză).",
     duration: "până la ștergere",
   },
+  {
+    name: "_clck",
+    provider: "Microsoft Clarity (Microsoft Corporation)",
+    purpose: "Statistici, hărți de clicuri și înregistrări ale sesiunii, cu conținutul introdus mascat: deosebește vizitatorii.",
+    duration: "1 an",
+  },
+  {
+    name: "_clsk",
+    provider: "Microsoft Clarity (Microsoft Corporation)",
+    purpose: "Leagă paginile vizitate într-o singură înregistrare a sesiunii.",
+    duration: "1 zi",
+  },
 ];
 
 const MARKETING: Row[] = [
@@ -116,7 +128,7 @@ const SECTIONS: LegalSection[] = [
   {
     title: "Analitice (doar cu acordul tău)",
     paragraphs: [
-      "Ne arată câți oameni vizitează site-ul, din ce surse vin și ce pagini citesc. Google Analytics rulează cu Google Consent Mode v2: fără acord, scriptul nu se încarcă deloc. Dacă refuzi, nici identificatorul mydashboard nu se creează și nu se transmite la plată.",
+      "Ne arată câți oameni vizitează site-ul, din ce surse vin și ce pagini citesc. Google Analytics rulează cu Google Consent Mode v2: fără acord, scriptul nu se încarcă deloc. Dacă refuzi, nici identificatorul mydashboard nu se creează și nu se transmite la plată. Microsoft Clarity se încarcă tot doar cu acord, numai pe paginile publice (niciodată în hartă, setări, autentificare sau admin), cu textul introdus mascat; datele pot fi prelucrate în SUA, în baza EU-US Data Privacy Framework.",
       <Table key="a" rows={ANALYTICS} />,
     ],
   },

@@ -86,7 +86,7 @@ function AuthForm() {
           : "Bine ai revenit. Harta te așteaptă unde ai lăsat-o."}
       </p>
 
-      <form onSubmit={submit} className="mt-8 space-y-3">
+      <form onSubmit={submit} className="mt-8 space-y-3" data-clarity-mask="true">
         <div>
           <label htmlFor="email" className="sr-only">
             Adresa de email

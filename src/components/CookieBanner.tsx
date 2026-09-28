@@ -84,7 +84,7 @@ export function CookieBanner() {
         </h2>
         <p className="mt-1 text-sm leading-relaxed text-paper-dim">
           Folosim cookie-uri strict necesare ca să funcționeze contul. Cu acordul
-          tău, folosim și cookie-uri analitice (Google Analytics, mydashboard.ro)
+          tău, folosim și cookie-uri analitice (Google Analytics, mydashboard.ro, Microsoft Clarity)
           și de marketing (Meta), ca să înțelegem de unde vin vizitatorii și dacă
           reclamele noastre ajută. Nimic din ce scrii în aplicație nu ajunge la
           ei.{" "}
@@ -117,7 +117,9 @@ export function CookieBanner() {
                 <span className="text-paper">Analitice</span>
                 <span className="block text-paper-faint">
                   Google Analytics 4 și mydashboard.ro: pagini vizitate, surse de
-                  trafic, legătura dintre vizită și plată.
+                  trafic, legătura dintre vizită și plată. Microsoft Clarity: hărți
+                  de clicuri și înregistrări ale sesiunii, cu textul mascat, doar pe
+                  paginile publice.
                 </span>
               </span>
             </label>
