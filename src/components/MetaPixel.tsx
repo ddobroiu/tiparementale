@@ -8,13 +8,14 @@ import { loadGa } from "@/lib/ga";
 import { CONSENT_EVENT, readConsent, type ConsentChoice } from "@/lib/meta/consent";
 import { loadPixel, setPixelConsent, trackPageView } from "@/lib/meta/pixel";
 import { loadMydashboard, revokeMydashboard } from "@/lib/mydashboard";
+import { loadTikTok, revokeTikTok, syncTikTokWithPath } from "@/lib/tiktok";
 
 /**
  * Încarcă scripturile de măsurare, fiecare doar cu acordul categoriei lui, și
  * raportează PageView la fiecare schimbare de pagină.
  *
  * - analitice: Google Analytics 4 (cu Consent Mode v2) și mydashboard.ro;
- * - marketing: Meta Pixel.
+ * - marketing: Meta Pixel și TikTok Pixel.
  *
  * Nu pune nimic în pagină până nu există acord; alegerile făcute ulterior din
  * banner se aplică fără reîncărcare (inclusiv retragerea acordului).
@@ -45,6 +46,10 @@ export function MetaPixel() {
         setPixelConsent(false);
       }
 
+      // TikTok Pixel: doar cu acord de marketing și nu pe căile excluse (lib/tiktok.ts).
+      if (choice.marketing) loadTikTok();
+      else revokeTikTok();
+
       if (lastPath.current === null && (choice.analytics || choice.marketing)) {
         trackPageView();
         lastPath.current = pathname;
@@ -65,6 +70,8 @@ export function MetaPixel() {
   // Clarity se oprește în aplicație (hartă, setări, autentificare, admin) și se reia în afara ei.
   useEffect(() => {
     syncClarityWithPath(pathname, readConsent()?.analytics ?? false);
+    // TikTok: page() la navigare (nu la prima încărcare, acoperită de loadTikTok), nu pe căile excluse.
+    syncTikTokWithPath(pathname, readConsent()?.marketing ?? false);
   }, [pathname]);
 
   // Navigarea în aplicație (fără reîncărcare) nu declanșează PageView singură.

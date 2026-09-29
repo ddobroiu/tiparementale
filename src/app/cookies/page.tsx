@@ -81,6 +81,18 @@ const MARKETING: Row[] = [
     purpose: "Reține clicul pe o reclamă Meta (doar când vii dintr-o reclamă).",
     duration: "3 luni",
   },
+  {
+    name: "_ttp",
+    provider: "TikTok Pixel (TikTok Technology Limited, Irlanda)",
+    purpose: "Identifică browserul pentru măsurarea eficienței reclamelor TikTok și retargeting.",
+    duration: "aprox. 13 luni",
+  },
+  {
+    name: "_tt_enable_cookie",
+    provider: "TikTok Pixel (TikTok Technology Limited, Irlanda)",
+    purpose: "Reține dacă cookie-urile TikTok Pixel sunt permise în browser.",
+    duration: "aprox. 13 luni",
+  },
 ];
 
 function Table({ rows }: { rows: Row[] }) {
@@ -136,6 +148,7 @@ const SECTIONS: LegalSection[] = [
     title: "Marketing (doar cu acordul tău)",
     paragraphs: [
       "Măsoară dacă reclamele noastre de pe Facebook și Instagram aduc vizitatori care își fac cont sau cumpără un pachet. Cu acord, aceleași evenimente (cont creat, începerea plății, plata) se trimit la Meta și de pe serverul nostru (Conversions API), cu adresa de e-mail doar sub formă de amprentă criptografică. Meta nu primește niciodată conținutul conversațiilor.",
+      "TikTok Pixel (TikTok Technology Limited, Irlanda) se încarcă tot doar cu acord de marketing, numai pe paginile publice (niciodată în hartă, setări, autentificare sau admin; singura excepție este revenirea după o plată reușită, doar pentru a înregistra plata: id-ul intern al comenzii, valoarea și pachetul, fără date personale). Scop: măsurarea eficienței reclamelor și retargeting. Datele pot fi transferate în afara UE (de exemplu în baza clauzelor contractuale standard).",
       <Table key="m" rows={MARKETING} />,
     ],
   },
@@ -150,7 +163,7 @@ const SECTIONS: LegalSection[] = [
     paragraphs: [
       <>
         Oricând, din linkul „Setări cookies” din subsolul fiecărei pagini sau de aici:{" "}
-        <CookieSettingsButton className="text-paper underline underline-offset-4" />. Retragerea acordului se aplică imediat, fără reîncărcare; identificatorii mydashboard se șterg din browser.
+        <CookieSettingsButton className="text-paper underline underline-offset-4" />. Retragerea acordului se aplică imediat, fără reîncărcare; identificatorii mydashboard și cookie-urile Clarity și TikTok se șterg din browser.
       </>,
       "Poți șterge sau bloca oricând cookie-urile și din setările browserului; blocarea celor strict necesare te va împiedica să intri în cont.",
       <>

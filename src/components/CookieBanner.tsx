@@ -85,7 +85,7 @@ export function CookieBanner() {
         <p className="mt-1 text-sm leading-relaxed text-paper-dim">
           Folosim cookie-uri strict necesare ca să funcționeze contul. Cu acordul
           tău, folosim și cookie-uri analitice (Google Analytics, mydashboard.ro, Microsoft Clarity)
-          și de marketing (Meta), ca să înțelegem de unde vin vizitatorii și dacă
+          și de marketing (Meta, TikTok), ca să înțelegem de unde vin vizitatorii și dacă
           reclamele noastre ajută. Nimic din ce scrii în aplicație nu ajunge la
           ei.{" "}
           <Link href="/cookies" className="underline underline-offset-4 hover:text-paper">
@@ -133,8 +133,9 @@ export function CookieBanner() {
               <span>
                 <span className="text-paper">Marketing</span>
                 <span className="block text-paper-faint">
-                  Meta Pixel și Conversions API: măsurarea reclamelor de pe
-                  Facebook și Instagram.
+                  Ne permite să măsurăm eficiența reclamelor (Meta Pixel și
+                  Conversions API pentru Facebook și Instagram, TikTok Pixel) și
+                  să îți arătăm reclame relevante.
                 </span>
               </span>
             </label>

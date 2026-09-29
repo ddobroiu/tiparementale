@@ -43,7 +43,7 @@ const SECTIONS: LegalSection[] = [
       "Date de plată și facturare: pachetul cumpărat, suma, data, starea plății, numele, adresa de facturare și, pentru firme, codul fiscal (colectate de Stripe pe pagina de plată), numărul și seria facturii, acordul dat înainte de plată și versiunea termenilor. Datele cardului sunt introduse direct la Stripe; noi nu le vedem și nu le stocăm.",
       "Date de consum: câte ședințe și transformări ai folosit și costul tehnic al fiecărei prelucrări, pentru limitele contului.",
       <>
-        Date tehnice și de măsurare: alegerea privind cookie-urile și, doar cu acordul tău, datele colectate de Google Analytics, mydashboard.ro, Microsoft Clarity și Meta (pagini vizitate, sursa vizitei, identificatori de cookie, adresa IP, tipul de browser). Detalii în <A href="/cookies">Politica de cookies</A>.
+        Date tehnice și de măsurare: alegerea privind cookie-urile și, doar cu acordul tău, datele colectate de Google Analytics, mydashboard.ro, Microsoft Clarity, Meta și TikTok (pagini vizitate, sursa vizitei, identificatori de cookie, adresa IP, tipul de browser). Detalii în <A href="/cookies">Politica de cookies</A>.
       </>,
       "Mesajele pe care ni le trimiți pe e-mail.",
     ],
@@ -55,7 +55,7 @@ const SECTIONS: LegalSection[] = [
       "Prelucrarea conținutului conversațiilor, care poate include date privind sănătatea: consimțământul tău explicit — art. 9 alin. (2) lit. a) GDPR, cerut separat la crearea contului. Îl poți retrage oricând ștergându-ți contul (din Setări) sau scriindu-ne; retragerea nu afectează prelucrarea făcută până atunci, dar fără acest consimțământ Serviciul nu mai poate fi furnizat.",
       "Facturarea și evidența contabilă: îndeplinirea obligațiilor legale — art. 6 alin. (1) lit. c) GDPR (Legea contabilității nr. 82/1991, Codul fiscal, legislația RO e-Factura).",
       "Securitatea Serviciului, prevenirea fraudei și a abuzului, limitele tehnice de consum, apărarea în caz de litigiu: interesul nostru legitim — art. 6 alin. (1) lit. f) GDPR.",
-      "Măsurarea traficului (Google Analytics, mydashboard.ro) și a campaniilor de publicitate (Meta Pixel și Conversions API): consimțământul tău — art. 6 alin. (1) lit. a) GDPR, dat din bannerul de cookie-uri și retras oricând din „Setări cookies”.",
+      "Măsurarea traficului (Google Analytics, mydashboard.ro) și a campaniilor de publicitate (Meta Pixel și Conversions API, TikTok Pixel): consimțământul tău — art. 6 alin. (1) lit. a) GDPR, dat din bannerul de cookie-uri și retras oricând din „Setări cookies”.",
       "Furnizarea adresei de e-mail și a parolei este necesară pentru cont, iar a datelor de facturare, pentru plată; fără ele nu putem încheia contractul. Restul datelor le furnizezi după cum alegi.",
     ],
   },
@@ -63,7 +63,7 @@ const SECTIONS: LegalSection[] = [
     title: "Ce NU facem",
     paragraphs: [
       "Nu vindem și nu închiriem datele tale.",
-      "Nu folosim conversațiile tale pentru antrenarea unor modele de inteligență artificială și nu le trimitem furnizorilor de publicitate. Meta și Google nu primesc niciodată conținutul conversațiilor, harta sau vreun element extras din ele.",
+      "Nu folosim conversațiile tale pentru antrenarea unor modele de inteligență artificială și nu le trimitem furnizorilor de publicitate. Meta, TikTok și Google nu primesc niciodată conținutul conversațiilor, harta sau vreun element extras din ele.",
       "Nu citim conversațiile utilizatorilor. Panoul nostru de administrare arată doar date de cont și de consum; accesul la conținut se face doar la cererea ta explicită, pentru suport.",
       "Serviciul nu ia decizii bazate exclusiv pe prelucrare automată care să producă efecte juridice asupra ta sau să te afecteze similar în mod semnificativ (art. 22 GDPR). Interpretările generate de inteligența artificială sunt propuneri pe care le confirmi sau le respingi tu.",
     ],
@@ -78,13 +78,14 @@ const SECTIONS: LegalSection[] = [
       "Resend (Plus Five Five, Inc., SUA) — trimiterea e-mailurilor de serviciu (bun venit, resetarea parolei, confirmarea plății).",
       "mydashboard.ro — instrumentul nostru intern de statistici, operat tot de noi, găzduit în UE; primește date doar cu acordul tău pentru cookie-uri analitice.",
       "Google Ireland Ltd. (Google Analytics 4), Microsoft Corporation (Microsoft Clarity: hărți de clicuri și înregistrări ale sesiunii pe paginile publice, cu conținutul introdus mascat) și Meta Platforms Ireland Ltd. (Meta Pixel și Conversions API) — doar cu acordul tău, cu datele descrise în Politica de cookies. Pentru Meta, e-mailul se transmite doar sub formă de amprentă criptografică ireversibilă.",
+      "TikTok Technology Limited (Irlanda) — TikTok Pixel, pentru măsurarea eficienței reclamelor și retargeting; doar cu acordul tău pentru cookie-uri de marketing, retras oricând din „Setări cookies” (cookie-urile de marketing se folosesc numai cu acord). Detalii în Politica de cookies.",
       "Autorități publice (de exemplu ANAF), atunci când legea ne obligă.",
     ],
   },
   {
     title: "Transferuri în afara Spațiului Economic European",
     paragraphs: [
-      "Anthropic, Resend, Stripe, Google, Microsoft și Meta pot prelucra date în SUA. Transferurile se fac pe baza deciziei de adecvare a Comisiei Europene pentru Cadrul UE–SUA privind protecția datelor (Data Privacy Framework), pentru furnizorii certificați, și/sau pe baza clauzelor contractuale standard aprobate de Comisia Europeană, împreună cu măsurile suplimentare prevăzute în contractele acestor furnizori. Ne poți cere detalii la adresa de contact.",
+      "Anthropic, Resend, Stripe, Google, Microsoft și Meta pot prelucra date în SUA; TikTok poate transfera date în afara Spațiului Economic European. Transferurile se fac pe baza deciziei de adecvare a Comisiei Europene pentru Cadrul UE–SUA privind protecția datelor (Data Privacy Framework), pentru furnizorii certificați, și/sau pe baza clauzelor contractuale standard aprobate de Comisia Europeană, împreună cu măsurile suplimentare prevăzute în contractele acestor furnizori. Ne poți cere detalii la adresa de contact.",
     ],
   },
   {

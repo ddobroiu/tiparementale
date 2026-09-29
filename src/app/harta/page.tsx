@@ -2,6 +2,7 @@ import { redirect } from "next/navigation";
 
 import { GaPurchase } from "@/components/GaPurchase";
 import { MapView } from "@/components/MapView";
+import { TikTokPurchase } from "@/components/TikTokPurchase";
 import type { SimilarPair } from "@/components/SimilarityPrompt";
 import { getSessionUser } from "@/lib/auth";
 import { getWallet } from "@/lib/billing/entitlement";
@@ -58,11 +59,18 @@ export default async function HartaPage(props: PageProps<"/harta">) {
   return (
     <>
       {data.paid && (
-        <GaPurchase
-          transactionId={data.paid.id}
-          value={Number(data.paid.amount_ron)}
-          pack={data.paid.pack_code}
-        />
+        <>
+          <GaPurchase
+            transactionId={data.paid.id}
+            value={Number(data.paid.amount_ron)}
+            pack={data.paid.pack_code}
+          />
+          <TikTokPurchase
+            transactionId={data.paid.id}
+            value={Number(data.paid.amount_ron)}
+            pack={data.paid.pack_code}
+          />
+        </>
       )}
       <MapView
         initialNodes={data.nodes}

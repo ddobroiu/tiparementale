@@ -11,6 +11,7 @@
  */
 
 import { gaPageView, gaTrack } from "../ga";
+import { trackTikTok } from "../tiktok";
 import { hasConsent } from "./consent";
 
 export const PIXEL_ID = process.env.NEXT_PUBLIC_META_PIXEL_ID ?? "";
@@ -81,8 +82,9 @@ export function setPixelConsent(granted: boolean) {
 }
 
 /**
- * Funcțiile de mai jos vorbesc și cu Google Analytics: un singur apel din
- * componente, ambele platforme primesc același eveniment.
+ * Funcțiile de mai jos vorbesc și cu Google Analytics (și, pentru
+ * ViewContent / InitiateCheckout, cu TikTok Pixel): un singur apel din
+ * componente, toate platformele primesc același eveniment.
  */
 export function trackPageView() {
   if (pixelEnabled() && window.fbq) window.fbq("track", "PageView");
@@ -98,5 +100,26 @@ export function track(
     window.fbq("track", event, params, { eventID: eventId });
   }
   gaTrack(event, params);
+  tiktokTrack(event, params);
   return eventId;
+}
+
+/** Evenimentele cu echivalent TikTok; trackTikTok nu face nimic fără acord de marketing. */
+function tiktokTrack(event: StandardEvent, params: Record<string, unknown>) {
+  if (event !== "ViewContent" && event !== "InitiateCheckout") return;
+  const ids = Array.isArray(params.content_ids) ? (params.content_ids as string[]) : [];
+  const value = typeof params.value === "number" ? params.value : undefined;
+  trackTikTok(event, {
+    value,
+    currency: typeof params.currency === "string" ? params.currency : "RON",
+    content_type: "product",
+    contents: ids.length
+      ? ids.map((id) => ({
+          content_id: id,
+          content_name: id,
+          quantity: 1,
+          ...(ids.length === 1 && value !== undefined ? { price: value } : {}),
+        }))
+      : undefined,
+  });
 }

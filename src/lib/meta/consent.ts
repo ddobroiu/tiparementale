@@ -3,7 +3,7 @@
  *
  * - necesare: sesiunea și alegerea de aici; mereu active, nu se cer;
  * - analitice: Google Analytics 4 și mydashboard.ro (vizite, surse de trafic);
- * - marketing: Meta Pixel și Conversions API.
+ * - marketing: Meta Pixel și Conversions API, TikTok Pixel.
  *
  * Alegerea se ține într-un cookie, nu doar în localStorage: serverul are
  * nevoie de ea ca să știe dacă poate trimite evenimente prin Conversions API
@@ -22,7 +22,7 @@ export const CONSENT_EVENT = "tm-consent";
 /** Cere bannerului să se redeschidă (linkul „Setări cookies”). */
 export const CONSENT_OPEN_EVENT = "tm-consent-open";
 /** Se schimbă doar când se schimbă categoriile sau furnizorii din ele. */
-export const CONSENT_VERSION = "2026-09-26";
+export const CONSENT_VERSION = "2026-09-29";
 /** Șase luni: după aceea întrebăm din nou. */
 const CONSENT_MAX_AGE = 60 * 60 * 24 * 182;
 

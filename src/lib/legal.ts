@@ -10,10 +10,10 @@
 
 import { SITE } from "./site";
 
-export const LEGAL_VERSION = "2026-09-26";
-export const LEGAL_VERSION_LABEL = "Versiunea 2";
+export const LEGAL_VERSION = "2026-09-29";
+export const LEGAL_VERSION_LABEL = "Versiunea 3";
 /** Data de intrare în vigoare, cum se afișează în pagini. */
-export const LEGAL_EFFECTIVE = "26.09.2026";
+export const LEGAL_EFFECTIVE = "29.09.2026";
 
 export const OPERATOR = {
   name: "CULOAREA DIN VIAȚA SA S.R.L.",
