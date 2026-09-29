@@ -4,7 +4,7 @@ import { Fraunces, Inter } from "next/font/google";
 import { CookieBanner } from "@/components/CookieBanner";
 import { MetaPixel } from "@/components/MetaPixel";
 import { organizationLegal } from "@/lib/legal";
-import { SITE } from "@/lib/site";
+import { OG_BASE, SITE } from "@/lib/site";
 import "./globals.css";
 
 const inter = Inter({
@@ -51,20 +51,13 @@ export const metadata: Metadata = {
   creator: SITE.name,
   publisher: SITE.name,
   category: "health",
-  alternates: { canonical: "/" },
-  openGraph: {
-    type: "website",
-    siteName: SITE.name,
-    locale: SITE.locale,
-    url: SITE.url,
-    title: `${SITE.name} — ${SITE.tagline}`,
-    description: SITE.description,
-  },
-  twitter: {
-    card: "summary_large_image",
-    title: `${SITE.name} — ${SITE.tagline}`,
-    description: SITE.description,
-  },
+  // Fără canonical aici: s-ar moșteni pe fiecare pagină fără canonical propriu
+  // (hartă, setări, intrare, resetare) și le-ar declara duplicate ale paginii
+  // principale. Fiecare pagină indexabilă își pune singură canonicalul.
+  // og:title / og:description / twitter:* se completează din titlul și
+  // descrierea fiecărei pagini (nu le fixăm aici pe cele ale paginii principale).
+  openGraph: { ...OG_BASE },
+  twitter: { card: "summary_large_image" },
   robots: {
     index: true,
     follow: true,

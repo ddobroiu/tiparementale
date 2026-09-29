@@ -6,7 +6,7 @@ import { SiteHeader } from "@/components/SiteHeader";
 import { canonical } from "@/lib/site";
 
 export const metadata: Metadata = {
-  title: "Cum funcționează",
+  title: "Cum funcționează harta convingerilor tale",
   description:
     "Identificare, interpretare, transformare. Cum se construiește harta " +
     "convingerilor tale din propriile cuvinte și ce faci cu ea mai departe.",

@@ -6,7 +6,7 @@ import { SiteHeader } from "@/components/SiteHeader";
 import { SITE, canonical } from "@/lib/site";
 
 export const metadata: Metadata = {
-  title: "Despre",
+  title: { absolute: `Despre ${SITE.name}: de ce există și unde ne oprim` },
   description:
     "De ce există Tipare Mentale, ce credem despre auto-observație și unde ne " +
     "oprim în mod deliberat.",

@@ -21,6 +21,18 @@ export const SITE = {
 } as const;
 
 /**
+ * Câmpurile Open Graph comune. `openGraph` dintr-o pagină înlocuiește complet
+ * pe cel din layout (merge superficial), așa că paginile care își setează
+ * propriul `openGraph` pornesc de aici. Titlul și descrierea OG se completează
+ * automat din `title` și `description` ale paginii când lipsesc.
+ */
+export const OG_BASE = {
+  type: "website",
+  siteName: SITE.name,
+  locale: SITE.locale,
+} as const;
+
+/**
  * Meniul. Fiecare secțiune are o culoare a ei, folosită peste tot unde apare
  * secțiunea: în meniu, pe pagina activă, pe carduri. Omul nu citește
  * etichete, recunoaște culori — iar un site întreg în alb pe negru îl obligă
