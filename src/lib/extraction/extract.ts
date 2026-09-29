@@ -6,6 +6,7 @@ import { ExtractionSchema, type Extraction } from "./schema";
 import { SYSTEM_INSTRUCTIONS, buildGraphIndex } from "./prompt";
 import { readUsage, type TokenUsage } from "@/lib/billing/pricing";
 import { EFFORT, MODELS, reasoningFor } from "@/lib/models";
+import { reportAiError, reportAnthropic } from "@/lib/ai-usage";
 
 /**
  * Munca grea: ce este convingere, ce se unește cu ce, ce se leagă de ce.
@@ -56,36 +57,43 @@ export async function runExtraction(input: ExtractionInput): Promise<ExtractionR
 
   const { thinking, effort } = reasoningFor(MODELS.extraction, EFFORT.extraction);
 
-  const response = await anthropic().messages.parse({
-    model: MODELS.extraction,
-    max_tokens: 16000,
-    ...(thinking ? { thinking } : {}),
-    system: [
-      {
-        type: "text",
-        text: SYSTEM_INSTRUCTIONS,
-        // Identic la fiecare rulare: rămâne în cache și nu se replătește.
-        cache_control: { type: "ephemeral" },
+  let response;
+  try {
+    response = await anthropic().messages.parse({
+      model: MODELS.extraction,
+      max_tokens: 16000,
+      ...(thinking ? { thinking } : {}),
+      system: [
+        {
+          type: "text",
+          text: SYSTEM_INSTRUCTIONS,
+          // Identic la fiecare rulare: rămâne în cache și nu se replătește.
+          cache_control: { type: "ephemeral" },
+        },
+        {
+          // Indexul se schimbă pe măsură ce harta crește, deci stă după breakpoint.
+          type: "text",
+          text: buildGraphIndex(input.nodes),
+        },
+      ],
+      messages: [
+        {
+          role: "user",
+          content:
+            "Bucata de conversație de prelucrat. Extrage doar din replicile lui " +
+            `(marcate „EL”), nu din ale interlocutorului.\n\n${transcript}`,
+        },
+      ],
+      output_config: {
+        ...(effort ? { effort } : {}),
+        format: zodOutputFormat(ExtractionSchema),
       },
-      {
-        // Indexul se schimbă pe măsură ce harta crește, deci stă după breakpoint.
-        type: "text",
-        text: buildGraphIndex(input.nodes),
-      },
-    ],
-    messages: [
-      {
-        role: "user",
-        content:
-          "Bucata de conversație de prelucrat. Extrage doar din replicile lui " +
-          `(marcate „EL”), nu din ale interlocutorului.\n\n${transcript}`,
-      },
-    ],
-    output_config: {
-      ...(effort ? { effort } : {}),
-      format: zodOutputFormat(ExtractionSchema),
-    },
-  });
+    });
+  } catch (err) {
+    reportAiError("anthropic", MODELS.extraction, "extractie", err);
+    throw err;
+  }
+  reportAnthropic("extractie", response.model ?? MODELS.extraction, response.usage);
 
   const usage = readUsage(response.usage);
 

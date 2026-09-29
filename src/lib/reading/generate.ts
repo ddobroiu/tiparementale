@@ -4,6 +4,7 @@ import * as z from "zod/v4";
 
 import { readUsage, type TokenUsage } from "@/lib/billing/pricing";
 import { EFFORT, MODELS, reasoningFor } from "@/lib/models";
+import { reportAiError, reportAnthropic } from "@/lib/ai-usage";
 import { SCHEMA_DOMAIN_LABELS, schemaOf } from "@/lib/schemas";
 import {
   DOMAIN_LABELS,
@@ -170,19 +171,26 @@ export async function generateReading(input: ReadingInput): Promise<ReadingOutco
 
   const { thinking, effort } = reasoningFor(READING_MODEL, EFFORT.transformation);
 
-  const response = await anthropic().messages.parse({
-    model: READING_MODEL,
-    max_tokens: 8000,
-    ...(thinking ? { thinking } : {}),
-    system: [
-      { type: "text", text: INSTRUCTIONS, cache_control: { type: "ephemeral" } },
-    ],
-    messages: [{ role: "user", content: context }],
-    output_config: {
-      ...(effort ? { effort } : {}),
-      format: zodOutputFormat(ReadingSchema),
-    },
-  });
+  let response;
+  try {
+    response = await anthropic().messages.parse({
+      model: READING_MODEL,
+      max_tokens: 8000,
+      ...(thinking ? { thinking } : {}),
+      system: [
+        { type: "text", text: INSTRUCTIONS, cache_control: { type: "ephemeral" } },
+      ],
+      messages: [{ role: "user", content: context }],
+      output_config: {
+        ...(effort ? { effort } : {}),
+        format: zodOutputFormat(ReadingSchema),
+      },
+    });
+  } catch (err) {
+    reportAiError("anthropic", READING_MODEL, "lectura", err);
+    throw err;
+  }
+  reportAnthropic("lectura", response.model ?? READING_MODEL, response.usage);
 
   const usage = readUsage(response.usage);
 

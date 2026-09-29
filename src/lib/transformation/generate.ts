@@ -6,6 +6,7 @@ import { DOMAIN_LABELS, NODE_TYPE_LABELS, displayLabel } from "@/lib/types";
 import type { MindNode, Observation } from "@/lib/types";
 import { readUsage, type TokenUsage } from "@/lib/billing/pricing";
 import { EFFORT, MODELS, reasoningFor } from "@/lib/models";
+import { reportAiError, reportAnthropic } from "@/lib/ai-usage";
 
 export const TRANSFORMATION_MODEL = MODELS.transformation;
 
@@ -193,23 +194,30 @@ export async function generateTransformation(
 
   const { thinking, effort } = reasoningFor(MODELS.transformation, EFFORT.transformation);
 
-  const response = await anthropic().messages.parse({
-    model: MODELS.transformation,
-    max_tokens: 16000,
-    ...(thinking ? { thinking } : {}),
-    system: [
-      {
-        type: "text",
-        text: INSTRUCTIONS,
-        cache_control: { type: "ephemeral" },
+  let response;
+  try {
+    response = await anthropic().messages.parse({
+      model: MODELS.transformation,
+      max_tokens: 16000,
+      ...(thinking ? { thinking } : {}),
+      system: [
+        {
+          type: "text",
+          text: INSTRUCTIONS,
+          cache_control: { type: "ephemeral" },
+        },
+      ],
+      messages: [{ role: "user", content: context }],
+      output_config: {
+        ...(effort ? { effort } : {}),
+        format: zodOutputFormat(TransformationSchema),
       },
-    ],
-    messages: [{ role: "user", content: context }],
-    output_config: {
-      ...(effort ? { effort } : {}),
-      format: zodOutputFormat(TransformationSchema),
-    },
-  });
+    });
+  } catch (err) {
+    reportAiError("anthropic", MODELS.transformation, "transformare", err);
+    throw err;
+  }
+  reportAnthropic("transformare", response.model ?? MODELS.transformation, response.usage);
 
   const usage = readUsage(response.usage);
 

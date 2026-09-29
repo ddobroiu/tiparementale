@@ -6,6 +6,7 @@ import { DOMAIN_LABELS, EXPLORABLE_DOMAINS, displayLabel, isFormed } from "@/lib
 import { ReplySchema, type Reply } from "@/lib/extraction/schema";
 import { readUsage, type TokenUsage } from "@/lib/billing/pricing";
 import { EFFORT, MODELS, reasoningFor } from "@/lib/models";
+import { reportAiError, reportAnthropic } from "@/lib/ai-usage";
 import { DEFAULT_TURNS_PER_STEP, getGuide, type Guide, type GuideStep } from "@/lib/guides";
 import { SCHEMA_BY_CODE } from "@/lib/schemas";
 
@@ -376,23 +377,30 @@ export async function runReply(input: ReplyInput): Promise<ReplyResult> {
     guide?.free ? EFFORT.replyIntro : EFFORT.reply,
   );
 
-  const response = await anthropic().messages.parse({
-    model,
-    max_tokens: 2000,
-    ...(thinking ? { thinking } : {}),
-    output_config: {
-      ...(effort ? { effort } : {}),
-      format: zodOutputFormat(ReplySchema),
-    },
-    system,
-    messages: [
-      ...input.history.slice(-HISTORY_TURNS).map((m) => ({
-        role: m.role,
-        content: m.content,
-      })),
-      { role: "user" as const, content: input.message },
-    ],
-  });
+  let response;
+  try {
+    response = await anthropic().messages.parse({
+      model,
+      max_tokens: 2000,
+      ...(thinking ? { thinking } : {}),
+      output_config: {
+        ...(effort ? { effort } : {}),
+        format: zodOutputFormat(ReplySchema),
+      },
+      system,
+      messages: [
+        ...input.history.slice(-HISTORY_TURNS).map((m) => ({
+          role: m.role,
+          content: m.content,
+        })),
+        { role: "user" as const, content: input.message },
+      ],
+    });
+  } catch (err) {
+    reportAiError("anthropic", model, "reply", err);
+    throw err;
+  }
+  reportAnthropic("reply", response.model ?? model, response.usage);
 
   const usage = readUsage(response.usage);
 

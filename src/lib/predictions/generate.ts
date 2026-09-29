@@ -4,6 +4,7 @@ import * as z from "zod/v4";
 
 import { readUsage, type TokenUsage } from "@/lib/billing/pricing";
 import { EFFORT, MODELS, reasoningFor } from "@/lib/models";
+import { reportAiError, reportAnthropic } from "@/lib/ai-usage";
 import { DOMAIN_LABELS, displayLabel, type MindNode } from "@/lib/types";
 
 /**
@@ -112,24 +113,31 @@ export async function generatePredictions(
 
   const { thinking, effort } = reasoningFor(MODELS.prediction, EFFORT.prediction);
 
-  const response = await anthropic().messages.parse({
-    model: MODELS.prediction,
-    max_tokens: 8000,
-    ...(thinking ? { thinking } : {}),
-    system: [
-      { type: "text", text: INSTRUCTIONS, cache_control: { type: "ephemeral" } },
-    ],
-    messages: [
-      {
-        role: "user",
-        content: `Convingeri confirmate de el:\n\n${context}`,
+  let response;
+  try {
+    response = await anthropic().messages.parse({
+      model: MODELS.prediction,
+      max_tokens: 8000,
+      ...(thinking ? { thinking } : {}),
+      system: [
+        { type: "text", text: INSTRUCTIONS, cache_control: { type: "ephemeral" } },
+      ],
+      messages: [
+        {
+          role: "user",
+          content: `Convingeri confirmate de el:\n\n${context}`,
+        },
+      ],
+      output_config: {
+        ...(effort ? { effort } : {}),
+        format: zodOutputFormat(PredictionsSchema),
       },
-    ],
-    output_config: {
-      ...(effort ? { effort } : {}),
-      format: zodOutputFormat(PredictionsSchema),
-    },
-  });
+    });
+  } catch (err) {
+    reportAiError("anthropic", MODELS.prediction, "predictii", err);
+    throw err;
+  }
+  reportAnthropic("predictii", response.model ?? MODELS.prediction, response.usage);
 
   const usage = readUsage(response.usage);
 
