@@ -55,16 +55,16 @@ export async function getPack(code: string): Promise<Pack | null> {
 export async function creditPurchase(
   client: PoolClient,
   providerRef: string,
-): Promise<{ credited: boolean; userId: string | null }> {
-  const { rows } = await client.query<{ user_id: string; pack_code: string }>(
+): Promise<{ credited: boolean; userId: string | null; purchaseId: string | null }> {
+  const { rows } = await client.query<{ id: string; user_id: string; pack_code: string }>(
     `update purchases set status = 'paid', completed_at = now()
       where provider_ref = $1 and status = 'pending'
-      returning user_id, pack_code`,
+      returning id, user_id, pack_code`,
     [providerRef],
   );
 
   const purchase = rows[0];
-  if (!purchase) return { credited: false, userId: null };
+  if (!purchase) return { credited: false, userId: null, purchaseId: null };
 
   await client.query(
     `update wallets w
@@ -76,5 +76,5 @@ export async function creditPurchase(
     [purchase.user_id, purchase.pack_code],
   );
 
-  return { credited: true, userId: purchase.user_id };
+  return { credited: true, userId: purchase.user_id, purchaseId: purchase.id };
 }

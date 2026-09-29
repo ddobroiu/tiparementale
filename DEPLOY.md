@@ -36,6 +36,8 @@ nano .env
 | `NEXT_PUBLIC_META_PIXEL_ID` | `28179062978410852` — datasetul „Tipare Mentale - Pixel" din Events Manager |
 | `META_CAPI_ACCESS_TOKEN` | Events Manager → dataset → Settings → Conversions API → Generate access token |
 | `META_TEST_EVENT_CODE` | doar cât testezi (Events Manager → Test events); în producție lasă gol |
+| `TIKTOK_EVENTS_TOKEN` | TikTok Events Manager → pixelul `DATG2MRC77U0AVP512OG` → Settings → Generate Access Token; CompletePayment din server după plată, doar cu acord de marketing (fără token nu se trimite nimic) |
+| `TIKTOK_PIXEL_ID`, `TIKTOK_TEST_EVENT_CODE` | opționale: pixelul (implicit cel de mai sus) și codul de test (doar cât testezi; în producție gol) |
 | `NEXT_PUBLIC_GA_MEASUREMENT_ID` | `G-3GPDWSW82V` — GA4, proprietatea „Tipare Mentale" (cont Culoarea din Viata SA SRL) |
 
 Pentru că baza e pe același server, `DATABASE_URL` poate folosi `127.0.0.1`

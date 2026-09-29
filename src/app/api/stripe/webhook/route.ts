@@ -8,6 +8,7 @@ import { isOblioConfigured, issueInvoice } from "@/lib/billing/oblio";
 import { sendMetaEvent } from "@/lib/meta/capi";
 import { parseConsent } from "@/lib/meta/consent";
 import { alerta } from "@/lib/alerts";
+import { sendTikTokPurchase } from "@/lib/tiktok-events";
 
 /**
  * Confirmarea plății, venită de la Stripe.
@@ -134,6 +135,23 @@ export async function POST(request: Request) {
         currency: (session.currency ?? "ron").toUpperCase(),
       },
     });
+
+    // TikTok CompletePayment (Events API), tot o singura data (la prima creditare), doar cu
+    // acordul de marketing salvat in sesiune; event_id = id-ul cumpararii, ca la pixel (TikTokPurchase).
+    if (result.purchaseId) {
+      const value = (session.amount_total ?? 0) / 100;
+      void sendTikTokPurchase({
+        eventId: result.purchaseId,
+        value,
+        currency: session.currency ?? "ron",
+        contents: [{ content_id: packCode ?? "pachet", content_name: packCode ?? pack?.name, quantity: 1, price: value }],
+        pageUrl: `${appUrl()}/harta`,
+        email: session.customer_details?.email ?? user?.email ?? session.customer_email,
+        phone: session.customer_details?.phone,
+        externalId: userId,
+        metadata: session.metadata,
+      });
+    }
   }
 
   // `credited: false` înseamnă că plata fusese deja onorată. Stripe retrimite

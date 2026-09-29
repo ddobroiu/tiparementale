@@ -6,13 +6,30 @@
  * trimita CompletePayment (fara page()).
  *
  * La retragerea acordului: `revokeConsent()` si stergerea cookie-urilor
- * _ttp / _tt_enable_cookie; la redare: `grantConsent()`.
+ * _ttp / _tt_enable_cookie / tt_ttclid; la redare: `grantConsent()`.
  */
 
 import { isClarityExcludedPath } from "./clarity";
 import { hasConsent } from "./meta/consent";
 
 export const TIKTOK_PIXEL_ID = process.env.NEXT_PUBLIC_TIKTOK_PIXEL_ID || "DATG2MRC77U0AVP512OG";
+
+// tt_ttclid: id-ul de click TikTok din URL-ul unei reclame, pastrat (doar cu acord de
+// marketing) ca plata sa-l poata trimite prin Events API (lib/tiktok-events.ts, server)
+const TTCLID_COOKIE = "tt_ttclid";
+const TIKTOK_COOKIES = ["_ttp", "_tt_enable_cookie", TTCLID_COOKIE];
+
+/** Pastreaza ?ttclid= din URL 30 de zile (apelat doar cu acord de marketing). */
+function captureTtclid() {
+  try {
+    const ttclid = new URLSearchParams(location.search).get("ttclid");
+    if (ttclid && ttclid.length <= 500) {
+      document.cookie = `${TTCLID_COOKIE}=${encodeURIComponent(ttclid)}; Path=/; Max-Age=${60 * 60 * 24 * 30}; SameSite=Lax${location.protocol === "https:" ? "; Secure" : ""}`;
+    }
+  } catch {
+    // nu strica niciodata pagina
+  }
+}
 
 declare global {
   interface Window {
@@ -50,6 +67,7 @@ function injectBaseCode() {
 export function loadTikTok(opts: { pathname?: string | null; allowExcluded?: boolean } = {}): boolean {
   if (!TIKTOK_PIXEL_ID || typeof document === "undefined") return false;
   if (!hasConsent("marketing")) return false;
+  captureTtclid();
   const path = opts.pathname ?? location.pathname;
   const excluded = isClarityExcludedPath(path);
   if (excluded && !opts.allowExcluded) return false;
@@ -97,7 +115,7 @@ export function revokeTikTok() {
   if (tiktokLoaded() && granted) window.ttq.revokeConsent();
   granted = false;
   const host = location.hostname.replace(/^www\./, "");
-  for (const name of ["_ttp", "_tt_enable_cookie"]) {
+  for (const name of TIKTOK_COOKIES) {
     for (const d of ["", `; Domain=${host}`, `; Domain=.${host}`, `; Domain=${location.hostname}`]) {
       document.cookie = `${name}=; Path=/; Max-Age=0${d}`;
     }

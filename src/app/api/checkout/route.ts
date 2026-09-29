@@ -1,3 +1,4 @@
+import { cookies } from "next/headers";
 import { NextResponse } from "next/server";
 
 import { getSessionUser } from "@/lib/auth";
@@ -7,6 +8,7 @@ import { withUser } from "@/lib/db";
 import { LEGAL_VERSION } from "@/lib/legal";
 import { readMetaClient, sendMetaEvent } from "@/lib/meta/capi";
 import { CONSENT_COOKIE, parseConsentCookie } from "@/lib/meta/consent";
+import { clientIp, tiktokCheckoutMetadata } from "@/lib/tiktok-events";
 
 /** Un cookie din cerere (vizitatorul mydashboard, `_md_vid`), ca plata să fie legată de sursa vizitei. */
 function readCookie(request: Request, name: string): string | null {
@@ -62,12 +64,22 @@ export async function POST(request: Request) {
 
   // Contul Stripe „Applications” e comun aplicatiilor: eticheta de proiect separa platile in mydashboard.
   // Vizitatorul mydashboard se trimite doar cu acord pentru cookie-uri analitice.
-  const analyticsOk = Boolean(parseConsentCookie(readCookie(request, CONSENT_COOKIE))?.analytics);
+  const consentChoice = parseConsentCookie(readCookie(request, CONSENT_COOKIE));
+  const analyticsOk = Boolean(consentChoice?.analytics);
   const mdVid = analyticsOk ? readCookie(request, "_md_vid") : null;
   const tag = {
     project: "tiparementale",
     ...(mdVid && { md_vid: mdVid }),
   };
+  // TikTok Events API (lib/tiktok-events.ts): acordul + _ttp/ttclid/IP/UA, doar cu acord de marketing
+  const jar = await cookies();
+  const tiktok = tiktokCheckoutMetadata({
+    marketing: Boolean(consentChoice?.marketing),
+    ttp: jar.get("_ttp")?.value,
+    ttclid: jar.get("tt_ttclid")?.value,
+    ip: clientIp(request.headers),
+    userAgent: request.headers.get("user-agent"),
+  });
   const session = await stripe().checkout.sessions.create({
     mode: "payment",
     customer_email: user.email,
@@ -105,6 +117,7 @@ export async function POST(request: Request) {
       metaFbc: meta.fbc ?? "",
       metaIp: meta.ip ?? "",
       metaUa: (meta.userAgent ?? "").slice(0, 500),
+      ...tiktok,
     },
   });
 

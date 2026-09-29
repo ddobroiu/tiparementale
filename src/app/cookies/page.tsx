@@ -93,6 +93,12 @@ const MARKETING: Row[] = [
     purpose: "Reține dacă cookie-urile TikTok Pixel sunt permise în browser.",
     duration: "aprox. 13 luni",
   },
+  {
+    name: "tt_ttclid",
+    provider: "Tipare Mentale (pentru TikTok)",
+    purpose: "Reține clicul pe o reclamă TikTok (doar când vii dintr-o reclamă), trimis la TikTok împreună cu plata.",
+    duration: "30 de zile",
+  },
 ];
 
 function Table({ rows }: { rows: Row[] }) {
@@ -148,7 +154,7 @@ const SECTIONS: LegalSection[] = [
     title: "Marketing (doar cu acordul tău)",
     paragraphs: [
       "Măsoară dacă reclamele noastre de pe Facebook și Instagram aduc vizitatori care își fac cont sau cumpără un pachet. Cu acord, aceleași evenimente (cont creat, începerea plății, plata) se trimit la Meta și de pe serverul nostru (Conversions API), cu adresa de e-mail doar sub formă de amprentă criptografică. Meta nu primește niciodată conținutul conversațiilor.",
-      "TikTok Pixel (TikTok Technology Limited, Irlanda) se încarcă tot doar cu acord de marketing, numai pe paginile publice (niciodată în hartă, setări, autentificare sau admin; singura excepție este revenirea după o plată reușită, doar pentru a înregistra plata: id-ul intern al comenzii, valoarea și pachetul, fără date personale). Scop: măsurarea eficienței reclamelor și retargeting. Datele pot fi transferate în afara UE (de exemplu în baza clauzelor contractuale standard).",
+      "TikTok Pixel (TikTok Technology Limited, Irlanda) se încarcă tot doar cu acord de marketing, numai pe paginile publice (niciodată în hartă, setări, autentificare sau admin; singura excepție este revenirea după o plată reușită, doar pentru a înregistra plata: id-ul intern al comenzii, valoarea și pachetul). Cu același acord, după o plată confirmată, serverul nostru trimite direct la TikTok (Events API) valoarea, moneda, pachetul și id-ul comenzii, e-mailul, telefonul și id-ul contului doar ca amprentă criptografică (SHA-256), adresa IP, browserul și identificatorii _ttp / tt_ttclid; fără acord nu se trimite nimic. TikTok nu primește niciodată conținutul conversațiilor. Scop: măsurarea eficienței reclamelor și retargeting. Datele pot fi transferate în afara UE (de exemplu în baza clauzelor contractuale standard).",
       <Table key="m" rows={MARKETING} />,
     ],
   },
