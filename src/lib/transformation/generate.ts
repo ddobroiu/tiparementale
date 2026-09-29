@@ -11,7 +11,11 @@ export const TRANSFORMATION_MODEL = MODELS.transformation;
 
 let client: Anthropic | null = null;
 function anthropic(): Anthropic {
-  client ??= new Anthropic();
+  client ??= new Anthropic({
+    defaultHeaders: process.env.ANTHROPIC_WORKSPACE_ID
+      ? { "anthropic-workspace-id": process.env.ANTHROPIC_WORKSPACE_ID }
+      : undefined,
+  });
   return client;
 }
 
