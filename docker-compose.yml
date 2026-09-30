@@ -14,7 +14,7 @@ services:
     container_name: tiparementale
     restart: unless-stopped
     ports:
-      - "3007:3000"
+      - "3001:3000"
     env_file:
       - .env
     environment:

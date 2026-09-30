@@ -10,7 +10,8 @@
 import { hasConsent } from "./meta/consent";
 import type { StandardEvent } from "./meta/pixel";
 
-export const GA_ID = process.env.NEXT_PUBLIC_GA_MEASUREMENT_ID ?? "";
+// Proprietatea GA4 "Tipare Mentale" (contul Culoarea din Viata SA SRL); variabila de mediu o poate suprascrie
+export const GA_ID = process.env.NEXT_PUBLIC_GA_MEASUREMENT_ID || "G-3GPDWSW82V";
 
 type Gtag = (...args: unknown[]) => void;
 
