@@ -46,7 +46,8 @@ export function hashToken(token: string): string {
   return createHash("sha256").update(token).digest("hex");
 }
 
-export async function createSession(userId: string): Promise<void> {
+/** Scrie sesiunea în bază și întoarce token-ul; cookie-ul îl pune apelantul. */
+export async function issueSession(userId: string): Promise<{ token: string; expiresAt: Date }> {
   const token = randomBytes(32).toString("base64url");
   const expiresAt = new Date(Date.now() + SESSION_DAYS * 24 * 60 * 60 * 1000);
 
@@ -54,15 +55,23 @@ export async function createSession(userId: string): Promise<void> {
     `insert into auth_sessions (user_id, token_hash, expires_at) values ($1, $2, $3)`,
     [userId, hashToken(token), expiresAt],
   );
+  return { token, expiresAt };
+}
 
-  const store = await cookies();
-  store.set(COOKIE, token, {
+export function sessionCookieOptions(expiresAt: Date) {
+  return {
     httpOnly: true,
-    sameSite: "lax",
+    sameSite: "lax" as const,
     secure: process.env.NODE_ENV === "production",
     path: "/",
     expires: expiresAt,
-  });
+  };
+}
+
+export async function createSession(userId: string): Promise<void> {
+  const { token, expiresAt } = await issueSession(userId);
+  const store = await cookies();
+  store.set(COOKIE, token, sessionCookieOptions(expiresAt));
 }
 
 export async function getSessionUser(): Promise<SessionUser | null> {

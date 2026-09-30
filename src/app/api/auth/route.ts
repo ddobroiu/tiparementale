@@ -18,7 +18,8 @@ import { readMetaClient, sendMetaEvent } from "@/lib/meta/capi";
 interface UserRow extends Record<string, unknown> {
   id: string;
   email: string;
-  password_hash: string;
+  /** NULL la conturile create cu Google, până își pun o parolă. */
+  password_hash: string | null;
 }
 
 /** Aceeași formulare pentru email inexistent și parolă greșită: nu confirmăm cine are cont. */
@@ -110,7 +111,7 @@ export async function POST(request: Request) {
     );
 
     const user = rows[0];
-    if (!user || !(await verifyPassword(password, user.password_hash))) {
+    if (!user || !user.password_hash || !(await verifyPassword(password, user.password_hash))) {
       return NextResponse.json({ error: CREDENTIALS_ERROR }, { status: 401 });
     }
 
