@@ -46,6 +46,7 @@ const SECTIONS: LegalSection[] = [
         Date tehnice și de măsurare: alegerea privind cookie-urile și, doar cu acordul tău, datele colectate de Google Analytics, mydashboard.ro, Microsoft Clarity, Meta și TikTok (pagini vizitate, sursa vizitei, identificatori de cookie, adresa IP, tipul de browser). Detalii în <A href="/cookies">Politica de cookies</A>.
       </>,
       "Mesajele pe care ni le trimiți pe e-mail.",
+      "E-mailuri: prenumele (dacă îl dai), alegerea privind e-mailurile cu noutăți și sfaturi și momentul ei, ce e-mailuri ți-am trimis și când, dezabonarea. Dacă ceri lecția introductivă pe e-mail fără cont: adresa, prenumele (opțional), pagina de pe care ai cerut-o, momentul și textul acordului.",
     ],
   },
   {
@@ -55,6 +56,8 @@ const SECTIONS: LegalSection[] = [
       "Prelucrarea conținutului conversațiilor, care poate include date privind sănătatea: consimțământul tău explicit — art. 9 alin. (2) lit. a) GDPR, cerut separat la crearea contului. Îl poți retrage oricând ștergându-ți contul (din Setări) sau scriindu-ne; retragerea nu afectează prelucrarea făcută până atunci, dar fără acest consimțământ Serviciul nu mai poate fi furnizat.",
       "Facturarea și evidența contabilă: îndeplinirea obligațiilor legale — art. 6 alin. (1) lit. c) GDPR (Legea contabilității nr. 82/1991, Codul fiscal, legislația RO e-Factura).",
       "Securitatea Serviciului, prevenirea fraudei și a abuzului, limitele tehnice de consum, apărarea în caz de litigiu: interesul nostru legitim — art. 6 alin. (1) lit. f) GDPR.",
+      "E-mailurile cu pași de început, sfaturi și noutăți despre propriile servicii, trimise celor care și-au creat cont: Legea nr. 506/2004, art. 12 alin. (2) și interesul nostru legitim — art. 6 alin. (1) lit. f) GDPR. Le poți refuza de la înscriere și te poți dezabona oricând, cu un click, din orice e-mail. Conținutul lor se bazează doar pe starea contului (de exemplu, dacă ai început lecția introductivă sau câte puncte are harta), niciodată pe conținutul conversațiilor.",
+      "Lecția introductivă trimisă pe e-mail vizitatorilor fără cont și un singur mesaj ulterior despre crearea contului: consimțământul tău — art. 6 alin. (1) lit. a) GDPR, dat prin bifa din formular și retras oricând prin dezabonare.",
       "Măsurarea traficului (Google Analytics, mydashboard.ro) și a campaniilor de publicitate (Meta Pixel și Conversions API, TikTok Pixel și Events API): consimțământul tău — art. 6 alin. (1) lit. a) GDPR, dat din bannerul de cookie-uri și retras oricând din „Setări cookies”.",
       "Furnizarea adresei de e-mail și a parolei este necesară pentru cont, iar a datelor de facturare, pentru plată; fără ele nu putem încheia contractul. Restul datelor le furnizezi după cum alegi.",
     ],
@@ -75,7 +78,7 @@ const SECTIONS: LegalSection[] = [
       "Hetzner Online GmbH (Germania) — găzduirea aplicației și a bazei de date, pe servere din Uniunea Europeană.",
       "Stripe (Stripe Payments Europe Ltd., Irlanda, și afiliații săi, inclusiv din SUA) — procesarea plăților; pentru plată, Stripe acționează și ca operator independent, conform propriei politici.",
       "Oblio Software SRL (România) — emiterea facturilor; facturile se transmit în sistemul RO e-Factura al ANAF.",
-      "Resend (Plus Five Five, Inc., SUA) — trimiterea e-mailurilor de serviciu (bun venit, resetarea parolei, confirmarea plății).",
+      "Resend (Plus Five Five, Inc., SUA) — trimiterea e-mailurilor de serviciu (bun venit, resetarea parolei, confirmarea plății) și a celor cu sfaturi și noutăți.",
       "mydashboard.ro — instrumentul nostru intern de statistici, operat tot de noi, găzduit în UE; primește date doar cu acordul tău pentru cookie-uri analitice.",
       "Google Ireland Ltd. (Google Analytics 4), Microsoft Corporation (Microsoft Clarity: hărți de clicuri și înregistrări ale sesiunii pe paginile publice, cu conținutul introdus mascat) și Meta Platforms Ireland Ltd. (Meta Pixel și Conversions API) — doar cu acordul tău, cu datele descrise în Politica de cookies. Pentru Meta, e-mailul se transmite doar sub formă de amprentă criptografică ireversibilă.",
       "TikTok Technology Limited (Irlanda) — TikTok Pixel și, după o plată confirmată, evenimentul de plată trimis de pe serverul nostru (Events API: valoarea, moneda, pachetul și id-ul comenzii, e-mailul, telefonul și id-ul contului ca amprentă SHA-256, adresa IP, browserul, identificatorii _ttp / tt_ttclid), pentru măsurarea eficienței reclamelor și retargeting; doar cu acordul tău pentru cookie-uri de marketing, retras oricând din „Setări cookies” (cookie-urile de marketing se folosesc numai cu acord). Detalii în Politica de cookies.",
@@ -93,6 +96,7 @@ const SECTIONS: LegalSection[] = [
     paragraphs: [
       "Contul și conținutul Serviciului: cât timp contul există. Ștergerea contului elimină definitiv conversațiile, harta, citatele, istoricul și datele de consum din baza noastră de date.",
       "Facturile și documentele financiare: 10 ani de la încheierea exercițiului financiar, conform Legii nr. 82/1991; ele se păstrează în platforma de facturare Oblio și în evidența contabilă, chiar dacă îți ștergi contul.",
+      "Cererile de lecție pe e-mail (fără cont): până la dezabonare sau până la ștergerea la cerere. Jurnalul e-mailurilor trimise: cât există contul sau cererea. Adresele dezabonate rămân pe lista de dezabonări, doar ca să nu mai primească nimic.",
       "Sesiunile de autentificare expiră după 30 de zile; linkurile de resetare a parolei, după 60 de minute.",
       "Alegerea privind cookie-urile: 6 luni. Datele din instrumentele de măsurare: conform setărilor acestora (de exemplu, Google Analytics: cel mult 14 luni).",
       "Corespondența cu noi: cât este necesar pentru a rezolva cererea și, ulterior, cel mult 3 ani, pentru apărarea în eventuale litigii.",

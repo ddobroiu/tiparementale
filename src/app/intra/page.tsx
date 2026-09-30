@@ -6,6 +6,7 @@ import { Logo } from "@/components/Logo";
 import { useSearchParams } from "next/navigation";
 import { Suspense, useState } from "react";
 
+import { SIGNUP_MARKETING_NOTICE, SIGNUP_OPT_OUT_LABEL } from "@/lib/lifecycle/consent";
 import { newEventId, track } from "@/lib/meta/pixel";
 
 /**
@@ -23,11 +24,16 @@ function AuthForm() {
   const params = useSearchParams();
   const redirect = safeRedirect(params.get("redirect"));
 
-  const [mode, setMode] = useState<"login" | "register">("login");
+  // `?cont=nou` (din e-mailuri și din formularul pentru vizitatori) deschide direct înscrierea.
+  const [mode, setMode] = useState<"login" | "register">(
+    params.get("cont") === "nou" ? "register" : "login",
+  );
+  const [firstName, setFirstName] = useState("");
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [acceptTerms, setAcceptTerms] = useState(false);
   const [sensitiveConsent, setSensitiveConsent] = useState(false);
+  const [marketingOptOut, setMarketingOptOut] = useState(false);
   const [error, setError] = useState("");
   const [busy, setBusy] = useState(false);
 
@@ -51,7 +57,7 @@ function AuthForm() {
           email,
           password,
           eventId,
-          ...(mode === "register" && { acceptTerms, sensitiveConsent }),
+          ...(mode === "register" && { acceptTerms, sensitiveConsent, firstName, marketingOptOut }),
         }),
       });
     } catch {
@@ -87,6 +93,24 @@ function AuthForm() {
       </p>
 
       <form onSubmit={submit} className="mt-8 space-y-3" data-clarity-mask="true">
+        {isRegister && (
+          <div>
+            <label htmlFor="firstName" className="sr-only">
+              Prenumele
+            </label>
+            <input
+              id="firstName"
+              type="text"
+              autoComplete="given-name"
+              maxLength={60}
+              value={firstName}
+              onChange={(e) => setFirstName(e.target.value)}
+              placeholder="Prenumele tău (opțional)"
+              className="w-full rounded-xl border border-ink-line bg-ink-soft px-4 py-3 text-paper outline-none placeholder:text-paper-faint focus:border-paper-faint"
+            />
+          </div>
+        )}
+
         <div>
           <label htmlFor="email" className="sr-only">
             Adresa de email
@@ -163,6 +187,16 @@ function AuthForm() {
                 contului. Înțeleg că serviciul nu este psihoterapie și nici
                 consultanță medicală.
               </span>
+            </label>
+            <p className="pt-1">{SIGNUP_MARKETING_NOTICE}</p>
+            <label className="flex cursor-pointer items-start gap-3">
+              <input
+                type="checkbox"
+                checked={marketingOptOut}
+                onChange={(e) => setMarketingOptOut(e.target.checked)}
+                className="mt-0.5 h-4 w-4 shrink-0 accent-paper"
+              />
+              <span>{SIGNUP_OPT_OUT_LABEL}</span>
             </label>
           </div>
         )}

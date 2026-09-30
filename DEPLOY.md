@@ -40,6 +40,7 @@ nano .env
 | `META_TEST_EVENT_CODE` | doar cât testezi (Events Manager → Test events); în producție lasă gol |
 | `TIKTOK_EVENTS_TOKEN` | TikTok Events Manager → pixelul `DATG2MRC77U0AVP512OG` → Settings → Generate Access Token; CompletePayment din server după plată, doar cu acord de marketing (fără token nu se trimite nimic) |
 | `TIKTOK_PIXEL_ID`, `TIKTOK_TEST_EVENT_CODE` | opționale: pixelul (implicit cel de mai sus) și codul de test (doar cât testezi; în producție gol) |
+| `CRON_SECRET` | șir aleator lung (`openssl rand -hex 32`) — cheia cronului de e-mailuri, vezi mai jos |
 | `NEXT_PUBLIC_GA_MEASUREMENT_ID` | `G-3GPDWSW82V` — GA4, proprietatea „Tipare Mentale" (cont Culoarea din Viata SA SRL) |
 
 Pentru că baza e pe același server, `DATABASE_URL` poate folosi `127.0.0.1`
@@ -111,3 +112,44 @@ Fără webhook, plățile reușesc la Stripe dar **nu creditează** contul.
   porni lecția introductivă „Regula pe care o porți” din hartă, gratuit
 - `node --env-file=.env.local scripts/spend.mjs` de pe calculatorul tău arată
   consumul real după primele conversații
+
+## E-mailurile după înscriere (cron)
+
+Bun venit, ziua 1 (doar fără prima conversație), ziua 3 (progresul real),
+ziua 7 (pachetele, doar fără plată), ziua de după plată, revenirea după 30
+de zile, plus lecția introductivă pe e-mail pentru vizitatori și o invitație
+la cont după 3 zile. Codul: `src/lib/lifecycle/`. Primesc doar conturile și
+vizitatorii creați **după** migrarea `0021_emailuri_ciclu_de_viata.sql`
+(momentul se fixează în `email_settings` când rulează), cel mult un e-mail la
+48 de ore (bun venit nu intră în regulă), niciodată cui a refuzat sau s-a
+dezabonat. Statistici: `/admin/emailuri`.
+
+1. **Înainte de deploy**, migrarea nouă (aditivă: tabelele `leads`,
+   `email_log`, `email_unsubscribes`, `email_settings` și coloanele
+   `users.marketing_opt_out`, `users.marketing_choice_at`):
+
+   ```bash
+   cd /opt/apps/tiparementale
+   docker compose run --rm app node scripts/migrate.mjs
+   ```
+
+   Fără ea, înscrierea pică (scrie în coloanele noi).
+
+2. În `.env`: `CRON_SECRET=` cu un șir aleator lung, apoi
+   `docker compose up -d --build`.
+
+3. Cronul, pe server (`crontab -e`), la 15 minute; secretul se citește din
+   `.env`, nu se scrie în crontab:
+
+   ```cron
+   */15 * * * * curl -fsS -m 120 -X POST -H "Authorization: Bearer $(grep -E '^CRON_SECRET=' /opt/apps/tiparementale/.env | cut -d= -f2-)" https://tiparementale.ro/api/cron/emails >/dev/null 2>&1
+   ```
+
+   Probă fără trimitere (doar numără ce ar pleca, pe feluri):
+
+   ```bash
+   curl -X POST -H "Authorization: Bearer $(grep -E '^CRON_SECRET=' /opt/apps/tiparementale/.env | cut -d= -f2-)" "https://tiparementale.ro/api/cron/emails?dry=1"
+   ```
+
+   Un lot are cel mult 50 de e-mailuri, cu 600 ms între ele; restul pleacă la
+   rularea următoare.

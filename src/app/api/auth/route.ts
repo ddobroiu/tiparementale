@@ -11,7 +11,8 @@ import {
 import { appUrl } from "@/lib/billing/stripe";
 import { query } from "@/lib/db";
 import { LEGAL_VERSION } from "@/lib/legal";
-import { sendPasswordResetEmail, sendWelcomeEmail } from "@/lib/email";
+import { sendPasswordResetEmail } from "@/lib/email";
+import { sendWelcomeNow } from "@/lib/lifecycle/run";
 import { readMetaClient, sendMetaEvent } from "@/lib/meta/capi";
 
 interface UserRow extends Record<string, unknown> {
@@ -60,10 +61,18 @@ export async function POST(request: Request) {
       );
     }
 
+    // Prenumele e opțional; îl folosim doar ca să ne adresăm omului în e-mailuri.
+    const firstName =
+      typeof body?.firstName === "string" ? body.firstName.trim().replace(/\s+/g, " ").slice(0, 60) : "";
+    // Bifa „Nu vreau e-mailuri cu noutăți și sfaturi” (Legea 506/2004, art. 12):
+    // nebifată implicit, alegerea se păstrează cu momentul ei.
+    const marketingOptOut = body?.marketingOptOut === true;
+
     const created = await query<UserRow>(
-      `insert into users (email, password_hash, terms_accepted_at, terms_version, sensitive_data_consent_at)
-       values ($1, $2, now(), $3, now()) returning id, email`,
-      [email, await hashPassword(password), LEGAL_VERSION],
+      `insert into users (email, password_hash, terms_accepted_at, terms_version, sensitive_data_consent_at,
+                          display_name, marketing_opt_out, marketing_choice_at)
+       values ($1, $2, now(), $3, now(), $4, $5, now()) returning id, email`,
+      [email, await hashPassword(password), LEGAL_VERSION, firstName || null, marketingOptOut],
     );
 
     await createSession(created[0].id);
@@ -85,7 +94,10 @@ export async function POST(request: Request) {
     // Contul există deja; e-mailul e o curtoazie, nu o condiție — și nu ține
     // răspunsul în loc: dacă serverul de e-mail răspunde greu, omul ar rămâne
     // blocat pe formular, cu contul făcut și harta neatinsă.
-    void sendWelcomeEmail(created[0].email, `${appUrl()}/harta`);
+    // Trece prin jurnalul e-mailurilor, ca cronul să nu-l mai trimită o dată.
+    void sendWelcomeNow({ id: created[0].id, email: created[0].email, name: firstName || null }).catch(
+      (error) => console.error("[auth] bun venit:", error),
+    );
     return NextResponse.json({ ok: true });
   }
 

@@ -33,6 +33,9 @@ export async function POST(request: Request) {
 
   // Fără RLS aici, intenționat: `users` nu are politici, iar cascada face restul.
   await query("delete from users where id = $1", [user.id]);
+  // Și cererea de lecție făcută înainte de cont, dacă există. Lista de
+  // dezabonări rămâne: altfel adresa ar putea reprimi e-mailuri.
+  await query("delete from leads where lower(email) = $1", [user.email.toLowerCase()]);
   await destroySession();
 
   return NextResponse.json({ ok: true });

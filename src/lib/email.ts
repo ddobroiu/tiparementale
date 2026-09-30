@@ -4,8 +4,8 @@ import { alerta } from "@/lib/alerts";
 import { SITE } from "@/lib/site";
 
 /**
- * E-mailurile pe care le trimite platforma: bun venit, resetarea parolei,
- * confirmarea unei cumpărări.
+ * E-mailurile pe care le trimite platforma: resetarea parolei, confirmarea
+ * unei cumpărări și, prin src/lib/lifecycle, cele de după înscriere.
  *
  * Niciun flux nu depinde de e-mail ca să reușească: contul se creează și
  * plata se creditează chiar dacă serverul de e-mail e jos. Trimiterea eșuată
@@ -28,7 +28,7 @@ function resend(): Resend {
   return client;
 }
 
-interface EmailContent {
+export interface EmailContent {
   to: string;
   subject: string;
   /** Titlul mare din e-mail. */
@@ -38,6 +38,12 @@ interface EmailContent {
   cta?: { label: string; url: string };
   /** Rândul mic de la final, de obicei „dacă n-ai cerut tu asta…”. */
   footnote?: string;
+  /**
+   * Linkul de dezabonare, pentru e-mailurile care nu sunt strict de serviciu.
+   * Apare în subsol și pleacă și în antetele List-Unsubscribe (un click, RFC
+   * 8058), ca Gmail și ceilalți să arate butonul lor de dezabonare.
+   */
+  unsubscribe?: { pageUrl: string; oneClickUrl: string };
 }
 
 function escapeHtml(text: string): string {
@@ -71,6 +77,10 @@ function render(content: EmailContent): { html: string; text: string } {
     ? `<p style="margin:24px 0 0;font-size:13px;line-height:1.6;color:#7a7a88">${escapeHtml(content.footnote)}</p>`
     : "";
 
+  const unsubscribe = content.unsubscribe
+    ? `<br>Nu mai vrei aceste e-mailuri? <a href="${escapeHtml(content.unsubscribe.pageUrl)}" style="color:#9a9aa8">Dezabonează-te</a>.`
+    : "";
+
   const html = `<!doctype html>
 <html lang="ro">
 <body style="margin:0;padding:0;background:#f4f3f0;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Inter,Roboto,sans-serif">
@@ -85,7 +95,7 @@ function render(content: EmailContent): { html: string; text: string } {
           ${footnote}
         </td></tr>
         <tr><td style="padding:20px 32px 28px;border-top:1px solid #e6e4df">
-          <p style="margin:0;font-size:12px;line-height:1.6;color:#9a9aa8">${escapeHtml(SITE.name)} · <a href="${SITE.url}" style="color:#9a9aa8">${SITE.domain}</a> · <a href="mailto:${SITE.email}" style="color:#9a9aa8">${SITE.email}</a><br>Nu este terapie. Este un instrument de auto-observație.</p>
+          <p style="margin:0;font-size:12px;line-height:1.6;color:#9a9aa8">${escapeHtml(SITE.name)} · <a href="${SITE.url}" style="color:#9a9aa8">${SITE.domain}</a> · <a href="mailto:${SITE.email}" style="color:#9a9aa8">${SITE.email}</a><br>Nu este terapie. Este un instrument de auto-observație.${unsubscribe}</p>
         </td></tr>
       </table>
     </td></tr>
@@ -101,6 +111,8 @@ function render(content: EmailContent): { html: string; text: string } {
     content.footnote ? `\n${content.footnote}` : "",
     "",
     `${SITE.name} · ${SITE.url} · ${SITE.email}`,
+    "Nu este terapie. Este un instrument de auto-observație.",
+    content.unsubscribe ? `Dezabonare: ${content.unsubscribe.pageUrl}` : "",
   ]
     .filter((line) => line !== undefined)
     .join("\n");
@@ -108,55 +120,60 @@ function render(content: EmailContent): { html: string; text: string } {
   return { html, text };
 }
 
-/** Trimite și spune dacă a reușit. Nu aruncă niciodată. */
-export async function sendEmail(content: EmailContent): Promise<boolean> {
+export interface SendResult {
+  ok: boolean;
+  /** Id-ul mesajului la Resend, când a plecat. */
+  id: string | null;
+  error: string | null;
+}
+
+/** Trimite și spune ce s-a întâmplat, cu id-ul de la Resend. Nu aruncă niciodată. */
+export async function sendEmailResult(content: EmailContent): Promise<SendResult> {
   if (!emailConfigured()) {
     console.warn(`[email] RESEND_API_KEY lipsește; nu s-a trimis „${content.subject}” către ${content.to}`);
-    return false;
+    return { ok: false, id: null, error: "RESEND_API_KEY lipsește" };
   }
 
   const { html, text } = render(content);
 
   try {
-    const { error } = await resend().emails.send({
+    const { data, error } = await resend().emails.send({
       from: FROM,
       to: content.to,
       replyTo: SITE.email,
       subject: content.subject,
       html,
       text,
+      ...(content.unsubscribe && {
+        headers: {
+          "List-Unsubscribe": `<${content.unsubscribe.oneClickUrl}>`,
+          "List-Unsubscribe-Post": "List-Unsubscribe=One-Click",
+        },
+      }),
     });
 
     if (error) {
       console.error(`[email] ${error.name}: ${error.message} (către ${content.to})`);
       void alerta("error", "resend", `Tipare Mentale: e-mailul „${content.subject}” nu a plecat: ${error.name}: ${error.message}`);
-      return false;
+      return { ok: false, id: null, error: `${error.name}: ${error.message}` };
     }
-    return true;
+    return { ok: true, id: data?.id ?? null, error: null };
   } catch (error) {
+    const message = error instanceof Error ? error.message : String(error);
     console.error("[email] trimitere eșuată:", error);
-    void alerta("error", "resend", `Tipare Mentale: e-mailul „${content.subject}” nu a plecat: ${error instanceof Error ? error.message : String(error)}`);
-    return false;
+    void alerta("error", "resend", `Tipare Mentale: e-mailul „${content.subject}” nu a plecat: ${message}`);
+    return { ok: false, id: null, error: message };
   }
+}
+
+/** Trimite și spune dacă a reușit. Nu aruncă niciodată. */
+export async function sendEmail(content: EmailContent): Promise<boolean> {
+  return (await sendEmailResult(content)).ok;
 }
 
 // ---------------------------------------------------------------- mesajele
 
-export function sendWelcomeEmail(to: string, mapUrl: string): Promise<boolean> {
-  return sendEmail({
-    to,
-    subject: "Harta ta a pornit",
-    heading: "Bine ai venit. Harta ta e goală, și asta e bine.",
-    paragraphs: [
-      "Lecția introductivă e gratuită: zece minute despre un singur lucru pe care îl faci mereu, deși te costă. Răspunde cum îți vine. Din ce spui, prima ta convingere apare pe hartă — cu citatul din care a fost dedusă.",
-      "Fiecare punct de pe hartă păstrează citatul exact din care a fost dedus. Poți confirma, respinge sau reformula orice. Nimic nu se hotărăște peste tine.",
-      "Ce scrii rămâne al tău: poți exporta sau șterge tot, oricând, din setări.",
-    ],
-    cta: { label: "Deschide harta", url: mapUrl },
-    footnote:
-      "Primești acest mesaj pentru că ți-ai creat un cont pe tiparementale.ro. Dacă n-ai fost tu, răspunde la acest e-mail și ștergem contul.",
-  });
-}
+// Bun venit: vezi src/lib/lifecycle/messages.ts (trece prin jurnalul e-mailurilor).
 
 export function sendPasswordResetEmail(to: string, resetUrl: string): Promise<boolean> {
   return sendEmail({

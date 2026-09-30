@@ -2,6 +2,7 @@ import type { Metadata, Viewport } from "next";
 import { Fraunces, Inter } from "next/font/google";
 
 import { CookieBanner } from "@/components/CookieBanner";
+import { LeadCapture } from "@/components/LeadCapture";
 import { MetaPixel } from "@/components/MetaPixel";
 import { organizationLegal } from "@/lib/legal";
 import { OG_BASE, SITE } from "@/lib/site";
@@ -128,6 +129,8 @@ export default function RootLayout({
         {/* GA4, mydashboard.ro și Meta Pixel se încarcă doar după acordul din banner. */}
         <MetaPixel />
         <CookieBanner />
+        {/* Lecția introductivă pe e-mail, pentru vizitatori; o singură dată, doar pe paginile publice. */}
+        <LeadCapture />
       </body>
     </html>
   );
