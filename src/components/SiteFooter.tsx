@@ -91,7 +91,10 @@ export function SiteFooter() {
           </p>
 
           <p className="mt-3 text-xs text-paper-faint">
-            © {new Date().getFullYear()} {OPERATOR.name}. Toate drepturile rezervate.
+            © {new Date().getFullYear()} {OPERATOR.name}. Toate drepturile rezervate. · Realizat de{" "}
+            <a href="https://e-web.ro" target="_blank" rel="noopener" className="underline-offset-2 hover:underline">
+              e-web.ro
+            </a>
           </p>
         </div>
       </div>
