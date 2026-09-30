@@ -103,7 +103,7 @@ export default async function PachetePage() {
           Un program pe o convingere, nu minute de chat.
         </h1>
         <p className="mt-5 max-w-xl leading-relaxed text-paper-dim">
-          Ghiduri construite pe terapia schemelor, predicții pe care le confirmi
+          Ghiduri inspirate din modelul schemelor (J. Young), nu psihoterapie, predicții pe care le confirmi
           sau le respingi, o convingere nouă cu exerciții urmărite în timp, și
           citirea hărții. Programele se cumpără o dată și{" "}
           <span className="text-paper">nu expiră niciodată</span> — nimeni nu

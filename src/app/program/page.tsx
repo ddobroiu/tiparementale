@@ -11,7 +11,7 @@ export const metadata: Metadata = {
   description:
     "Douăsprezece lecții în cinci module — casa în care ai crescut, mama, tata, " +
     "rușinea, banii, munca, relațiile, rolul de părinte. Conversații ghidate, " +
-    "construite pe terapia schemelor, în ordine: fiecare lecție o deschide pe " +
+    "inspirate din modelul schemelor (J. Young), fără a fi psihoterapie, în ordine: fiecare lecție o deschide pe " +
     "următoarea. O lecție = o ședință.",
   alternates: { canonical: canonical("/program") },
   openGraph: {
