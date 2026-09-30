@@ -40,6 +40,7 @@ nano .env
 | `META_TEST_EVENT_CODE` | doar cât testezi (Events Manager → Test events); în producție lasă gol |
 | `TIKTOK_EVENTS_TOKEN` | TikTok Events Manager → pixelul `DATG2MRC77U0AVP512OG` → Settings → Generate Access Token; CompletePayment din server după plată, doar cu acord de marketing (fără token nu se trimite nimic) |
 | `TIKTOK_PIXEL_ID`, `TIKTOK_TEST_EVENT_CODE` | opționale: pixelul (implicit cel de mai sus) și codul de test (doar cât testezi; în producție gol) |
+| `MYDASHBOARD_STATS_TOKEN` | `HMAC-SHA256(CRON_SECRET din mydashboard, "stats:tiparementale")` — mydashboard.ro citește `/api/mydashboard/stats` (conturi, vizitatori, e-mailuri, dezabonări, conversii, plăți); fără ea endpoint-ul răspunde 404 |
 | `CRON_SECRET` | șir aleator lung (`openssl rand -hex 32`) — cheia cronului de e-mailuri, vezi mai jos |
 | `NEXT_PUBLIC_GA_MEASUREMENT_ID` | `G-3GPDWSW82V` — GA4, proprietatea „Tipare Mentale" (cont Culoarea din Viata SA SRL) |
 
