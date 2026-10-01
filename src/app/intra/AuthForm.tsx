@@ -6,7 +6,7 @@ import { useSearchParams } from "next/navigation";
 import { useState } from "react";
 
 import { GoogleButton } from "@/components/GoogleButton";
-import { SIGNUP_MARKETING_NOTICE, SIGNUP_OPT_OUT_LABEL } from "@/lib/lifecycle/consent";
+import { SIGNUP_MARKETING_NOTICE } from "@/lib/lifecycle/consent";
 import { newEventId, track } from "@/lib/meta/pixel";
 import { safeRedirect } from "@/lib/redirect";
 
@@ -32,7 +32,6 @@ export function AuthForm({ googleEnabled }: { googleEnabled: boolean }) {
   const [password, setPassword] = useState("");
   const [acceptTerms, setAcceptTerms] = useState(false);
   const [sensitiveConsent, setSensitiveConsent] = useState(false);
-  const [marketingOptOut, setMarketingOptOut] = useState(false);
   const eroare = params.get("eroare");
   const [error, setError] = useState(
     eroare ? (SERVER_ERRORS[eroare] ?? "Ceva n-a mers. Încearcă din nou.") : "",
@@ -59,7 +58,7 @@ export function AuthForm({ googleEnabled }: { googleEnabled: boolean }) {
           email,
           password,
           eventId,
-          ...(mode === "register" && { acceptTerms, sensitiveConsent, firstName, marketingOptOut }),
+          ...(mode === "register" && { acceptTerms, sensitiveConsent, firstName }),
         }),
       });
     } catch {
@@ -88,8 +87,8 @@ export function AuthForm({ googleEnabled }: { googleEnabled: boolean }) {
 
   /**
    * Pe „Cont nou”, acordurile de mai sus sunt condiții și pentru contul creat
-   * cu Google: pleacă spre server odată cu alegerea privind e-mailurile. Pe
-   * „Intră” nu pleacă nimic, deci Google nu poate crea un cont de acolo.
+   * cu Google: pleacă spre server (`acord=1`). Pe „Intră” nu pleacă nimic,
+   * deci Google nu poate crea un cont de acolo.
    */
   function continueWithGoogle() {
     if (isRegister && !consentsGiven) {
@@ -97,10 +96,7 @@ export function AuthForm({ googleEnabled }: { googleEnabled: boolean }) {
       return;
     }
     const query = new URLSearchParams({ redirect });
-    if (isRegister) {
-      query.set("acord", "1");
-      query.set("email", marketingOptOut ? "out" : "in");
-    }
+    if (isRegister) query.set("acord", "1");
     // Ruta de API redirecționează spre Google: trebuie navigare completă, nu `router.push`.
     // eslint-disable-next-line @next/next/no-location-assign-relative-destination
     window.location.assign(`/api/auth/google?${query.toString()}`);
@@ -211,16 +207,7 @@ export function AuthForm({ googleEnabled }: { googleEnabled: boolean }) {
                 consultanță medicală.
               </span>
             </label>
-            <p className="pt-1">{SIGNUP_MARKETING_NOTICE}</p>
-            <label className="flex cursor-pointer items-start gap-3">
-              <input
-                type="checkbox"
-                checked={marketingOptOut}
-                onChange={(e) => setMarketingOptOut(e.target.checked)}
-                className="mt-0.5 h-4 w-4 shrink-0 accent-paper"
-              />
-              <span>{SIGNUP_OPT_OUT_LABEL}</span>
-            </label>
+            <p className="pt-1 text-paper-faint">{SIGNUP_MARKETING_NOTICE}</p>
           </div>
         )}
 

@@ -17,10 +17,10 @@ import { safeRedirect } from "@/lib/redirect";
  * trebuie să fie exact <NEXT_PUBLIC_APP_URL>/api/auth/callback/google.
  *
  * De pe „Cont nou”, butonul trimite și acordurile bifate în formular
- * (`acord=1`: termenii și consimțământul pentru datele sensibile) și alegerea
- * privind e-mailurile (`email=in|out`). Ele se țin într-un cookie scurt și se
- * folosesc doar dacă la întoarcere contul nu există încă. De pe „Intră” nu
- * vine nimic: fără acorduri, Google nu poate crea un cont nou.
+ * (`acord=1`: termenii și consimțământul pentru datele sensibile). Ele se țin
+ * într-un cookie scurt și se folosesc doar dacă la întoarcere contul nu există
+ * încă. De pe „Intră” nu vine nimic: fără acorduri, Google nu poate crea un
+ * cont nou.
  */
 const GOOGLE_AUTH_URL = "https://accounts.google.com/o/oauth2/v2/auth";
 const FLOW_SECONDS = 600;
@@ -52,9 +52,8 @@ export async function GET(request: NextRequest): Promise<NextResponse> {
   const search = request.nextUrl.searchParams;
   response.cookies.set(GOOGLE_REDIRECT_COOKIE, safeRedirect(search.get("redirect")), options);
 
-  const email = search.get("email");
-  if (search.get("acord") === "1" && (email === "in" || email === "out")) {
-    response.cookies.set(GOOGLE_SIGNUP_COOKIE, email, options);
+  if (search.get("acord") === "1") {
+    response.cookies.set(GOOGLE_SIGNUP_COOKIE, "1", options);
   } else {
     response.cookies.delete(GOOGLE_SIGNUP_COOKIE);
   }

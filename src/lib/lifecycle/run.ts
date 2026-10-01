@@ -19,7 +19,7 @@ import { loadSnapshot } from "./snapshot";
  *
  * Reguli, toate verificate aici, la fiecare rulare:
  *   - doar conturile și contactele create după lansare (`email_settings`);
- *   - niciodată cui a bifat „Nu vreau…”, s-a dezabonat sau e pe lista de
+ *   - niciodată cui a refuzat (vechea bifă „Nu vreau…”), s-a dezabonat sau e pe lista de
  *     dezabonări;
  *   - fiecare fel de e-mail o singură dată pe adresă (`email_log`);
  *   - cel mult un e-mail la 48 de ore pe adresă, în afară de bun venit;

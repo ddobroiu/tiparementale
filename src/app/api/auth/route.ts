@@ -65,15 +65,14 @@ export async function POST(request: Request) {
     // Prenumele e opțional; îl folosim doar ca să ne adresăm omului în e-mailuri.
     const firstName =
       typeof body?.firstName === "string" ? body.firstName.trim().replace(/\s+/g, " ").slice(0, 60) : "";
-    // Bifa „Nu vreau e-mailuri cu noutăți și sfaturi” (Legea 506/2004, art. 12):
-    // nebifată implicit, alegerea se păstrează cu momentul ei.
-    const marketingOptOut = body?.marketingOptOut === true;
-
+    // Anunțul de pe „Cont nou” (Legea 506/2004, art. 12 alin. 2), fără bifă de
+    // refuz: contul se creează cu marketing permis, alegerea datată acum.
+    // Refuzul se face din linkul de dezabonare din orice e-mail.
     const created = await query<UserRow>(
       `insert into users (email, password_hash, terms_accepted_at, terms_version, sensitive_data_consent_at,
                           display_name, marketing_opt_out, marketing_choice_at)
-       values ($1, $2, now(), $3, now(), $4, $5, now()) returning id, email`,
-      [email, await hashPassword(password), LEGAL_VERSION, firstName || null, marketingOptOut],
+       values ($1, $2, now(), $3, now(), $4, false, now()) returning id, email`,
+      [email, await hashPassword(password), LEGAL_VERSION, firstName || null],
     );
 
     await createSession(created[0].id);

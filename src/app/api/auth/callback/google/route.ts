@@ -42,7 +42,7 @@ export async function GET(request: NextRequest): Promise<NextResponse> {
   const state = url.searchParams.get("state");
   const storedState = request.cookies.get(GOOGLE_STATE_COOKIE)?.value;
   const back = safeRedirect(request.cookies.get(GOOGLE_REDIRECT_COOKIE)?.value);
-  const signupChoice = request.cookies.get(GOOGLE_SIGNUP_COOKIE)?.value;
+  const signupConsents = request.cookies.get(GOOGLE_SIGNUP_COOKIE)?.value === "1";
 
   const finish = (response: NextResponse) => {
     response.cookies.delete(GOOGLE_STATE_COOKIE);
@@ -102,16 +102,18 @@ export async function GET(request: NextRequest): Promise<NextResponse> {
       // Cont nou doar cu acordurile bifate pe „Cont nou” (termenii și
       // consimțământul explicit pentru datele sensibile, art. 9 GDPR) — ca la
       // parolă. De pe „Intră”, omul e trimis să le bifeze.
-      if (signupChoice !== "in" && signupChoice !== "out") return fail("google_fara_cont", true);
+      if (!signupConsents) return fail("google_fara_cont", true);
 
+      // Ca la parolă: marketing permis, alegerea datată acum (refuzul, din
+      // linkul de dezabonare din orice e-mail).
       // Prenumele, ca la înscrierea cu parolă: doar ca să ne adresăm omului.
       const firstName = (profile.given_name ?? "").trim().replace(/\s+/g, " ").slice(0, 60) || null;
       user = (
         await query<{ id: string }>(
           `insert into users (email, password_hash, google_sub, terms_accepted_at, terms_version,
                               sensitive_data_consent_at, display_name, marketing_opt_out, marketing_choice_at)
-           values ($1, null, $2, now(), $3, now(), $4, $5, now()) returning id`,
-          [email, profile.sub, LEGAL_VERSION, firstName, signupChoice === "out"],
+           values ($1, null, $2, now(), $3, now(), $4, false, now()) returning id`,
+          [email, profile.sub, LEGAL_VERSION, firstName],
         )
       )[0];
 

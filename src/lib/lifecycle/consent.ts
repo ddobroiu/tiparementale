@@ -7,7 +7,11 @@
 export const LEAD_CONSENT_TEXT =
   "Vreau să primesc lecția introductivă pe e-mail și, după câteva zile, un singur mesaj despre cum îmi fac un cont gratuit. Mă pot dezabona oricând, din orice e-mail.";
 
+/**
+ * Anunțul de la „Cont nou” (Legea 506/2004, art. 12 alin. 2): fără bifă de
+ * refuz. Orice cont nou — cu parolă sau prin Google — se înregistrează cu
+ * marketing permis (`marketing_opt_out = false`, `marketing_choice_at = now()`);
+ * refuzul se face din linkul de dezabonare din fiecare e-mail.
+ */
 export const SIGNUP_MARKETING_NOTICE =
-  "Îți trimitem pe e-mail pașii de început și, din când în când, sfaturi și noutăți despre Tipare Mentale. Te poți dezabona oricând, cu un click, din orice e-mail.";
-
-export const SIGNUP_OPT_OUT_LABEL = "Nu vreau emailuri cu noutăți și sfaturi";
+  "Îți putem trimite ocazional sfaturi și noutăți; te poți dezabona din orice e-mail.";
